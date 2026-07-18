@@ -37,4 +37,26 @@ class CityProblem {
 
   double get issueWeight =>
       (severity / 100) * (urgency / 100) * trend.multiplier;
+
+  CityProblem copyWith({
+    String? id,
+    String? title,
+    String? description,
+    CityIndicator? primaryIndicator,
+    List<CityIndicator>? relatedIndicators,
+    int? severity,
+    int? urgency,
+    ProblemTrend? trend,
+    List<String>? sdgTags,
+  }) => CityProblem(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    primaryIndicator: primaryIndicator ?? this.primaryIndicator,
+    relatedIndicators: relatedIndicators ?? this.relatedIndicators,
+    severity: severity ?? this.severity,
+    urgency: urgency ?? this.urgency,
+    trend: trend ?? this.trend,
+    sdgTags: sdgTags ?? this.sdgTags,
+  );
 }

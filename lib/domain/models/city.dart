@@ -16,11 +16,17 @@ class City {
   final CityIndicatorSet indicators;
   final List<CityProblem> problems;
 
-  City copyWith({CityIndicatorSet? indicators, int? term}) => City(
-    name: name,
-    summary: summary,
+  City copyWith({
+    String? name,
+    String? summary,
+    CityIndicatorSet? indicators,
+    int? term,
+    List<CityProblem>? problems,
+  }) => City(
+    name: name ?? this.name,
+    summary: summary ?? this.summary,
     term: term ?? this.term,
     indicators: indicators ?? this.indicators,
-    problems: problems,
+    problems: problems ?? this.problems,
   );
 }

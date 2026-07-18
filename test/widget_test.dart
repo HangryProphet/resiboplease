@@ -6,11 +6,20 @@ import 'package:resiboplease/core/state/game_controller.dart';
 import 'package:resiboplease/features/home/home_screen.dart';
 
 void main() {
-  testWidgets('main menu fits a 390 by 844 phone viewport', (tester) async {
+  void usePhoneViewport(WidgetTester tester) {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  Future<void> finishOverlayAnimation(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 320));
+  }
+
+  testWidgets('main menu fits a 390 by 844 phone viewport', (tester) async {
+    usePhoneViewport(tester);
 
     await tester.pumpWidget(const ResiboPleaseApp());
     await tester.pump();
@@ -28,14 +37,67 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('active run shows Continue and protects New City', (
+  testWidgets('How to Play opens as a full-screen paper game guide', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+    usePhoneViewport(tester);
+    await tester.pumpWidget(const ResiboPleaseApp());
+    await tester.pump();
 
+    await tester.tap(find.byKey(const Key('how_to_play_button')));
+    await finishOverlayAnimation(tester);
+
+    expect(find.byKey(const Key('how_to_play_sheet')), findsOneWidget);
+    expect(find.text('YOU ARE THE VOTER'), findsOneWidget);
+    expect(find.text('READ THE CITY'), findsOneWidget);
+    expect(find.text('CHECK THE CANDIDATES'), findsOneWidget);
+    expect(find.text('CHOOSE FOR YOURSELF'), findsOneWidget);
+    expect(find.text('WATCH THE TERM'), findsOneWidget);
+    await tester.drag(
+      find.byKey(const Key('how_to_play_sheet')),
+      const Offset(0, -450),
+    );
+    await tester.pump();
+    expect(find.text('FIND THE RECEIPTS'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('new-city flow shows five slots and saves a city name', (
+    tester,
+  ) async {
+    usePhoneViewport(tester);
+    await tester.pumpWidget(const ResiboPleaseApp());
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('start_bayhaven')));
+    await finishOverlayAnimation(tester);
+
+    expect(find.byKey(const Key('city_slots_page')), findsOneWidget);
+    for (var index = 0; index < GameController.saveSlotCount; index++) {
+      expect(find.byKey(Key('start_city_slot_$index')), findsOneWidget);
+    }
+
+    await tester.tap(find.byKey(const Key('start_city_slot_0')));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.byKey(const Key('city_name_page')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('city_name_field')),
+      'Harborlight',
+    );
+    await tester.tap(find.byKey(const Key('create_city_submit')));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump();
+
+    expect(find.text('Harborlight • Election brief'), findsOneWidget);
+    expect(find.text('The city before the vote'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('active run keeps a matching Start New City menu button', (
+    tester,
+  ) async {
+    usePhoneViewport(tester);
     final controller = GameController(activeRun: true);
     addTearDown(controller.dispose);
     await tester.pumpWidget(
@@ -50,35 +112,43 @@ void main() {
     expect(find.byKey(const Key('start_new_city_secondary')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('start_new_city_secondary')));
-    await tester.pump();
+    await finishOverlayAnimation(tester);
 
-    expect(find.text('Start a new city?'), findsOneWidget);
-    expect(find.text('Keep current city'), findsOneWidget);
-    expect(controller.hasActiveRun, isTrue);
-
-    await tester.tap(find.text('Keep current city'));
-    await tester.pump();
-    expect(find.text('Start a new city?'), findsNothing);
+    expect(find.byKey(const Key('city_slots_page')), findsOneWidget);
+    expect(find.text('OCCUPIED'), findsOneWidget);
+    expect(find.byKey(const Key('start_city_slot_1')), findsOneWidget);
     expect(controller.hasActiveRun, isTrue);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('opens the Bayhaven election brief', (tester) async {
-    await tester.pumpWidget(const ResiboPleaseApp());
+  testWidgets('Continue City offers continue and confirmed delete actions', (
+    tester,
+  ) async {
+    usePhoneViewport(tester);
+    final controller = GameController(activeRun: true);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildResiboTheme(),
+        home: HomeScreen(controller: controller),
+      ),
+    );
     await tester.pump();
 
-    expect(find.text('RESIBO,'), findsNWidgets(2));
-    expect(find.text('PLEASE'), findsOneWidget);
-    expect(find.textContaining('fictional', findRichText: true), findsWidgets);
+    await tester.tap(find.byKey(const Key('continue_city')));
+    await finishOverlayAnimation(tester);
+    expect(find.byKey(const Key('continue_city_slot_0')), findsOneWidget);
+    expect(find.byKey(const Key('delete_city_slot_0')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('start_bayhaven')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.pump();
+    await tester.tap(find.byKey(const Key('delete_city_slot_0')));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.byKey(const Key('delete_city_confirmation')), findsOneWidget);
+    expect(controller.hasActiveRun, isTrue);
 
-    expect(find.text('The city before the vote'), findsOneWidget);
-    expect(find.text('Post-flood water contamination'), findsOneWidget);
-    expect(find.text('Rising unemployment'), findsOneWidget);
-    expect(find.text('Overcrowded public clinics'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('confirm_delete_city')));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(controller.hasActiveRun, isFalse);
+    expect(find.textContaining('was removed from Save Slot 1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

@@ -48,4 +48,24 @@ class EvidenceItem {
   final String details;
   final TruthStatus truthStatus;
   final int reliability;
+
+  EvidenceItem copyWith({
+    String? id,
+    EvidenceType? type,
+    String? title,
+    String? source,
+    String? summary,
+    String? details,
+    TruthStatus? truthStatus,
+    int? reliability,
+  }) => EvidenceItem(
+    id: id ?? this.id,
+    type: type ?? this.type,
+    title: title ?? this.title,
+    source: source ?? this.source,
+    summary: summary ?? this.summary,
+    details: details ?? this.details,
+    truthStatus: truthStatus ?? this.truthStatus,
+    reliability: reliability ?? this.reliability,
+  );
 }

@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/resibo_theme.dart';
 import '../../core/state/game_controller.dart';
 import '../../game/main_menu_atmosphere_game.dart';
+import 'widgets/city_slots_overlay.dart';
+import 'widgets/how_to_play_overlay.dart';
 import 'widgets/menu_action_button.dart';
 import 'widgets/resibo_logo.dart';
 
@@ -376,19 +378,28 @@ class _MenuActions extends StatelessWidget {
           ),
           label: controller.hasActiveRun ? 'Continue City' : 'Start New City',
           color: const Color(0xFFC5483E),
-          onPressed: () => controller.hasActiveRun
-              ? context.go('/city')
-              : _startNewCity(context),
+          onPressed: () => _openCitySlots(
+            context,
+            controller.hasActiveRun
+                ? CitySlotsMode.continueRun
+                : CitySlotsMode.start,
+          ),
         ),
         if (controller.hasActiveRun) ...[
-          const SizedBox(height: 10),
-          _SecondaryNewCityButton(onPressed: () => _startNewCity(context)),
+          const SizedBox(height: 12),
+          MenuActionButton(
+            buttonKey: const Key('start_new_city_secondary'),
+            label: 'Start New City',
+            color: const Color(0xFF8F4550),
+            onPressed: () => _openCitySlots(context, CitySlotsMode.start),
+          ),
         ],
         const SizedBox(height: 12),
         MenuActionButton(
+          buttonKey: const Key('how_to_play_button'),
           label: 'How to Play',
           color: const Color(0xFF2C70A8),
-          onPressed: () => _showHowToPlay(context),
+          onPressed: () => showHowToPlayOverlay(context),
         ),
         const SizedBox(height: 12),
         MenuActionButton(
@@ -413,63 +424,14 @@ class _MenuActions extends StatelessWidget {
     ),
   );
 
-  Future<void> _startNewCity(BuildContext context) async {
-    if (controller.hasActiveRun) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          icon: const Icon(
-            Icons.warning_amber_rounded,
-            color: Color(0xFFC5483E),
-            size: 36,
-          ),
-          title: const Text('Start a new city?'),
-          content: const Text(
-            'Your current Bayhaven run will be replaced. This cannot be undone.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Keep current city'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Start new city'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !context.mounted) return;
-    }
-
-    controller.startNewRun();
-    if (context.mounted) context.go('/city');
+  Future<void> _openCitySlots(BuildContext context, CitySlotsMode mode) async {
+    final openCity = await showCitySlotsOverlay(
+      context: context,
+      controller: controller,
+      mode: mode,
+    );
+    if (openCity && context.mounted) context.go('/city');
   }
-
-  void _showHowToPlay(BuildContext context) => _showPaperDialog(
-    context,
-    title: 'How to Play',
-    icon: Icons.menu_book_rounded,
-    body: const Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _GuideStep(number: '1', text: 'Review Bayhaven’s urgent problems.'),
-        _GuideStep(
-          number: '2',
-          text: 'Open candidate dossiers and compare evidence.',
-        ),
-        _GuideStep(
-          number: '3',
-          text: 'Choose without a match score or recommendation.',
-        ),
-        _GuideStep(
-          number: '4',
-          text: 'Watch one seeded term and inspect its consequences.',
-        ),
-      ],
-    ),
-  );
 
   void _showVisits(BuildContext context) => _showPaperDialog(
     context,
@@ -543,63 +505,6 @@ class _MenuActions extends StatelessWidget {
           child: const Text('Got it'),
         ),
       ],
-    ),
-  );
-}
-
-class _SecondaryNewCityButton extends StatelessWidget {
-  const _SecondaryNewCityButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => FractionallySizedBox(
-    widthFactor: .76,
-    child: Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: const [
-          BoxShadow(color: Color(0xB0000000), offset: Offset(0, 4)),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: Color(0xFF101820), width: 3),
-        ),
-        child: Ink(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF9C5960), Color(0xFF71373D)],
-            ),
-          ),
-          child: InkWell(
-            key: const Key('start_new_city_secondary'),
-            onTap: onPressed,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              child: Text(
-                'START NEW CITY',
-                maxLines: 1,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFFFFF1CF),
-                  fontFamily: 'LilitaOne',
-                  fontSize: 14,
-                  letterSpacing: .5,
-                  shadows: [
-                    Shadow(color: Colors.black54, offset: Offset(1, 2)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     ),
   );
 }
@@ -703,34 +608,6 @@ class _SettingsInfoRow extends StatelessWidget {
             ],
           ),
         ),
-      ],
-    ),
-  );
-}
-
-class _GuideStep extends StatelessWidget {
-  const _GuideStep({required this.number, required this.text});
-
-  final String number;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 13,
-          backgroundColor: ResiboColors.navy,
-          foregroundColor: Colors.white,
-          child: Text(
-            number,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(child: Text(text)),
       ],
     ),
   );

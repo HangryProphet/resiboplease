@@ -24,7 +24,9 @@ class CityOverviewScreen extends StatelessWidget {
       CityIndicator.climateResilience,
     ];
     return Scaffold(
-      appBar: AppBar(title: Text('${city.name} • Election brief')),
+      appBar: AppBar(
+        title: Text('${controller.activeCityName} • Election brief'),
+      ),
       body: ListView(
         children: [
           ContentShell(

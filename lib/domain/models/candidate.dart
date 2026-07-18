@@ -21,6 +21,24 @@ class CandidateCapabilities {
   final int corruptionRisk;
 
   int policyFor(CityIndicator indicator) => policyScores[indicator] ?? 50;
+
+  CandidateCapabilities copyWith({
+    Map<CityIndicator, int>? policyScores,
+    int? implementationSkill,
+    int? integrity,
+    int? coalitionSkill,
+    int? crisisResponse,
+    int? budgetDiscipline,
+    int? corruptionRisk,
+  }) => CandidateCapabilities(
+    policyScores: policyScores ?? this.policyScores,
+    implementationSkill: implementationSkill ?? this.implementationSkill,
+    integrity: integrity ?? this.integrity,
+    coalitionSkill: coalitionSkill ?? this.coalitionSkill,
+    crisisResponse: crisisResponse ?? this.crisisResponse,
+    budgetDiscipline: budgetDiscipline ?? this.budgetDiscipline,
+    corruptionRisk: corruptionRisk ?? this.corruptionRisk,
+  );
 }
 
 class Candidate {
@@ -53,4 +71,32 @@ class Candidate {
   // Simulation truth stays in the domain layer and is never rendered directly.
   final CandidateCapabilities capabilities;
   final int colorValue;
+
+  Candidate copyWith({
+    String? id,
+    String? name,
+    String? party,
+    String? archetype,
+    String? slogan,
+    String? biography,
+    List<String>? visibleStrengths,
+    List<String>? visibleConcerns,
+    List<String>? platform,
+    List<EvidenceItem>? evidence,
+    CandidateCapabilities? capabilities,
+    int? colorValue,
+  }) => Candidate(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    party: party ?? this.party,
+    archetype: archetype ?? this.archetype,
+    slogan: slogan ?? this.slogan,
+    biography: biography ?? this.biography,
+    visibleStrengths: visibleStrengths ?? this.visibleStrengths,
+    visibleConcerns: visibleConcerns ?? this.visibleConcerns,
+    platform: platform ?? this.platform,
+    evidence: evidence ?? this.evidence,
+    capabilities: capabilities ?? this.capabilities,
+    colorValue: colorValue ?? this.colorValue,
+  );
 }
