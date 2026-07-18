@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/resibo_theme.dart';
 import '../../core/state/game_controller.dart';
 import '../../core/widgets/content_shell.dart';
+import '../../l10n/l10n_extensions.dart';
+import '../../l10n/game_content_localizations.dart';
 
 class ElectionScreen extends StatefulWidget {
   const ElectionScreen({required this.controller, super.key});
@@ -23,7 +25,7 @@ class _ElectionScreenState extends State<ElectionScreen> {
   Widget build(BuildContext context) {
     final scenario = widget.controller.scenario;
     return Scaffold(
-      appBar: AppBar(title: const Text('Election day')),
+      appBar: AppBar(title: Text(context.l10n.electionDay)),
       body: ListView(
         children: [
           ContentShell(
@@ -32,12 +34,18 @@ class _ElectionScreenState extends State<ElectionScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Cast your Bayhaven ballot',
+                  context.l10n.electionDayHeading,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${widget.controller.viewedEvidenceCount} of ${scenario.candidates.fold<int>(0, (sum, candidate) => sum + candidate.evidence.length)} evidence items opened. Investigation completeness is context, not a score.',
+                  context.l10n.evidenceOpenedCount(
+                    widget.controller.viewedEvidenceCount,
+                    scenario.candidates.fold<int>(
+                      0,
+                      (sum, candidate) => sum + candidate.evidence.length,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 ...scenario.candidates.map((candidate) {
@@ -75,7 +83,7 @@ class _ElectionScreenState extends State<ElectionScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '${candidate.party} • “${candidate.slogan}”',
+                                    '${context.l10n.candidatePartyText(candidate, scenario.city.name)} • “${context.l10n.candidateSloganText(candidate, scenario.city.name)}”',
                                   ),
                                 ],
                               ),
@@ -83,7 +91,7 @@ class _ElectionScreenState extends State<ElectionScreen> {
                             TextButton(
                               onPressed: () =>
                                   context.go('/candidates/${candidate.id}'),
-                              child: const Text('DOSSIER'),
+                              child: Text(context.l10n.dossier.toUpperCase()),
                             ),
                           ],
                         ),
@@ -93,15 +101,15 @@ class _ElectionScreenState extends State<ElectionScreen> {
                 }),
                 const SizedBox(height: 20),
                 DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Which city issue mattered most?',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: context.l10n.topIssueQuestion,
+                    border: const OutlineInputBorder(),
                   ),
                   items: scenario.city.problems
                       .map(
                         (problem) => DropdownMenuItem(
                           value: problem.id,
-                          child: Text(problem.title),
+                          child: Text(context.l10n.problemTitleText(problem)),
                         ),
                       )
                       .toList(),
@@ -109,7 +117,7 @@ class _ElectionScreenState extends State<ElectionScreen> {
                 ),
                 const SizedBox(height: 22),
                 Text(
-                  'Confidence: ${(_confidence * 100).round()}%',
+                  context.l10n.confidenceValue((_confidence * 100).round()),
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
                 Slider(
@@ -118,16 +126,15 @@ class _ElectionScreenState extends State<ElectionScreen> {
                   label: '${(_confidence * 100).round()}%',
                   onChanged: (value) => setState(() => _confidence = value),
                 ),
-                const Card(
-                  color: Color(0xFFFFF3D0),
+                Card(
+                  color: const Color(0xFFFFF3D0),
                   child: ListTile(
-                    leading: Icon(Icons.info_outline, color: ResiboColors.navy),
-                    title: Text(
-                      'Your selected candidate becomes the administration in this simulation.',
+                    leading: const Icon(
+                      Icons.info_outline,
+                      color: ResiboColors.navy,
                     ),
-                    subtitle: Text(
-                      'The report explains consequences; it will not label your vote right or wrong.',
-                    ),
+                    title: Text(context.l10n.selectedCandidateEffectTitle),
+                    subtitle: Text(context.l10n.selectedCandidateEffectBody),
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -139,7 +146,7 @@ class _ElectionScreenState extends State<ElectionScreen> {
                         ? null
                         : _confirmVote,
                     icon: const Icon(Icons.how_to_vote),
-                    label: const Text('Cast vote'),
+                    label: Text(context.l10n.castVote),
                   ),
                 ),
               ],
@@ -155,19 +162,17 @@ class _ElectionScreenState extends State<ElectionScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Seal this ballot?'),
-        content: Text(
-          'You are choosing ${candidate.name}. The seeded four-phase term will begin immediately.',
-        ),
+        title: Text(context.l10n.sealBallotQuestion),
+        content: Text(context.l10n.sealBallotBody(candidate.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep reviewing'),
+            child: Text(context.l10n.keepReviewing),
           ),
           FilledButton(
             key: const Key('confirm_vote'),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirm vote'),
+            child: Text(context.l10n.confirmVote),
           ),
         ],
       ),

@@ -872,6 +872,46 @@ Allowed:
 - player-created notes;
 - side-by-side comparison with no recommendation.
 
+## 14.7 Current candidate-investigation implementation status
+
+The first Bayhaven investigation slice is implemented as an offline,
+deterministic system:
+
+- The Candidate Files roster uses the configured city problems, the three
+  approved transparent portraits, qualitative dossier context, and
+  per-candidate evidence progress.
+- Each dossier has working **Overview**, **Platform**, and **Evidence** folders.
+  Evidence can be filtered by records, campaign material, public claims,
+  fact-checks, debate answers, controversies, or bookmarks.
+- Opening a profile is free. Opening a new non-profile file costs one global
+  investigation point for the active election. Reopening a reviewed file is
+  free, and reviewed/bookmarked state is persisted.
+- The evidence reader shows full details, a descriptive source cue, a
+  fact-check finding only when applicable, and a neutral source-evaluation
+  checklist. It never reveals a candidate recommendation.
+- A presentation-safe `CandidateDossierProfile` exposes only qualitative
+  public-service experience, documented-record depth, source counts,
+  disclosed strengths and concerns, and unresolved-file counts. Raw policy,
+  integrity, corruption, coalition, budget, crisis, and implementation values
+  stay in the simulation layer.
+- `CandidateField` now applies a seeded, candidate-specific operating vector.
+  A seasoned field is stronger overall but every candidate retains a
+  compensating friction; an unproven field is weaker overall but every
+  candidate retains one credible operating strength; a mixed field preserves
+  the authored baseline.
+- Every configured candidate is audited at scenario creation for at least two
+  visible strengths, two visible concerns, two meaningful hidden strengths,
+  two meaningful hidden liabilities, and one unresolved risk or claim.
+  Invalid content fails during development instead of creating a universal
+  answer on the ballot.
+- `CampaignNoise` changes ordering and unresolved material, while
+  `InvestigationTime` changes the shared attention budget. Neither setting
+  changes a visible suitability score because no such score exists.
+
+Dedicated player notes, dated authorship metadata, linked contradictions,
+requestable fact-checks, and score-free candidate comparison remain later
+extensions of this system.
+
 ---
 
 # 15. Election System
@@ -1790,7 +1830,7 @@ After the MVP:
 - adaptive difficulty;
 - same-seed challenges;
 - richer animated city;
-- bilingual English/Filipino content;
+- expanded bilingual terminology review and translation QA;
 - teacher/research dashboard;
 - pre-test and post-test modules.
 
@@ -2036,6 +2076,12 @@ lib/
 ---
 
 # 31. Save Data Model
+
+## 31.0 Current implementation status
+
+The local save foundation is implemented with five device-local slots on Android and Web. Saves use `schema_version: 1`, are written through a repository abstraction, and are restored before the main menu opens. The stored truth includes the scenario seed, city configuration, indicator state, term number, selected candidate ID, evidence usage, bookmarks, investigation usage, confidence, top issue, active slot, and timestamps. Candidate and narrative content is regenerated deterministically rather than duplicated as translated display text.
+
+The repository currently uses Sembast with a file-backed database on native platforms and IndexedDB on Web. Firebase synchronization remains a later adapter and must not replace the local-first repository contract.
 
 ## Root run save
 
@@ -2287,6 +2333,8 @@ Use an accepted usability questionnaire such as:
 
 # 37. Suggested Development Phases
 
+> **Implementation status — July 2026:** Phase 0 and Phase 1 are complete. The fixed Bayhaven deterministic engine, four-phase term, seeded randomness, and tests cover the core of Phase 2. The first Phase 3 slice—versioned local save/load, five persistent slots, migration handling, autosave, retry, and restoration—is complete. Multiple terms, history, final-run analytics, and public snapshots remain next.
+
 ## Phase 0: Foundation
 
 - Flutter project
@@ -2515,7 +2563,7 @@ Recommended initial answers:
 - AI generation is cached and performed between screens;
 - replayable seeds;
 - code-based city visits;
-- English first, Filipino later;
+- bilingual English and Filipino content is implemented;
 - no teacher dashboard in MVP;
 - one fixed city scenario first;
 - pre-made modular portraits;
@@ -2525,36 +2573,14 @@ Recommended initial answers:
 
 # 41. Immediate Next Tasks
 
-1. Create the Flutter project using Android and Web platforms.
-2. Add Flame.
-3. Initialize Git.
-4. Create this folder structure:
-   - `app`
-   - `core`
-   - `domain`
-   - `data`
-   - `features`
-   - `game`
-   - `ai`
-5. Create initial domain models:
-   - City
-   - CityIndicatorSet
-   - CityProblem
-   - Candidate
-   - CandidatePolicySet
-   - EvidenceItem
-   - Election
-   - TermResult
-6. Implement seeded random utility.
-7. Hardcode the Bayhaven vertical slice.
-8. Build static versions of:
-   - City Overview
-   - Candidate Roster
-   - Candidate Dossier
-   - Election Day
-   - Term Report
-9. Write unit tests for the first candidate suitability and term effect calculations.
-10. Do not add Firebase or AI until the local vertical slice works.
+1. Add a structured `ElectionRecord` and `TermRecord` history to each versioned run.
+2. Apply the completed term's final indicators to the persistent city state.
+3. Increment the term and create a deterministic second-election seed.
+4. Add `Continue to Next Election` and `End Run` actions to the term report.
+5. Build a local run-history/final-summary page with evidence and confidence context.
+6. Add explicit event and promise records rather than relying only on narrative phase text.
+7. Complete a structured local public-snapshot preview before adding network publishing.
+8. Keep Firebase and AI deferred until the offline multi-election loop and migration tests are stable.
 
 ---
 

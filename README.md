@@ -9,17 +9,27 @@ All candidates, parties, media outlets, events, and city records are fictional. 
 The prototype currently supports:
 
 - a responsive Bayhaven city brief with three urgent problems;
-- three candidate dossiers with visible strengths, concerns, and platforms;
+- a game-styled Candidate Files roster with full portraits, city case files,
+  qualitative experience context, and per-candidate investigation progress;
+- responsive candidate dossiers with Overview, Platform, and filtered Evidence
+  folders, source-check readers, investigation costs, and bookmarks;
+- a seeded candidate-field algorithm that changes operating tradeoffs without
+  creating a blanket upgrade or exposing a pre-election score;
 - 27 evidence items across nine evidence categories;
 - evidence reading and bookmarking without candidate scores or recommendations;
 - a ballot with issue-priority and confidence reflection;
 - a deterministic four-phase term simulation;
 - an explanatory term report with same-seed replay;
+- five versioned local city slots that survive refreshes and app restarts;
+- automatic persistence for evidence usage, bookmarks, votes, and term progress;
+- English and Filipino game text with persistent accessibility settings;
 - a lightweight Flame-rendered city layer inside Flutter screens;
-- unit tests for seeded randomness and simulation tradeoffs;
-- a widget smoke test for the opening flow.
+- unit tests for seeded randomness, candidate tradeoff audits, qualitative
+  dossier profiles, simulation outcomes, save migrations, and restoration;
+- widget tests for the opening, configuration, Settings, City Archive, and
+  candidate investigation flows.
 
-Firebase, AI generation, authentication, networked city visits, and persistent saves are intentionally deferred until this local core loop is stable.
+Firebase, AI generation, authentication, networked city visits, and multiple-election history remain deferred until the offline persistent loop is stable.
 
 ## Run locally
 
@@ -27,8 +37,10 @@ Requirements: Flutter with Dart 3.12 or later, plus Chrome or an Android toolcha
 
 ```sh
 flutter pub get
-flutter run -d chrome
+flutter run -d chrome --web-port 7357
 ```
+
+Use the same web port between development launches. Browser saves live in IndexedDB and are scoped to the page origin, which includes the port.
 
 Verification:
 
@@ -45,6 +57,7 @@ lib/
 ├── app/                 theme and routing
 ├── core/                app state and reusable widgets
 ├── data/seed_content/   fixed Bayhaven scenario truth
+├── data/persistence/    versioned local run saves and repository adapters
 ├── domain/models/       immutable typed game data
 ├── domain/simulation/   deterministic outcome rules
 ├── features/            screen-oriented Flutter UI
@@ -61,10 +74,10 @@ Important boundaries:
 
 ## Near-term roadmap
 
-1. Add a versioned local run repository and save migration tests.
-2. Complete candidate comparison, a local final summary, and a structured public snapshot preview.
-3. Expand deterministic event and promise tracking tests.
-4. Polish accessibility, narrow-screen navigation, and original visual assets.
-5. Add Firebase and AI only after the offline vertical slice meets its definition of done.
+1. Carry the final city state into a deterministic second election.
+2. Add election/term history, an end-run choice, and a local final summary.
+3. Add a score-free candidate comparison and a structured public snapshot preview.
+4. Expand deterministic event and promise tracking tests.
+5. Add Firebase and AI only after the offline multi-election loop is stable.
 
 The comprehensive product rules, safety constraints, research plan, and future phases remain in the project context document and should be updated before any conflicting implementation decision.

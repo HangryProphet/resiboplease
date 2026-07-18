@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/state/game_controller.dart';
 import '../../core/widgets/content_shell.dart';
 import '../../game/city_game.dart';
+import '../../l10n/l10n_extensions.dart';
+import '../../l10n/game_content_localizations.dart';
 
 class TermSimulationScreen extends StatefulWidget {
   const TermSimulationScreen({required this.controller, super.key});
@@ -26,7 +28,7 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
         body: Center(
           child: FilledButton(
             onPressed: () => context.go('/vote'),
-            child: const Text('Return to ballot'),
+            child: Text(context.l10n.returnToBallot),
           ),
         ),
       );
@@ -38,7 +40,9 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
     final finished = _revealed == result.phases.length;
     return Scaffold(
       appBar: AppBar(
-        title: Text('${result.candidate.name} • Term in progress'),
+        title: Text(
+          '${result.candidate.name} • ${context.l10n.termInProgress}',
+        ),
       ),
       body: ListView(
         children: [
@@ -56,13 +60,11 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
                 ),
                 const SizedBox(height: 22),
                 Text(
-                  'Four phases, one administration',
+                  context.l10n.termSimulationHeading,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Each entry records what happened and which rules shaped the outcome.',
-                ),
+                Text(context.l10n.termSimulationIntro),
                 const SizedBox(height: 16),
                 ...result.phases
                     .take(_revealed)
@@ -74,7 +76,9 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'PHASE ${phase.number}',
+                                context.l10n
+                                    .phaseNumber(phase.number)
+                                    .toUpperCase(),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 1,
@@ -82,14 +86,19 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
                               ),
                               const SizedBox(height: 5),
                               Text(
-                                phase.title,
+                                context.l10n.phaseTitleText(phase),
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                               const SizedBox(height: 9),
-                              Text(phase.narrative),
+                              Text(
+                                context.l10n.phaseNarrativeText(
+                                  phase,
+                                  result.candidate,
+                                ),
+                              ),
                               const Divider(height: 24),
                               Text(
-                                'Why: ${phase.explanation}',
+                                '${context.l10n.whyThisHappened}: ${context.l10n.phaseExplanationText(phase)}',
                                 style: const TextStyle(
                                   fontStyle: FontStyle.italic,
                                 ),
@@ -102,7 +111,10 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
                                   final value = entry.value;
                                   return Chip(
                                     label: Text(
-                                      '${entry.key.label} ${value >= 0 ? '+' : ''}$value',
+                                      context.l10n.changeValue(
+                                        context.l10n.indicatorLabel(entry.key),
+                                        '${value >= 0 ? '+' : ''}$value',
+                                      ),
                                     ),
                                   );
                                 }).toList(),
@@ -129,8 +141,8 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
                     ),
                     label: Text(
                       finished
-                          ? 'Open term report'
-                          : 'Advance to phase ${_revealed + 1}',
+                          ? context.l10n.viewTermReport
+                          : context.l10n.advanceToPhase(_revealed + 1),
                     ),
                   ),
                 ),

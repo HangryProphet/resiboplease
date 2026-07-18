@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/resibo_theme.dart';
+import '../../../l10n/l10n_extensions.dart';
 import 'game_overlay_shell.dart';
 
 Future<void> showHowToPlayOverlay(BuildContext context) =>
     showGameOverlay<void>(
       context: context,
       builder: (overlayContext) => GameOverlayShell(
-        kicker: 'The voter\'s pocket guide',
-        title: 'How to Play',
+        kicker: overlayContext.l10n.voterPocketGuide,
+        title: overlayContext.l10n.howToPlay,
         onBack: () => Navigator.pop(overlayContext),
         child: const _HowToPlaySheet(),
       ),
@@ -17,90 +18,90 @@ Future<void> showHowToPlayOverlay(BuildContext context) =>
 class _HowToPlaySheet extends StatelessWidget {
   const _HowToPlaySheet();
 
-  static const _steps = <_GuideCopy>[
+  List<_GuideCopy> _steps(BuildContext context) => [
     _GuideCopy(
       number: '1',
       icon: Icons.location_city_rounded,
       color: Color(0xFF2B6E87),
-      title: 'Read the city',
-      body: 'See what is going wrong and which problems need attention first.',
+      title: context.l10n.guideReadCity,
+      body: context.l10n.guideReadCityBody,
     ),
     _GuideCopy(
       number: '2',
       icon: Icons.folder_copy_rounded,
       color: Color(0xFF74508A),
-      title: 'Check the candidates',
-      body:
-          'Open their files. Compare promises, records, and sources. Noise is not proof.',
+      title: context.l10n.guideCheckCandidates,
+      body: context.l10n.guideCheckCandidatesBody,
     ),
     _GuideCopy(
       number: '3',
       icon: Icons.how_to_vote_rounded,
       color: Color(0xFFAA3F4B),
-      title: 'Choose for yourself',
-      body: 'Cast your vote. The game will not tell you who is “best.”',
+      title: context.l10n.guideChoose,
+      body: context.l10n.guideChooseBody,
     ),
     _GuideCopy(
       number: '4',
       icon: Icons.hourglass_bottom_rounded,
       color: Color(0xFFB67923),
-      title: 'Watch the term',
-      body:
-          'Your choice governs. Plans, skill, honesty, money, and surprise events shape the city.',
+      title: context.l10n.guideWatchTerm,
+      body: context.l10n.guideWatchTermBody,
     ),
     _GuideCopy(
       number: '5',
       icon: Icons.receipt_long_rounded,
       color: Color(0xFF3E783A),
-      title: 'Find the receipts',
-      body:
-          'See what improved, what got worse, and why. Then carry that city into the next election.',
+      title: context.l10n.guideFindReceipts,
+      body: context.l10n.guideFindReceiptsBody,
     ),
   ];
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final wide = constraints.maxWidth >= 680;
-      return ListView(
-        key: const Key('how_to_play_sheet'),
-        padding: EdgeInsets.fromLTRB(wide ? 34 : 17, 4, wide ? 34 : 17, 24),
-        children: [
-          const _VoterBrief(),
-          const SizedBox(height: 16),
-          if (wide)
-            Wrap(
-              spacing: 13,
-              runSpacing: 13,
-              children: [
-                for (final step in _steps)
-                  SizedBox(
-                    width: (constraints.maxWidth - 34 * 2 - 13) / 2,
-                    child: _GuideStepCard(copy: step),
-                  ),
-              ],
-            )
-          else
-            ..._steps.map(
-              (step) => Padding(
-                padding: const EdgeInsets.only(bottom: 11),
-                child: _GuideStepCard(copy: step),
+  Widget build(BuildContext context) {
+    final steps = _steps(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 680;
+        return ListView(
+          key: const Key('how_to_play_sheet'),
+          padding: EdgeInsets.fromLTRB(wide ? 34 : 17, 4, wide ? 34 : 17, 24),
+          children: [
+            const _VoterBrief(),
+            const SizedBox(height: 16),
+            if (wide)
+              Wrap(
+                spacing: 13,
+                runSpacing: 13,
+                children: [
+                  for (final step in steps)
+                    SizedBox(
+                      width: (constraints.maxWidth - 34 * 2 - 13) / 2,
+                      child: _GuideStepCard(copy: step),
+                    ),
+                ],
+              )
+            else
+              ...steps.map(
+                (step) => Padding(
+                  padding: const EdgeInsets.only(bottom: 11),
+                  child: _GuideStepCard(copy: step),
+                ),
               ),
+            const SizedBox(height: 15),
+            const _RememberNote(),
+            const SizedBox(height: 19),
+            ChunkyPaperButton(
+              label: context.l10n.backToMainMenu,
+              icon: Icons.arrow_back_rounded,
+              color: ResiboColors.navy,
+              buttonKey: const Key('close_how_to_play'),
+              onPressed: () => Navigator.pop(context),
             ),
-          const SizedBox(height: 15),
-          const _RememberNote(),
-          const SizedBox(height: 19),
-          ChunkyPaperButton(
-            label: 'Back to Main Menu',
-            icon: Icons.arrow_back_rounded,
-            color: ResiboColors.navy,
-            buttonKey: const Key('close_how_to_play'),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      );
-    },
-  );
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _VoterBrief extends StatelessWidget {
@@ -133,8 +134,8 @@ class _VoterBrief extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'YOU ARE THE VOTER',
-                  style: TextStyle(
+                  context.l10n.youAreTheVoter.toUpperCase(),
+                  style: const TextStyle(
                     color: ResiboColors.navy,
                     fontFamily: 'LilitaOne',
                     fontSize: 19,
@@ -142,9 +143,9 @@ class _VoterBrief extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 3),
-                const Text(
-                  'Help a fictional city, one election at a time. Look for good evidence, make a choice, and live with the result.',
-                  style: TextStyle(
+                Text(
+                  context.l10n.youAreTheVoterBody,
+                  style: const TextStyle(
                     color: Color(0xFF382E24),
                     fontSize: 14,
                     height: 1.35,
@@ -256,14 +257,14 @@ class _RememberNote extends StatelessWidget {
       border: Border.all(color: ResiboColors.navy, width: 2),
       borderRadius: BorderRadius.circular(4),
     ),
-    child: const Row(
+    child: Row(
       children: [
-        InkStamp(text: 'Remember', color: ResiboColors.navy),
-        SizedBox(width: 13),
+        InkStamp(text: context.l10n.remember, color: ResiboColors.navy),
+        const SizedBox(width: 13),
         Expanded(
           child: Text(
-            'There is rarely a perfect candidate. Read. Question. Decide. See what happens.',
-            style: TextStyle(
+            context.l10n.guideRememberBody,
+            style: const TextStyle(
               color: ResiboColors.navy,
               fontSize: 13,
               height: 1.3,

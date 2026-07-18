@@ -5,27 +5,33 @@ import '../../../app/theme/resibo_theme.dart';
 Future<T?> showGameOverlay<T>({
   required BuildContext context,
   required WidgetBuilder builder,
-}) => showGeneralDialog<T>(
-  context: context,
-  barrierDismissible: false,
-  barrierColor: const Color(0xE600080F),
-  transitionDuration: const Duration(milliseconds: 260),
-  pageBuilder: (context, animation, secondaryAnimation) => builder(context),
-  transitionBuilder: (context, animation, secondaryAnimation, child) {
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutBack,
-      reverseCurve: Curves.easeInCubic,
-    );
-    return FadeTransition(
-      opacity: animation,
-      child: ScaleTransition(
-        scale: Tween<double>(begin: .96, end: 1).animate(curved),
-        child: child,
-      ),
-    );
-  },
-);
+}) {
+  final reducedMotion = MediaQuery.disableAnimationsOf(context);
+  return showGeneralDialog<T>(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: const Color(0xE600080F),
+    transitionDuration: reducedMotion
+        ? Duration.zero
+        : const Duration(milliseconds: 260),
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+    transitionBuilder: (context, animation, secondaryAnimation, child) {
+      if (reducedMotion) return child;
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutBack,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: .96, end: 1).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
 
 class GameOverlayShell extends StatelessWidget {
   const GameOverlayShell({

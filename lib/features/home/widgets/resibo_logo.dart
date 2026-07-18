@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/resibo_theme.dart';
+import '../../../l10n/l10n_extensions.dart';
 
 class ResiboLogo extends StatelessWidget {
   const ResiboLogo({this.compact = false, super.key});
@@ -12,7 +13,7 @@ class ResiboLogo extends StatelessWidget {
     final titleSize = compact ? 60.0 : 82.0;
     return Semantics(
       header: true,
-      label: 'Resibo, Please',
+      label: context.l10n.logoSemantics,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

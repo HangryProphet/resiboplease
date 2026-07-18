@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resiboplease/app/app.dart';
+import 'package:resiboplease/app/router.dart';
 import 'package:resiboplease/app/theme/resibo_theme.dart';
 import 'package:resiboplease/core/state/game_controller.dart';
+import 'package:resiboplease/domain/models/city_run_configuration.dart';
 import 'package:resiboplease/features/home/home_screen.dart';
 
 void main() {
@@ -62,11 +64,20 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('new-city flow shows five slots and saves a city name', (
+  testWidgets('new-city flow configures all seven city settings', (
     tester,
   ) async {
-    usePhoneViewport(tester);
-    await tester.pumpWidget(const ResiboPleaseApp());
+    tester.view.physicalSize = const Size(390, 5000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final controller = GameController();
+    final router = buildRouter(controller);
+    addTearDown(router.dispose);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp.router(theme: buildResiboTheme(), routerConfig: router),
+    );
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('start_bayhaven')));
@@ -85,12 +96,75 @@ void main() {
       find.byKey(const Key('city_name_field')),
       'Harborlight',
     );
+    await tester.tap(find.byKey(const Key('starting_pressure_crisis')));
+    await tester.tap(find.byKey(const Key('city_concern_health')));
+    await tester.tap(find.byKey(const Key('city_concern_climate')));
+    await tester.tap(find.byKey(const Key('candidate_field_seasoned')));
+    await tester.tap(find.byKey(const Key('assistance_mode_standard')));
+    await tester.tap(find.byKey(const Key('campaign_noise_noisy')));
+    await tester.tap(find.byKey(const Key('investigation_time_limited')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('create_city_submit')));
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pump();
 
     expect(find.text('Harborlight • Election brief'), findsOneWidget);
     expect(find.text('The city before the vote'), findsOneWidget);
+    expect(
+      controller.activeConfiguration!.startingPressure,
+      StartingPressure.crisis,
+    );
+    expect(
+      controller.activeConfiguration!.mainConcerns,
+      containsAll(<CityConcern>[
+        CityConcern.water,
+        CityConcern.jobs,
+        CityConcern.climate,
+      ]),
+    );
+    expect(
+      controller.activeConfiguration!.candidateField,
+      CandidateField.seasoned,
+    );
+    expect(controller.assistanceMode, AssistanceMode.standard);
+    expect(controller.activeConfiguration!.campaignNoise, CampaignNoise.noisy);
+    expect(
+      controller.activeConfiguration!.investigationTime,
+      InvestigationTime.limited,
+    );
+    expect(find.byKey(const Key('guided_resi_note')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('seven-setting form scrolls safely on a phone viewport', (
+    tester,
+  ) async {
+    usePhoneViewport(tester);
+    await tester.pumpWidget(const ResiboPleaseApp());
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('start_bayhaven')));
+    await finishOverlayAnimation(tester);
+    await tester.tap(find.byKey(const Key('start_city_slot_0')));
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.byKey(const Key('city_configuration_page')), findsOneWidget);
+    expect(find.byKey(const Key('city_name_field')), findsOneWidget);
+
+    await tester.fling(
+      find.byKey(const Key('city_name_page')),
+      const Offset(0, -3200),
+      2500,
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.fling(
+      find.byKey(const Key('city_name_page')),
+      const Offset(0, -3200),
+      2500,
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.byKey(const Key('create_city_submit')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

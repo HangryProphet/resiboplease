@@ -5,6 +5,8 @@ import '../../domain/models/city_problem.dart';
 import '../../domain/models/city_run_configuration.dart';
 import '../../domain/models/evidence_item.dart';
 import '../../domain/models/scenario.dart';
+import '../../domain/simulation/candidate_tradeoff_audit.dart';
+import 'candidate_field_adjustment.dart';
 
 Scenario buildConfiguredScenario({
   required Scenario base,
@@ -18,10 +20,20 @@ Scenario buildConfiguredScenario({
         (candidate) => _configuredCandidate(
           candidate,
           configuration,
+          seed: scenario.seed,
           baseCityName: scenario.city.name,
         ),
       )
       .toList(growable: false);
+  for (final candidate in candidates) {
+    final audit = auditCandidateTradeoffs(candidate);
+    if (!audit.passes) {
+      throw StateError(
+        'Candidate ${candidate.id} failed tradeoff validation: '
+        '${audit.violations.join(', ')}.',
+      );
+    }
+  }
   return scenario.copyWith(city: city, candidates: candidates);
 }
 
@@ -110,7 +122,10 @@ CityProblem _problemFor(
   );
 }
 
-CityProblem _newProblem(CityConcern concern, String cityName) => switch (concern) {
+CityProblem _newProblem(
+  CityConcern concern,
+  String cityName,
+) => switch (concern) {
   CityConcern.food => CityProblem(
     id: 'food_costs',
     title: 'Food prices outpacing wages',
@@ -233,19 +248,32 @@ CityProblem _newProblem(CityConcern concern, String cityName) => switch (concern
 Candidate _configuredCandidate(
   Candidate candidate,
   CityRunConfiguration configuration, {
+  required int seed,
   required String baseCityName,
 }) {
-  final operationalDelta = switch (configuration.candidateField) {
-    CandidateField.unproven => -8,
-    CandidateField.mixed => 0,
-    CandidateField.seasoned => 8,
-  };
-  int adjusted(int value) => (value + operationalDelta).clamp(10, 96);
+  final adjustment = candidateFieldAdjustmentFor(
+    candidate: candidate,
+    field: configuration.candidateField,
+    seed: seed,
+  );
+  int adjusted(int value, int delta) => (value + delta).clamp(10, 96);
   final capabilities = candidate.capabilities.copyWith(
-    implementationSkill: adjusted(candidate.capabilities.implementationSkill),
-    coalitionSkill: adjusted(candidate.capabilities.coalitionSkill),
-    crisisResponse: adjusted(candidate.capabilities.crisisResponse),
-    budgetDiscipline: adjusted(candidate.capabilities.budgetDiscipline),
+    implementationSkill: adjusted(
+      candidate.capabilities.implementationSkill,
+      adjustment.implementation,
+    ),
+    coalitionSkill: adjusted(
+      candidate.capabilities.coalitionSkill,
+      adjustment.coalition,
+    ),
+    crisisResponse: adjusted(
+      candidate.capabilities.crisisResponse,
+      adjustment.crisis,
+    ),
+    budgetDiscipline: adjusted(
+      candidate.capabilities.budgetDiscipline,
+      adjustment.budget,
+    ),
   );
   String renamed(String value) =>
       value.replaceAll(baseCityName, configuration.cityName);
@@ -286,11 +314,11 @@ List<EvidenceItem> _evidenceForNoise(
   required CampaignNoise noise,
 }) {
   if (noise == CampaignNoise.clear) {
-    final sorted = [...evidence]..sort(
-      (a, b) => _clearEvidenceRank(a.type).compareTo(
-        _clearEvidenceRank(b.type),
-      ),
-    );
+    final sorted = [...evidence]
+      ..sort(
+        (a, b) =>
+            _clearEvidenceRank(a.type).compareTo(_clearEvidenceRank(b.type)),
+      );
     return List.unmodifiable(sorted);
   }
   if (noise == CampaignNoise.typical) return List.unmodifiable(evidence);

@@ -27,6 +27,30 @@ class CityIndicatorSet {
   final int publicTrust;
   final int corruptionPressure;
 
+  factory CityIndicatorSet.fromJson(Map<String, Object?> json) {
+    int read(CityIndicator indicator) {
+      final value = json[indicator.name];
+      if (value is! num) {
+        throw FormatException('Missing city indicator ${indicator.name}.');
+      }
+      return value.toInt().clamp(0, 100);
+    }
+
+    return CityIndicatorSet(
+      foodSecurity: read(CityIndicator.foodSecurity),
+      povertyReduction: read(CityIndicator.povertyReduction),
+      publicHealth: read(CityIndicator.publicHealth),
+      educationQuality: read(CityIndicator.educationQuality),
+      waterSecurity: read(CityIndicator.waterSecurity),
+      employmentQuality: read(CityIndicator.employmentQuality),
+      urbanResilience: read(CityIndicator.urbanResilience),
+      climateResilience: read(CityIndicator.climateResilience),
+      budgetHealth: read(CityIndicator.budgetHealth),
+      publicTrust: read(CityIndicator.publicTrust),
+      corruptionPressure: read(CityIndicator.corruptionPressure),
+    );
+  }
+
   int valueOf(CityIndicator indicator) => switch (indicator) {
     CityIndicator.foodSecurity => foodSecurity,
     CityIndicator.povertyReduction => povertyReduction,
@@ -64,7 +88,7 @@ class CityIndicatorSet {
     );
   }
 
-  Map<String, dynamic> toJson() => {
+  Map<String, Object?> toJson() => {
     for (final entry in values.entries) entry.key.name: entry.value,
   };
 

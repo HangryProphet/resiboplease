@@ -6,6 +6,8 @@ import '../../core/state/game_controller.dart';
 import '../../core/widgets/content_shell.dart';
 import '../../core/widgets/indicator_card.dart';
 import '../../domain/models/city_indicator.dart';
+import '../../l10n/l10n_extensions.dart';
+import '../../l10n/game_content_localizations.dart';
 
 class TermReportScreen extends StatelessWidget {
   const TermReportScreen({required this.controller, super.key});
@@ -20,13 +22,21 @@ class TermReportScreen extends StatelessWidget {
         body: Center(
           child: FilledButton(
             onPressed: () => context.go('/vote'),
-            child: const Text('Return to ballot'),
+            child: Text(context.l10n.returnToBallot),
           ),
         ),
       );
     }
+    final decisionIssue = controller.scenario.city.problems
+        .where((problem) => problem.id == controller.topIssue)
+        .map(context.l10n.problemTitleText)
+        .firstOrNull;
     return Scaffold(
-      appBar: AppBar(title: const Text('Bayhaven term report')),
+      appBar: AppBar(
+        title: Text(
+          '${controller.activeCityName} • ${context.l10n.termReport}',
+        ),
+      ),
       body: ListView(
         children: [
           ContentShell(
@@ -43,9 +53,9 @@ class TermReportScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'ADMINISTRATION RECEIPT',
-                        style: TextStyle(
+                      Text(
+                        context.l10n.administrationReceipt.toUpperCase(),
+                        style: const TextStyle(
                           color: ResiboColors.gold,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1.4,
@@ -59,7 +69,7 @@ class TermReportScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        result.summary,
+                        context.l10n.termSummaryText(result),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 17,
@@ -71,13 +81,11 @@ class TermReportScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'What changed',
+                  context.l10n.whatChanged,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Labels show final condition. Signed values show movement during the term; corruption pressure is healthier when it falls.',
-                ),
+                Text(context.l10n.whatChangedBody),
                 const SizedBox(height: 12),
                 LayoutBuilder(
                   builder: (context, constraints) {
@@ -104,29 +112,33 @@ class TermReportScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'How the engine reached this result',
+                  context.l10n.whyThisHappened,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'The deterministic model combined Bayhaven’s issue severity and urgency with the administration’s relevant policy skill, implementation, crisis response, integrity, coalition support, budget feasibility, and a logged ±10% seeded variation. Hidden scores were not used as pre-election hints.',
-                ),
+                Text(context.l10n.modelExplanation),
                 const SizedBox(height: 18),
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.psychology_alt_outlined),
-                    title: const Text(
-                      'Your decision context',
-                      style: TextStyle(fontWeight: FontWeight.w800),
+                    title: Text(
+                      context.l10n.yourDecisionContext,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                     subtitle: Text(
-                      'Top issue: ${controller.topIssue?.replaceAll('_', ' ') ?? 'Not recorded'} • Confidence: ${(controller.confidence * 100).round()}% • Evidence opened: ${controller.viewedEvidenceCount}',
+                      context.l10n.decisionContextBody(
+                        decisionIssue ?? context.l10n.notRecorded,
+                        (controller.confidence * 100).round(),
+                        controller.viewedEvidenceCount,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 12,
+                  runSpacing: 10,
                   children: [
                     OutlinedButton.icon(
                       key: const Key('restart_same_seed'),
@@ -135,15 +147,14 @@ class TermReportScreen extends StatelessWidget {
                         context.go('/city');
                       },
                       icon: const Icon(Icons.replay),
-                      label: Text('Replay seed ${result.seed}'),
+                      label: Text(context.l10n.replaySeed(result.seed)),
                     ),
-                    const SizedBox(width: 12),
                     FilledButton.icon(
                       onPressed: () {
                         context.go('/');
                       },
                       icon: const Icon(Icons.home_outlined),
-                      label: const Text('Main menu'),
+                      label: Text(context.l10n.mainMenu),
                     ),
                   ],
                 ),

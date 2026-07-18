@@ -10,22 +10,26 @@ abstract final class ResiboColors {
   static const ink = Color(0xFF24303E);
 }
 
-ThemeData buildResiboTheme() {
+ThemeData buildResiboTheme({bool highContrast = false}) {
+  final ink = highContrast ? const Color(0xFF07111D) : ResiboColors.ink;
+  final paper = highContrast ? Colors.white : ResiboColors.paper;
   final scheme =
       ColorScheme.fromSeed(
         seedColor: ResiboColors.teal,
         brightness: Brightness.light,
-        surface: ResiboColors.paper,
+        surface: paper,
       ).copyWith(
-        primary: ResiboColors.teal,
+        primary: highContrast ? const Color(0xFF005B57) : ResiboColors.teal,
         secondary: ResiboColors.gold,
-        error: ResiboColors.mutedRed,
-        onSurface: ResiboColors.ink,
+        error: highContrast ? const Color(0xFF8D1021) : ResiboColors.mutedRed,
+        onSurface: ink,
       );
 
   return ThemeData(
     colorScheme: scheme,
-    scaffoldBackgroundColor: ResiboColors.cream,
+    scaffoldBackgroundColor: highContrast
+        ? const Color(0xFFFFF8E6)
+        : ResiboColors.cream,
     useMaterial3: true,
     appBarTheme: const AppBarTheme(
       backgroundColor: ResiboColors.navy,
@@ -33,11 +37,14 @@ ThemeData buildResiboTheme() {
       centerTitle: false,
     ),
     cardTheme: CardThemeData(
-      color: ResiboColors.paper,
+      color: paper,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0x1F16263B)),
+        side: BorderSide(
+          color: highContrast ? ResiboColors.navy : const Color(0x1F16263B),
+          width: highContrast ? 2 : 1,
+        ),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(

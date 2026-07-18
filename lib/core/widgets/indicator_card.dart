@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/resibo_theme.dart';
 import '../../domain/models/city_indicator.dart';
+import '../../l10n/l10n_extensions.dart';
 
 class IndicatorCard extends StatelessWidget {
   const IndicatorCard({
@@ -17,7 +18,8 @@ class IndicatorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = indicatorState(value);
+    final state = context.l10n.indicatorStateLabel(value);
+    final label = context.l10n.indicatorLabel(indicator);
     final isPressure = indicator == CityIndicator.corruptionPressure;
     final normalized = isPressure ? 1 - value / 100 : value / 100;
     final color = normalized < .4
@@ -27,7 +29,7 @@ class IndicatorCard extends StatelessWidget {
         : ResiboColors.teal;
     return Semantics(
       label:
-          '${indicator.label}: $state${change == null ? '' : ', change $change'}',
+          '$label: $state${change == null ? '' : ', ${context.l10n.change} $change'}',
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -38,7 +40,7 @@ class IndicatorCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      indicator.label,
+                      label,
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),

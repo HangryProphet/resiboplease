@@ -6,6 +6,9 @@ import '../../core/state/game_controller.dart';
 import '../../core/widgets/content_shell.dart';
 import '../../core/widgets/indicator_card.dart';
 import '../../domain/models/city_indicator.dart';
+import '../../domain/models/city_run_configuration.dart';
+import '../../l10n/l10n_extensions.dart';
+import '../../l10n/game_content_localizations.dart';
 
 class CityOverviewScreen extends StatelessWidget {
   const CityOverviewScreen({required this.controller, super.key});
@@ -25,7 +28,9 @@ class CityOverviewScreen extends StatelessWidget {
     ];
     return Scaffold(
       appBar: AppBar(
-        title: Text('${controller.activeCityName} • Election brief'),
+        title: Text(
+          '${controller.activeCityName} • ${context.l10n.electionBrief}',
+        ),
       ),
       body: ListView(
         children: [
@@ -38,8 +43,7 @@ class CityOverviewScreen extends StatelessWidget {
                   child: SizedBox(
                     height: 220,
                     child: Semantics(
-                      label:
-                          'Illustrated Bayhaven civic hall, waterfront, water infrastructure, clinic, school, and market district.',
+                      label: context.l10n.cityImageSemantics,
                       child: Image.asset(
                         'assets/images/city/bayhaven_base.png',
                         fit: BoxFit.cover,
@@ -50,17 +54,35 @@ class CityOverviewScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'The city before the vote',
+                  context.l10n.cityBeforeVote,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  city.summary,
+                  context.l10n.citySummaryText(city),
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
+                if (controller.assistanceMode == AssistanceMode.guided) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    key: const Key('guided_resi_note'),
+                    color: const Color(0xFFE9F2E8),
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.assistant_outlined,
+                        color: ResiboColors.teal,
+                      ),
+                      title: Text(
+                        context.l10n.guidedReminderTitle,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      subtitle: Text(context.l10n.guidedReminderBody),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 26),
                 Text(
-                  'Urgent case files',
+                  context.l10n.urgentCaseFiles,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 10),
@@ -76,13 +98,13 @@ class CityOverviewScreen extends StatelessWidget {
                         ),
                       ),
                       title: Text(
-                        problem.title,
+                        context.l10n.problemTitleText(problem),
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          '${problem.description}\n${problem.trend.label} • ${problem.sdgTags.join(' • ')}',
+                          '${context.l10n.problemDescriptionText(problem, city.name)}\n${context.l10n.trendLabel(problem.trend)} • ${problem.sdgTags.join(' • ')}',
                         ),
                       ),
                       isThreeLine: true,
@@ -91,7 +113,7 @@ class CityOverviewScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 26),
                 Text(
-                  'City condition',
+                  context.l10n.cityCondition,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
@@ -124,7 +146,7 @@ class CityOverviewScreen extends StatelessWidget {
                     key: const Key('meet_candidates'),
                     onPressed: () => context.go('/candidates'),
                     icon: const Icon(Icons.groups_rounded),
-                    label: const Text('Meet the candidates'),
+                    label: Text(context.l10n.meetCandidates),
                   ),
                 ),
               ],

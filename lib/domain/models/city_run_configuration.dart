@@ -21,16 +21,8 @@ enum StartingPressure {
 }
 
 enum CityConcern {
-  food(
-    'Food security',
-    'Food prices and access',
-    CityIndicator.foodSecurity,
-  ),
-  poverty(
-    'Poverty',
-    'Families falling behind',
-    CityIndicator.povertyReduction,
-  ),
+  food('Food security', 'Food prices and access', CityIndicator.foodSecurity),
+  poverty('Poverty', 'Families falling behind', CityIndicator.povertyReduction),
   health(
     'Public health',
     'Clinics and community care',
@@ -41,11 +33,7 @@ enum CityConcern {
     'Schools and learning access',
     CityIndicator.educationQuality,
   ),
-  water(
-    'Water',
-    'Safe and reliable water',
-    CityIndicator.waterSecurity,
-  ),
+  water('Water', 'Safe and reliable water', CityIndicator.waterSecurity),
   jobs(
     'Jobs',
     'Employment and working conditions',
@@ -126,11 +114,7 @@ enum CampaignNoise {
 }
 
 enum InvestigationTime {
-  relaxed(
-    'Relaxed',
-    'Open as many evidence files as you want.',
-    null,
-  ),
+  relaxed('Relaxed', 'Open as many evidence files as you want.', null),
   standard(
     'Standard',
     'You have 12 investigation points. Candidate profiles are free.',

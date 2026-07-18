@@ -5,17 +5,25 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme/resibo_theme.dart';
+import '../../core/settings/app_settings_controller.dart';
 import '../../core/state/game_controller.dart';
 import '../../game/main_menu_atmosphere_game.dart';
+import '../../l10n/l10n_extensions.dart';
 import 'widgets/city_slots_overlay.dart';
 import 'widgets/how_to_play_overlay.dart';
 import 'widgets/menu_action_button.dart';
 import 'widgets/resibo_logo.dart';
+import 'widgets/settings_overlay.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({required this.controller, super.key});
+  const HomeScreen({
+    required this.controller,
+    this.settingsController,
+    super.key,
+  });
 
   final GameController controller;
+  final AppSettingsController? settingsController;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -23,31 +31,22 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  static const _splashLines = <String>[
-    'Hanapin ang resibo.',
-    'Porma o plataporma?',
-    'Facts before fanfare.',
-    'Check the source first.',
-    'The city remembers.',
-    'Popularity is not proof.',
-    'Read the fine print.',
-    'Walang resibo, bawas tiwala.',
-    'Pangako ay madaling sabihin.',
-    'Boto now, consequences later.',
-    'Not all noise is policy.',
-    'May plano ba o slogan lang?',
-  ];
-
-  static String? _lastSplashLine;
+  static final Map<String, String> _lastSplashLines = {};
 
   late final AnimationController _splashController;
   late final Animation<double> _splashScale;
-  late final String _splashLine;
+  late final AppSettingsController _settingsController;
+  late final bool _ownsSettingsController;
+  String _splashLine = '';
+  String? _splashLocale;
 
   @override
   void initState() {
     super.initState();
-    _splashLine = _pickSplashLine();
+    _ownsSettingsController = widget.settingsController == null;
+    _settingsController =
+        widget.settingsController ??
+        AppSettingsController(store: MemorySettingsStore());
     _splashController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1050),
@@ -59,21 +58,31 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    if (_splashLocale == locale) return;
+    _splashLocale = locale;
+    _splashLine = _pickSplashLine(context.l10n.menuSplashLines, locale);
+  }
+
+  @override
   void dispose() {
     _splashController.dispose();
+    if (_ownsSettingsController) _settingsController.dispose();
     super.dispose();
   }
 
-  String _pickSplashLine() {
-    final validLines = _splashLines
+  String _pickSplashLine(List<String> lines, String locale) {
+    final validLines = lines
         .where((line) => line.length <= 40 && !line.contains('\n'))
         .toList(growable: false);
     final choices = validLines
-        .where((line) => line != _lastSplashLine)
+        .where((line) => line != _lastSplashLines[locale])
         .toList(growable: false);
     final pool = choices.isEmpty ? validLines : choices;
     final selected = pool[Random().nextInt(pool.length)];
-    _lastSplashLine = selected;
+    _lastSplashLines[locale] = selected;
     return selected;
   }
 
@@ -90,8 +99,7 @@ class _HomeScreenState extends State<HomeScreen>
         fit: StackFit.expand,
         children: [
           Semantics(
-            label:
-                'Bayhaven civic hall, neighborhoods, clinic, school, drainage canal, and waterfront.',
+            label: context.l10n.menuBackgroundSemantics,
             image: true,
             child: ColorFiltered(
               colorFilter: const ColorFilter.mode(
@@ -135,11 +143,13 @@ class _HomeScreenState extends State<HomeScreen>
                   return wide
                       ? _WideMenu(
                           controller: widget.controller,
+                          settingsController: _settingsController,
                           splashLine: _splashLine,
                           splashScale: splashScale,
                         )
                       : _MobileMenu(
                           controller: widget.controller,
+                          settingsController: _settingsController,
                           splashLine: _splashLine,
                           splashScale: splashScale,
                         );
@@ -156,11 +166,13 @@ class _HomeScreenState extends State<HomeScreen>
 class _WideMenu extends StatelessWidget {
   const _WideMenu({
     required this.controller,
+    required this.settingsController,
     required this.splashLine,
     required this.splashScale,
   });
 
   final GameController controller;
+  final AppSettingsController settingsController;
   final String splashLine;
   final Animation<double> splashScale;
 
@@ -180,6 +192,7 @@ class _WideMenu extends StatelessWidget {
                   constraints: const BoxConstraints(maxWidth: 390),
                   child: _MenuPanel(
                     controller: controller,
+                    settingsController: settingsController,
                     splashLine: splashLine,
                     splashScale: splashScale,
                   ),
@@ -194,8 +207,7 @@ class _WideMenu extends StatelessWidget {
                   'assets/images/main_menu/candidate_group_v2.png',
                   fit: BoxFit.contain,
                   alignment: Alignment.bottomCenter,
-                  semanticLabel:
-                      'Mayoral candidates Julian Pratt, Maya Vargas, and Victor Chen.',
+                  semanticLabel: context.l10n.candidateGroupSemantics,
                 ),
               ),
             ),
@@ -209,11 +221,13 @@ class _WideMenu extends StatelessWidget {
 class _MobileMenu extends StatelessWidget {
   const _MobileMenu({
     required this.controller,
+    required this.settingsController,
     required this.splashLine,
     required this.splashScale,
   });
 
   final GameController controller;
+  final AppSettingsController settingsController;
   final String splashLine;
   final Animation<double> splashScale;
 
@@ -243,7 +257,10 @@ class _MobileMenu extends StatelessWidget {
               offset: const Offset(0, -24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 390),
-                child: _MenuActions(controller: controller),
+                child: _MenuActions(
+                  controller: controller,
+                  settingsController: settingsController,
+                ),
               ),
             ),
           ],
@@ -275,8 +292,7 @@ class _FadedCandidateGroup extends StatelessWidget {
       'assets/images/main_menu/candidate_group_v2.png',
       fit: BoxFit.contain,
       alignment: Alignment.bottomCenter,
-      semanticLabel:
-          'Mayoral candidates Julian Pratt, Maya Vargas, and Victor Chen.',
+      semanticLabel: context.l10n.candidateGroupSemantics,
     ),
   );
 }
@@ -284,11 +300,13 @@ class _FadedCandidateGroup extends StatelessWidget {
 class _MenuPanel extends StatelessWidget {
   const _MenuPanel({
     required this.controller,
+    required this.settingsController,
     required this.splashLine,
     required this.splashScale,
   });
 
   final GameController controller;
+  final AppSettingsController settingsController;
   final String splashLine;
   final Animation<double> splashScale;
 
@@ -299,7 +317,10 @@ class _MenuPanel extends StatelessWidget {
       const ResiboLogo(),
       _SplashText(text: splashLine, scale: splashScale),
       const SizedBox(height: 22),
-      _MenuActions(controller: controller),
+      _MenuActions(
+        controller: controller,
+        settingsController: settingsController,
+      ),
     ],
   );
 }
@@ -363,9 +384,13 @@ class _SplashText extends StatelessWidget {
 }
 
 class _MenuActions extends StatelessWidget {
-  const _MenuActions({required this.controller});
+  const _MenuActions({
+    required this.controller,
+    required this.settingsController,
+  });
 
   final GameController controller;
+  final AppSettingsController settingsController;
 
   @override
   Widget build(BuildContext context) => FractionallySizedBox(
@@ -376,7 +401,9 @@ class _MenuActions extends StatelessWidget {
           buttonKey: Key(
             controller.hasActiveRun ? 'continue_city' : 'start_bayhaven',
           ),
-          label: controller.hasActiveRun ? 'Continue City' : 'Start New City',
+          label: controller.hasActiveRun
+              ? context.l10n.continueCity
+              : context.l10n.startNewCity,
           color: const Color(0xFFC5483E),
           onPressed: () => _openCitySlots(
             context,
@@ -389,7 +416,7 @@ class _MenuActions extends StatelessWidget {
           const SizedBox(height: 12),
           MenuActionButton(
             buttonKey: const Key('start_new_city_secondary'),
-            label: 'Start New City',
+            label: context.l10n.startNewCity,
             color: const Color(0xFF8F4550),
             onPressed: () => _openCitySlots(context, CitySlotsMode.start),
           ),
@@ -397,21 +424,27 @@ class _MenuActions extends StatelessWidget {
         const SizedBox(height: 12),
         MenuActionButton(
           buttonKey: const Key('how_to_play_button'),
-          label: 'How to Play',
+          label: context.l10n.howToPlay,
           color: const Color(0xFF2C70A8),
           onPressed: () => showHowToPlayOverlay(context),
         ),
         const SizedBox(height: 12),
         MenuActionButton(
-          label: 'Visit Cities',
+          label: context.l10n.visitCities,
           color: const Color(0xFF4A873E),
           onPressed: () => _showVisits(context),
         ),
         const SizedBox(height: 17),
-        _SettingsButton(onPressed: () => _showSettings(context)),
+        _SettingsButton(
+          label: context.l10n.settings,
+          onPressed: () => showSettingsOverlay(
+            context: context,
+            controller: settingsController,
+          ),
+        ),
         const SizedBox(height: 15),
-        const Text(
-          'A fictional civic decision simulation.\nNot official election guidance.',
+        Text(
+          context.l10n.fictionalDisclaimer,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Color(0xFFD7E0E5),
@@ -430,58 +463,16 @@ class _MenuActions extends StatelessWidget {
       controller: controller,
       mode: mode,
     );
-    if (openCity && context.mounted) context.go('/city');
+    if (openCity && context.mounted) {
+      context.go(controller.activeResumeRoute);
+    }
   }
 
   void _showVisits(BuildContext context) => _showPaperDialog(
     context,
-    title: 'Visit Cities',
+    title: context.l10n.visitCities,
     icon: Icons.travel_explore_rounded,
-    body: const Text(
-      'City visits use safe, asynchronous snapshots—not live multiplayer. The menu position is reserved while local snapshot publishing is built.',
-    ),
-  );
-
-  void _showSettings(BuildContext context) => _showPaperDialog(
-    context,
-    title: 'Settings',
-    icon: Icons.settings_outlined,
-    body: const Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Text scaling and reduced motion follow your device accessibility settings. Audio, language, and privacy controls will be added here.',
-        ),
-        SizedBox(height: 14),
-        Divider(),
-        _SettingsInfoRow(
-          icon: Icons.info_outline_rounded,
-          title: 'About Resibo, Please',
-          detail: 'A fictional civic decision simulation.',
-        ),
-        _SettingsInfoRow(
-          icon: Icons.groups_outlined,
-          title: 'Credits',
-          detail: 'Full development credits will appear here.',
-        ),
-        _SettingsInfoRow(
-          icon: Icons.gavel_outlined,
-          title: 'Disclaimer',
-          detail: 'Not official election guidance.',
-        ),
-        _SettingsInfoRow(
-          icon: Icons.privacy_tip_outlined,
-          title: 'Privacy Policy',
-          detail: 'A release-ready policy will appear here.',
-        ),
-        _SettingsInfoRow(
-          icon: Icons.numbers_rounded,
-          title: 'App version',
-          detail: '1.0.0 (1)',
-        ),
-      ],
-    ),
+    body: Text(context.l10n.visitCitiesBody),
   );
 
   Future<void> _showPaperDialog(
@@ -502,7 +493,7 @@ class _MenuActions extends StatelessWidget {
       actions: [
         FilledButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Got it'),
+          child: Text(context.l10n.gotIt),
         ),
       ],
     ),
@@ -510,8 +501,9 @@ class _MenuActions extends StatelessWidget {
 }
 
 class _SettingsButton extends StatelessWidget {
-  const _SettingsButton({required this.onPressed});
+  const _SettingsButton({required this.label, required this.onPressed});
 
+  final String label;
   final VoidCallback onPressed;
 
   @override
@@ -542,23 +534,23 @@ class _SettingsButton extends StatelessWidget {
           child: InkWell(
             key: const Key('settings_button'),
             onTap: onPressed,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.settings_rounded,
                     color: Color(0xFFFFF1CF),
                     size: 19,
                   ),
-                  SizedBox(width: 7),
+                  const SizedBox(width: 7),
                   Flexible(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        'SETTINGS',
-                        style: TextStyle(
+                        label.toUpperCase(),
+                        style: const TextStyle(
                           color: Color(0xFFFFF1CF),
                           fontFamily: 'LilitaOne',
                           fontSize: 15,
@@ -576,39 +568,6 @@ class _SettingsButton extends StatelessWidget {
           ),
         ),
       ),
-    ),
-  );
-}
-
-class _SettingsInfoRow extends StatelessWidget {
-  const _SettingsInfoRow({
-    required this.icon,
-    required this.title,
-    required this.detail,
-  });
-
-  final IconData icon;
-  final String title;
-  final String detail;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: ResiboColors.teal),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-              Text(detail, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ),
-      ],
     ),
   );
 }
