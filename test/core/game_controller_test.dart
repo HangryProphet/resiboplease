@@ -200,7 +200,12 @@ void main() {
     expect(restored.viewedEvidenceCount, 1);
     expect(restored.isBookmarked(evidence.id), isTrue);
     expect(restored.investigationPointsUsed, 1);
+    expect(restored.activeResumeRoute, '/simulation');
+    for (var phase = 0; phase < 4; phase++) {
+      restored.advanceTerm();
+    }
     expect(restored.activeResumeRoute, '/report');
+    await restored.flushSaves();
 
     controller.dispose();
     restored.dispose();
@@ -240,6 +245,7 @@ void main() {
       chargedEvidenceIds: {...clean.chargedEvidenceIds, 'stale_file'},
       selectedCandidateId: clean.selectedCandidateId,
       termResultReady: clean.termResultReady,
+      revealedTermPhases: clean.revealedTermPhases,
       topIssue: clean.topIssue,
       confidence: clean.confidence,
       createdAt: clean.createdAt,

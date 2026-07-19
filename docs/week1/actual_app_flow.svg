@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="1400" viewBox="0 0 3000 1400" role="img" aria-labelledby="title description">
+  <title id="title">Resibo, Please actual mobile application flow</title>
+  <description id="description">Five actual Flutter app screenshots connected from Main Menu through City Brief, Candidate Files, Election, and Term Simulation.</description>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#07111d" flood-opacity="0.3"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 16 16" markerWidth="42" markerHeight="42" refX="14" refY="8" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L16,8 L0,16 z" fill="#b6404d"/>
+    </marker>
+    <clipPath id="screen1"><rect x="50" y="190" width="500" height="1082" rx="24"/></clipPath>
+    <clipPath id="screen2"><rect x="650" y="190" width="500" height="1082" rx="24"/></clipPath>
+    <clipPath id="screen3"><rect x="1250" y="190" width="500" height="1082" rx="24"/></clipPath>
+    <clipPath id="screen4"><rect x="1850" y="190" width="500" height="1082" rx="24"/></clipPath>
+    <clipPath id="screen5"><rect x="2450" y="190" width="500" height="1082" rx="24"/></clipPath>
+    <style>
+      .title { font: 900 47px Arial, sans-serif; fill: #142438; letter-spacing: 1px; }
+      .subtitle { font: 24px Arial, sans-serif; fill: #586571; }
+      .label { font: 900 29px Arial, sans-serif; fill: #142438; text-anchor: middle; }
+      .number { fill: #b6404d; stroke: #142438; stroke-width: 5; }
+      .numberText { font: 900 27px Arial, sans-serif; fill: #fff; text-anchor: middle; dominant-baseline: middle; }
+      .frame { fill: #142438; stroke: #142438; stroke-width: 12; }
+      .arrow { fill: none; stroke: #b6404d; stroke-width: 12; stroke-linecap: round; marker-end: url(#arrow); }
+      .footer { font: 20px Arial, sans-serif; fill: #65717a; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect width="3000" height="1400" fill="#f4f1e9"/>
+  <text class="title" x="1500" y="62" text-anchor="middle">RESIBO, PLEASE — CORE MOBILE APP FLOW</text>
+  <text class="subtitle" x="1500" y="102" text-anchor="middle">Actual screenshots captured from the running Flutter application</text>
+
+  <g>
+    <circle class="number" cx="82" cy="148" r="27"/><text class="numberText" x="82" y="149">1</text>
+    <text class="label" x="300" y="157">MAIN MENU</text>
+    <rect class="frame" x="44" y="184" width="512" height="1094" rx="32" filter="url(#shadow)"/>
+    <image href="actual_screens/01_main_menu.png" x="50" y="190" width="500" height="1082" preserveAspectRatio="none" clip-path="url(#screen1)"/>
+  </g>
+
+  <g>
+    <circle class="number" cx="682" cy="148" r="27"/><text class="numberText" x="682" y="149">2</text>
+    <text class="label" x="900" y="157">CITY BRIEF</text>
+    <rect class="frame" x="644" y="184" width="512" height="1094" rx="32" filter="url(#shadow)"/>
+    <image href="actual_screens/02_city_brief.png" x="650" y="190" width="500" height="1082" preserveAspectRatio="none" clip-path="url(#screen2)"/>
+  </g>
+
+  <g>
+    <circle class="number" cx="1282" cy="148" r="27"/><text class="numberText" x="1282" y="149">3</text>
+    <text class="label" x="1500" y="157">CANDIDATE FILES</text>
+    <rect class="frame" x="1244" y="184" width="512" height="1094" rx="32" filter="url(#shadow)"/>
+    <image href="actual_screens/03_candidate_files.png" x="1250" y="190" width="500" height="1082" preserveAspectRatio="none" clip-path="url(#screen3)"/>
+  </g>
+
+  <g>
+    <circle class="number" cx="1882" cy="148" r="27"/><text class="numberText" x="1882" y="149">4</text>
+    <text class="label" x="2100" y="157">ELECTION</text>
+    <rect class="frame" x="1844" y="184" width="512" height="1094" rx="32" filter="url(#shadow)"/>
+    <image href="actual_screens/04_election.png" x="1850" y="190" width="500" height="1082" preserveAspectRatio="none" clip-path="url(#screen4)"/>
+  </g>
+
+  <g>
+    <circle class="number" cx="2482" cy="148" r="27"/><text class="numberText" x="2482" y="149">5</text>
+    <text class="label" x="2700" y="157">TERM SIMULATION</text>
+    <rect class="frame" x="2444" y="184" width="512" height="1094" rx="32" filter="url(#shadow)"/>
+    <image href="actual_screens/05_term_simulation.png" x="2450" y="190" width="500" height="1082" preserveAspectRatio="none" clip-path="url(#screen5)"/>
+  </g>
+
+  <path class="arrow" d="M570 730 H625"/>
+  <path class="arrow" d="M1170 730 H1225"/>
+  <path class="arrow" d="M1770 730 H1825"/>
+  <path class="arrow" d="M2370 730 H2425"/>
+
+  <text class="footer" x="1500" y="1352">START A CITY → REVIEW CITY CONDITIONS → INVESTIGATE CANDIDATES → VOTE → OBSERVE THE TERM</text>
+</svg>

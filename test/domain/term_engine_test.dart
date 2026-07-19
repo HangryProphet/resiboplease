@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resiboplease/data/seed_content/bayhaven_scenario.dart';
+import 'package:resiboplease/data/configuration/configured_scenario.dart';
 import 'package:resiboplease/domain/models/city_indicator.dart';
+import 'package:resiboplease/domain/models/city_run_configuration.dart';
+import 'package:resiboplease/domain/models/term_result.dart';
 import 'package:resiboplease/domain/simulation/seeded_random.dart';
 import 'package:resiboplease/domain/simulation/term_engine.dart';
 
@@ -80,6 +83,52 @@ void main() {
       expect(
         result.phases.expand((phase) => phase.changes.entries),
         isNotEmpty,
+      );
+      expect(
+        result.phases.where((phase) => phase.eventKind.hasArtwork),
+        hasLength(2),
+      );
+    });
+
+    test('configured cities can surface every authored major event family', () {
+      final seen = <TermEventKind>{};
+      const concerns = <CityConcern>[
+        CityConcern.climate,
+        CityConcern.health,
+        CityConcern.water,
+        CityConcern.jobs,
+        CityConcern.cityServices,
+      ];
+      for (final concern in concerns) {
+        for (var seedOffset = 0; seedOffset < 8; seedOffset++) {
+          final configuration = CityRunConfiguration.defaults().copyWith(
+            mainConcerns: [concern],
+          );
+          final scenario = buildConfiguredScenario(
+            base: buildBayhavenScenario(seed: 8000 + seedOffset),
+            configuration: configuration,
+          );
+          final result = engine.simulate(
+            scenario: scenario,
+            candidate: scenario.candidates.first,
+          );
+          seen.addAll(
+            result.phases
+                .where((phase) => phase.eventKind.hasArtwork)
+                .map((phase) => phase.eventKind),
+          );
+        }
+      }
+
+      expect(
+        seen,
+        containsAll(<TermEventKind>{
+          TermEventKind.typhoonResponse,
+          TermEventKind.clinicOutbreak,
+          TermEventKind.waterEmergency,
+          TermEventKind.jobsShock,
+          TermEventKind.transportDisruption,
+        }),
       );
     });
   });

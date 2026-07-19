@@ -8,7 +8,7 @@ class GameSaveData {
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now().toUtc();
 
-  static const currentSchemaVersion = 1;
+  static const currentSchemaVersion = 2;
 
   final int? activeSlotIndex;
   final List<RunSaveData?> slots;
@@ -52,6 +52,7 @@ class RunSaveData {
     required this.chargedEvidenceIds,
     required this.selectedCandidateId,
     required this.termResultReady,
+    required this.revealedTermPhases,
     required this.topIssue,
     required this.confidence,
     DateTime? createdAt,
@@ -68,6 +69,7 @@ class RunSaveData {
   final Set<String> chargedEvidenceIds;
   final String? selectedCandidateId;
   final bool termResultReady;
+  final int revealedTermPhases;
   final String? topIssue;
   final double confidence;
   final DateTime createdAt;
@@ -83,6 +85,7 @@ class RunSaveData {
     'charged_evidence_ids': chargedEvidenceIds.toList()..sort(),
     'selected_candidate_id': selectedCandidateId,
     'term_result_ready': termResultReady,
+    'revealed_term_phases': revealedTermPhases,
     'top_issue': topIssue,
     'confidence': confidence,
     'created_at': createdAt.toIso8601String(),
@@ -112,6 +115,10 @@ class RunSaveData {
     ),
     selectedCandidateId: _optionalString(json['selected_candidate_id']),
     termResultReady: json['term_result_ready'] == true,
+    revealedTermPhases: _requiredInt(
+      json['revealed_term_phases'],
+      'revealed_term_phases',
+    ),
     topIssue: _optionalString(json['top_issue']),
     confidence: _requiredNum(json['confidence'], 'confidence').toDouble(),
     createdAt: _dateTime(json['created_at'], 'created_at'),
@@ -132,6 +139,7 @@ abstract final class RunSaveMigrator {
     while (version < GameSaveData.currentSchemaVersion) {
       json = switch (version) {
         0 => _migrateV0ToV1(json),
+        1 => _migrateV1ToV2(json),
         _ => throw UnsupportedError('No migration exists for schema $version.'),
       };
       version = _requiredInt(json['schema_version'], 'schema_version');
@@ -147,6 +155,29 @@ abstract final class RunSaveMigrator {
         source['updated_at'] ??
         DateTime.fromMillisecondsSinceEpoch(0).toUtc().toIso8601String(),
   }..remove('active_slot');
+
+  static Map<String, Object?> _migrateV1ToV2(Map<String, Object?> source) {
+    final slots = source['slots'];
+    return {
+      ...source,
+      'schema_version': 2,
+      if (slots is List)
+        'slots': slots
+            .map((slot) {
+              if (slot is! Map) return slot;
+              final migrated = slot.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+              return {
+                ...migrated,
+                'revealed_term_phases': migrated['term_result_ready'] == true
+                    ? 4
+                    : 0,
+              };
+            })
+            .toList(growable: false),
+    };
+  }
 }
 
 Map<String, Object?> _configurationToJson(CityRunConfiguration value) => {

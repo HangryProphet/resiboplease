@@ -628,7 +628,7 @@ class AppLocalizationsFil extends AppLocalizations {
       'May 7 investigation points ka. Libre ang candidate profiles.';
 
   @override
-  String get electionBrief => 'Election brief';
+  String get electionBrief => 'Ulat sa halalan';
 
   @override
   String get cityBeforeVote => 'Ang lungsod bago ang botohan';
@@ -638,10 +638,10 @@ class AppLocalizationsFil extends AppLocalizations {
 
   @override
   String get guidedReminderBody =>
-      'Magsimula sa agarang city files, saka ihambing ang ebidensya ng mga kandidato bago magpasya.';
+      'Magsimula sa mga agarang tala ng lungsod, saka ihambing ang ebidensya ng mga kandidato bago magpasya.';
 
   @override
-  String get urgentCaseFiles => 'Mga agarang case file';
+  String get urgentCaseFiles => 'Mga agarang tala';
 
   @override
   String get cityCondition => 'Kalagayan ng lungsod';
@@ -651,7 +651,96 @@ class AppLocalizationsFil extends AppLocalizations {
 
   @override
   String get cityImageSemantics =>
-      'Isang iginuhit na city hall, waterfront, water infrastructure, klinika, paaralan, at market district.';
+      'Isang iginuhit na munisipyo, tabing-dagat, pasilidad ng tubig, klinika, paaralan, at pamilihan.';
+
+  @override
+  String get cityHubTitle => 'Ulat ng lungsod';
+
+  @override
+  String get preElectionSnapshot => 'Kalagayan bago ang halalan';
+
+  @override
+  String get preElectionFrozenNote =>
+      'Panimulang impormasyon lamang. Hindi uusad ang lungsod at walang mahalagang pangyayari na magsisimula hangga\'t hindi kumpirmado ang iyong boto.';
+
+  @override
+  String get cityPulse => 'Pulso ng lungsod';
+
+  @override
+  String get fictionalCityEstimate =>
+      'Kathang-isip na tantiya mula sa panimulang kalagayan';
+
+  @override
+  String get urgentConcerns => 'Mga usapin sa balota';
+
+  @override
+  String affectedResidentsEstimate(int percent) {
+    return 'Tinatayang $percent% ng residente ang apektado';
+  }
+
+  @override
+  String severityValue(String value) {
+    return 'Tindi: $value';
+  }
+
+  @override
+  String urgencyValue(String value) {
+    return 'Pagkaapurahan: $value';
+  }
+
+  @override
+  String get openCaseFile => 'Buksan ang tala';
+
+  @override
+  String get caseFileDetails => 'Detalye ng usapin';
+
+  @override
+  String get relatedIndicators => 'Kaugnay na sistema ng lungsod';
+
+  @override
+  String get currentCondition => 'Kasalukuyang kalagayan';
+
+  @override
+  String get latestChronicle => 'Pinakabago sa Kronika';
+
+  @override
+  String get openChronicle => 'Buksan ang Kronika';
+
+  @override
+  String get chronicleTitle => 'Kronika ng Lungsod';
+
+  @override
+  String get chronicleIntro =>
+      'Inilalarawan ng mga ulat at piling tinig ng residente ang lungsod sa simula ng halalan. Hindi ito umaandar na simulation.';
+
+  @override
+  String get cityNews => 'Balita ng lungsod';
+
+  @override
+  String get communityVoices => 'Mga tinig ng komunidad';
+
+  @override
+  String get voiceSampleNote =>
+      'Kathang-isip na piling pananaw ang mga ito, hindi siyentipikong poll o tinig ng buong lungsod.';
+
+  @override
+  String get backgroundContextLabel => 'Panimulang impormasyon';
+
+  @override
+  String get unverifiedClaim => 'Hindi beripikadong pahayag ng komunidad';
+
+  @override
+  String get navCity => 'Lungsod';
+
+  @override
+  String get navDossiers => 'Mga tala';
+
+  @override
+  String get navChronicle => 'Kronika';
+
+  @override
+  String get cityMapHint =>
+      'I-tap ang tanda sa mapa para buksan ang tala ng usapin.';
 
   @override
   String get candidateRoster => 'Listahan ng mga kandidato';
@@ -875,6 +964,22 @@ class AppLocalizationsFil extends AppLocalizations {
   String get electionDayHeading => 'Pumili nang walang match score';
 
   @override
+  String get ballotInstruction =>
+      'Suriin ang ebidensya, pumili ng isang hindi perpektong kandidato, at itala kung ano ang humubog sa iyong pasya.';
+
+  @override
+  String get ballotCandidateInstruction => 'Pumili ng kandidato para alkalde';
+
+  @override
+  String get ballotSelected => 'Napili para sa iyong balota';
+
+  @override
+  String get choosePriority => 'Piliin ang isyung pinakamahalaga sa iyo';
+
+  @override
+  String get confidenceReflection => 'Pagninilay ang katiyakan, hindi score.';
+
+  @override
   String evidenceOpenedCount(int opened, int total) {
     return '$opened sa $total evidence items ang nabuksan. Konteksto ang lawak ng imbestigasyon, hindi score.';
   }
@@ -918,10 +1023,47 @@ class AppLocalizationsFil extends AppLocalizations {
   String get confirmVote => 'Kumpirmahin ang boto';
 
   @override
+  String get winnerDeclared => 'Resulta ng halalan';
+
+  @override
+  String nowGovernsCity(String candidate, String city) {
+    return 'Si $candidate na ang namumuno sa $city.';
+  }
+
+  @override
+  String get beginTerm => 'Simulan ang termino';
+
+  @override
   String get returnToBallot => 'Bumalik sa balota';
 
   @override
   String get termInProgress => 'Kasalukuyang termino';
+
+  @override
+  String get termTimeline => 'Takbo ng administrasyon';
+
+  @override
+  String phaseProgress(int current, int total) {
+    return '$current sa $total yugto ang naipakita';
+  }
+
+  @override
+  String get currentCityCondition => 'Kasalukuyang kalagayan ng lungsod';
+
+  @override
+  String get majorEvent => 'Malaking pangyayari sa lungsod';
+
+  @override
+  String get cityUpdate => 'Balita sa lungsod';
+
+  @override
+  String get eventImpact => 'Naitalang epekto';
+
+  @override
+  String get advanceTerm => 'Isulong ang termino';
+
+  @override
+  String get termReady => 'Kumpleto na ang rekord ng termino';
 
   @override
   String get termSimulationHeading => 'Isang termino, apat na malinaw na yugto';
@@ -965,7 +1107,7 @@ class AppLocalizationsFil extends AppLocalizations {
 
   @override
   String get modelExplanation =>
-      'Pinagsama ng deterministic model ang bigat at urgency ng isyu sa policy skill, implementation, crisis response, integrity, coalition support, budget feasibility, at nakatalang ±10% seeded variation ng administrasyon. Hindi ginamit ang hidden scores bilang pahiwatig bago ang eleksyon.';
+      'Pinili ng deterministic model ang malalaking pangyayari ayon sa city seed, aktibong usapin, at panimulang kahinaan. Pinagsama ng epekto ang kaugnay na kaalaman sa polisiya, pagpapatupad, crisis response, integridad, suporta ng koalisyon, badyet, at nakatalang ±10% seeded variation. Hindi ginamit ang hidden scores bilang pahiwatig bago ang eleksyon.';
 
   @override
   String get yourDecisionContext => 'Konteksto ng iyong pasya';
@@ -1107,6 +1249,22 @@ class AppLocalizationsFil extends AppLocalizations {
 
   @override
   String get administrationReceipt => 'Resibo ng administrasyon';
+
+  @override
+  String get administrationTimeline => 'Mga nangyari sa loob ng termino';
+
+  @override
+  String get strongestGains => 'Pinakamalaking pagbuti';
+
+  @override
+  String get hardestSetbacks => 'Pinakamabigat na pag-urong';
+
+  @override
+  String get outcomeNotVerdict =>
+      'Rekord ito ng mga bunga, hindi hatol kung tama o mali ang iyong boto.';
+
+  @override
+  String get noMajorChange => 'Walang malaking pagbabago';
 
   @override
   String get whatChanged => 'Ano ang nagbago';

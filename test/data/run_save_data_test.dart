@@ -16,6 +16,7 @@ void main() {
       chargedEvidenceIds: {'maya_factCheck'},
       selectedCandidateId: 'maya_vargas',
       termResultReady: true,
+      revealedTermPhases: 4,
       topIssue: 'water_contamination',
       confidence: .8,
       createdAt: DateTime.utc(2026, 7, 18),
@@ -40,11 +41,12 @@ void main() {
     expect(run.term, 2);
     expect(run.selectedCandidateId, 'maya_vargas');
     expect(run.termResultReady, isTrue);
+    expect(run.revealedTermPhases, 4);
     expect(run.viewedEvidenceIds, {'maya_profile', 'maya_factCheck'});
     expect(run.indicators, buildBayhavenScenario(seed: 42).city.indicators);
   });
 
-  test('schema zero active-slot data migrates to schema one', () {
+  test('schema zero active-slot data migrates to the current schema', () {
     final raw = GameSaveData(activeSlotIndex: 0, slots: [sampleRun()]).toJson();
     raw.remove('schema_version');
     raw['active_slot'] = raw.remove('active_slot_index');

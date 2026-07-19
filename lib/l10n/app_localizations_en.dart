@@ -650,6 +650,94 @@ class AppLocalizationsEn extends AppLocalizations {
       'An illustrated civic hall, waterfront, water infrastructure, clinic, school, and market district.';
 
   @override
+  String get cityHubTitle => 'City brief';
+
+  @override
+  String get preElectionSnapshot => 'Pre-election snapshot';
+
+  @override
+  String get preElectionFrozenNote =>
+      'Background context only. The city does not advance and consequential events do not begin until your vote is confirmed.';
+
+  @override
+  String get cityPulse => 'City pulse';
+
+  @override
+  String get fictionalCityEstimate =>
+      'Fictional city estimate derived from the starting scenario';
+
+  @override
+  String get urgentConcerns => 'Concerns on the ballot';
+
+  @override
+  String affectedResidentsEstimate(int percent) {
+    return '$percent% estimated residents affected';
+  }
+
+  @override
+  String severityValue(String value) {
+    return 'Severity: $value';
+  }
+
+  @override
+  String urgencyValue(String value) {
+    return 'Urgency: $value';
+  }
+
+  @override
+  String get openCaseFile => 'Open case file';
+
+  @override
+  String get caseFileDetails => 'Concern details';
+
+  @override
+  String get relatedIndicators => 'Related city systems';
+
+  @override
+  String get currentCondition => 'Current condition';
+
+  @override
+  String get latestChronicle => 'Latest from the Chronicle';
+
+  @override
+  String get openChronicle => 'Open Chronicle';
+
+  @override
+  String get chronicleTitle => 'City Chronicle';
+
+  @override
+  String get chronicleIntro =>
+      'Background reporting and sampled resident voices describe the city at the start of the election. This feed is not an advancing simulation.';
+
+  @override
+  String get cityNews => 'City news';
+
+  @override
+  String get communityVoices => 'Community voices';
+
+  @override
+  String get voiceSampleNote =>
+      'These are fictional sampled perspectives, not a scientific poll or the voice of the entire city.';
+
+  @override
+  String get backgroundContextLabel => 'Background context';
+
+  @override
+  String get unverifiedClaim => 'Unverified community claim';
+
+  @override
+  String get navCity => 'City';
+
+  @override
+  String get navDossiers => 'Dossiers';
+
+  @override
+  String get navChronicle => 'Chronicle';
+
+  @override
+  String get cityMapHint => 'Tap a city marker to open its concern file.';
+
+  @override
   String get candidateRoster => 'Candidate roster';
 
   @override
@@ -869,6 +957,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get electionDayHeading => 'Choose without a match score';
 
   @override
+  String get ballotInstruction =>
+      'Review the evidence, choose one imperfect candidate, and record what shaped your decision.';
+
+  @override
+  String get ballotCandidateInstruction => 'Select a candidate for mayor';
+
+  @override
+  String get ballotSelected => 'Selected for your ballot';
+
+  @override
+  String get choosePriority => 'Choose the issue that mattered most';
+
+  @override
+  String get confidenceReflection => 'Confidence is a reflection, not a score.';
+
+  @override
   String evidenceOpenedCount(int opened, int total) {
     return '$opened of $total evidence items opened. Investigation completeness is context, not a score.';
   }
@@ -912,10 +1016,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmVote => 'Confirm vote';
 
   @override
+  String get winnerDeclared => 'Election result';
+
+  @override
+  String nowGovernsCity(String candidate, String city) {
+    return '$candidate now governs $city.';
+  }
+
+  @override
+  String get beginTerm => 'Begin the term';
+
+  @override
   String get returnToBallot => 'Return to ballot';
 
   @override
   String get termInProgress => 'Term in progress';
+
+  @override
+  String get termTimeline => 'Administration timeline';
+
+  @override
+  String phaseProgress(int current, int total) {
+    return '$current of $total phases revealed';
+  }
+
+  @override
+  String get currentCityCondition => 'Current city condition';
+
+  @override
+  String get majorEvent => 'Major city event';
+
+  @override
+  String get cityUpdate => 'City update';
+
+  @override
+  String get eventImpact => 'Recorded impact';
+
+  @override
+  String get advanceTerm => 'Advance the term';
+
+  @override
+  String get termReady => 'The term record is complete';
 
   @override
   String get termSimulationHeading => 'One term, four explainable phases';
@@ -959,7 +1100,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelExplanation =>
-      'The deterministic model combined issue severity and urgency with the administration\'s relevant policy skill, implementation, crisis response, integrity, coalition support, budget feasibility, and a logged ±10% seeded variation. Hidden scores were not used as pre-election hints.';
+      'The deterministic model selected major events from the city seed, active concerns, and starting weaknesses. Their impact combined relevant policy knowledge, implementation, crisis response, integrity, coalition support, budget feasibility, and a logged ±10% seeded variation. Hidden scores were never used as pre-election hints.';
 
   @override
   String get yourDecisionContext => 'Your decision context';
@@ -1101,6 +1242,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get administrationReceipt => 'Administration receipt';
+
+  @override
+  String get administrationTimeline => 'What happened during the term';
+
+  @override
+  String get strongestGains => 'Strongest gains';
+
+  @override
+  String get hardestSetbacks => 'Hardest setbacks';
+
+  @override
+  String get outcomeNotVerdict =>
+      'This is a record of consequences, not a verdict that your vote was right or wrong.';
+
+  @override
+  String get noMajorChange => 'No major movement';
 
   @override
   String get whatChanged => 'What changed';

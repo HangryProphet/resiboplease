@@ -8,7 +8,10 @@ All candidates, parties, media outlets, events, and city records are fictional. 
 
 The prototype currently supports:
 
-- a responsive Bayhaven city brief with three urgent problems;
+- a responsive pre-election City Brief with an illustrated concern map,
+  deterministic city metrics, three configured case files, and detail sheets;
+- a read-only City Chronicle with contextual local news, sampled fictional
+  resident voices, and a lightweight community illustration;
 - a game-styled Candidate Files roster with full portraits, city case files,
   qualitative experience context, and per-candidate investigation progress;
 - responsive candidate dossiers with Overview, Platform, and filtered Evidence
@@ -17,17 +20,22 @@ The prototype currently supports:
   creating a blanket upgrade or exposing a pre-election score;
 - 27 evidence items across nine evidence categories;
 - evidence reading and bookmarking without candidate scores or recommendations;
-- a ballot with issue-priority and confidence reflection;
-- a deterministic four-phase term simulation;
-- an explanatory term report with same-seed replay;
+- a game-styled ballot with candidate portraits, issue-priority and confidence
+  reflection, confirmation, and an animated winner reveal;
+- a deterministic four-phase term timeline drawing two illustrated major
+  events from five authored event families plus lightweight text updates;
+- an illustrated explanatory term report with gains, setbacks, event history,
+  decision context, and same-seed replay;
 - five versioned local city slots that survive refreshes and app restarts;
 - automatic persistence for evidence usage, bookmarks, votes, and term progress;
 - English and Filipino game text with persistent accessibility settings;
-- a lightweight Flame-rendered city layer inside Flutter screens;
+- a lightweight Flame atmosphere on the main menu and compressed raster city
+  scenes for information-heavy gameplay screens;
 - unit tests for seeded randomness, candidate tradeoff audits, qualitative
   dossier profiles, simulation outcomes, save migrations, and restoration;
-- widget tests for the opening, configuration, Settings, City Archive, and
-  candidate investigation flows.
+- widget tests for the opening, configuration, Settings, City Archive,
+  pre-election City Brief, Chronicle, candidate investigation, and the complete
+  ballot-to-term-report loop.
 
 Firebase, AI generation, authentication, networked city visits, and multiple-election history remain deferred until the offline persistent loop is stable.
 
@@ -68,6 +76,8 @@ lib/
 Important boundaries:
 
 - Simulation rules create the true state; presentation never changes it.
+- Pre-election news, voices, and affected-resident estimates are deterministic
+  context derived from the configured starting state; they never advance time.
 - Candidate capabilities remain in the domain layer and are not rendered before voting.
 - A run and candidate ID produce a stable simulation seed.
 - Flutter owns information-heavy screens; Flame owns only the city canvas.

@@ -1236,6 +1236,162 @@ abstract class AppLocalizations {
   /// **'An illustrated civic hall, waterfront, water infrastructure, clinic, school, and market district.'**
   String get cityImageSemantics;
 
+  /// No description provided for @cityHubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'City brief'**
+  String get cityHubTitle;
+
+  /// No description provided for @preElectionSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-election snapshot'**
+  String get preElectionSnapshot;
+
+  /// No description provided for @preElectionFrozenNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Background context only. The city does not advance and consequential events do not begin until your vote is confirmed.'**
+  String get preElectionFrozenNote;
+
+  /// No description provided for @cityPulse.
+  ///
+  /// In en, this message translates to:
+  /// **'City pulse'**
+  String get cityPulse;
+
+  /// No description provided for @fictionalCityEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Fictional city estimate derived from the starting scenario'**
+  String get fictionalCityEstimate;
+
+  /// No description provided for @urgentConcerns.
+  ///
+  /// In en, this message translates to:
+  /// **'Concerns on the ballot'**
+  String get urgentConcerns;
+
+  /// No description provided for @affectedResidentsEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% estimated residents affected'**
+  String affectedResidentsEstimate(int percent);
+
+  /// No description provided for @severityValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Severity: {value}'**
+  String severityValue(String value);
+
+  /// No description provided for @urgencyValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Urgency: {value}'**
+  String urgencyValue(String value);
+
+  /// No description provided for @openCaseFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open case file'**
+  String get openCaseFile;
+
+  /// No description provided for @caseFileDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Concern details'**
+  String get caseFileDetails;
+
+  /// No description provided for @relatedIndicators.
+  ///
+  /// In en, this message translates to:
+  /// **'Related city systems'**
+  String get relatedIndicators;
+
+  /// No description provided for @currentCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Current condition'**
+  String get currentCondition;
+
+  /// No description provided for @latestChronicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest from the Chronicle'**
+  String get latestChronicle;
+
+  /// No description provided for @openChronicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Chronicle'**
+  String get openChronicle;
+
+  /// No description provided for @chronicleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'City Chronicle'**
+  String get chronicleTitle;
+
+  /// No description provided for @chronicleIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Background reporting and sampled resident voices describe the city at the start of the election. This feed is not an advancing simulation.'**
+  String get chronicleIntro;
+
+  /// No description provided for @cityNews.
+  ///
+  /// In en, this message translates to:
+  /// **'City news'**
+  String get cityNews;
+
+  /// No description provided for @communityVoices.
+  ///
+  /// In en, this message translates to:
+  /// **'Community voices'**
+  String get communityVoices;
+
+  /// No description provided for @voiceSampleNote.
+  ///
+  /// In en, this message translates to:
+  /// **'These are fictional sampled perspectives, not a scientific poll or the voice of the entire city.'**
+  String get voiceSampleNote;
+
+  /// No description provided for @backgroundContextLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Background context'**
+  String get backgroundContextLabel;
+
+  /// No description provided for @unverifiedClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Unverified community claim'**
+  String get unverifiedClaim;
+
+  /// No description provided for @navCity.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get navCity;
+
+  /// No description provided for @navDossiers.
+  ///
+  /// In en, this message translates to:
+  /// **'Dossiers'**
+  String get navDossiers;
+
+  /// No description provided for @navChronicle.
+  ///
+  /// In en, this message translates to:
+  /// **'Chronicle'**
+  String get navChronicle;
+
+  /// No description provided for @cityMapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a city marker to open its concern file.'**
+  String get cityMapHint;
+
   /// No description provided for @candidateRoster.
   ///
   /// In en, this message translates to:
@@ -1632,6 +1788,36 @@ abstract class AppLocalizations {
   /// **'Choose without a match score'**
   String get electionDayHeading;
 
+  /// No description provided for @ballotInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Review the evidence, choose one imperfect candidate, and record what shaped your decision.'**
+  String get ballotInstruction;
+
+  /// No description provided for @ballotCandidateInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a candidate for mayor'**
+  String get ballotCandidateInstruction;
+
+  /// No description provided for @ballotSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected for your ballot'**
+  String get ballotSelected;
+
+  /// No description provided for @choosePriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the issue that mattered most'**
+  String get choosePriority;
+
+  /// No description provided for @confidenceReflection.
+  ///
+  /// In en, this message translates to:
+  /// **'Confidence is a reflection, not a score.'**
+  String get confidenceReflection;
+
   /// No description provided for @evidenceOpenedCount.
   ///
   /// In en, this message translates to:
@@ -1704,6 +1890,24 @@ abstract class AppLocalizations {
   /// **'Confirm vote'**
   String get confirmVote;
 
+  /// No description provided for @winnerDeclared.
+  ///
+  /// In en, this message translates to:
+  /// **'Election result'**
+  String get winnerDeclared;
+
+  /// No description provided for @nowGovernsCity.
+  ///
+  /// In en, this message translates to:
+  /// **'{candidate} now governs {city}.'**
+  String nowGovernsCity(String candidate, String city);
+
+  /// No description provided for @beginTerm.
+  ///
+  /// In en, this message translates to:
+  /// **'Begin the term'**
+  String get beginTerm;
+
   /// No description provided for @returnToBallot.
   ///
   /// In en, this message translates to:
@@ -1715,6 +1919,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Term in progress'**
   String get termInProgress;
+
+  /// No description provided for @termTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Administration timeline'**
+  String get termTimeline;
+
+  /// No description provided for @phaseProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} of {total} phases revealed'**
+  String phaseProgress(int current, int total);
+
+  /// No description provided for @currentCityCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Current city condition'**
+  String get currentCityCondition;
+
+  /// No description provided for @majorEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Major city event'**
+  String get majorEvent;
+
+  /// No description provided for @cityUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'City update'**
+  String get cityUpdate;
+
+  /// No description provided for @eventImpact.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded impact'**
+  String get eventImpact;
+
+  /// No description provided for @advanceTerm.
+  ///
+  /// In en, this message translates to:
+  /// **'Advance the term'**
+  String get advanceTerm;
+
+  /// No description provided for @termReady.
+  ///
+  /// In en, this message translates to:
+  /// **'The term record is complete'**
+  String get termReady;
 
   /// No description provided for @termSimulationHeading.
   ///
@@ -1785,7 +2037,7 @@ abstract class AppLocalizations {
   /// No description provided for @modelExplanation.
   ///
   /// In en, this message translates to:
-  /// **'The deterministic model combined issue severity and urgency with the administration\'s relevant policy skill, implementation, crisis response, integrity, coalition support, budget feasibility, and a logged ±10% seeded variation. Hidden scores were not used as pre-election hints.'**
+  /// **'The deterministic model selected major events from the city seed, active concerns, and starting weaknesses. Their impact combined relevant policy knowledge, implementation, crisis response, integrity, coalition support, budget feasibility, and a logged ±10% seeded variation. Hidden scores were never used as pre-election hints.'**
   String get modelExplanation;
 
   /// No description provided for @yourDecisionContext.
@@ -2057,6 +2309,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Administration receipt'**
   String get administrationReceipt;
+
+  /// No description provided for @administrationTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'What happened during the term'**
+  String get administrationTimeline;
+
+  /// No description provided for @strongestGains.
+  ///
+  /// In en, this message translates to:
+  /// **'Strongest gains'**
+  String get strongestGains;
+
+  /// No description provided for @hardestSetbacks.
+  ///
+  /// In en, this message translates to:
+  /// **'Hardest setbacks'**
+  String get hardestSetbacks;
+
+  /// No description provided for @outcomeNotVerdict.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a record of consequences, not a verdict that your vote was right or wrong.'**
+  String get outcomeNotVerdict;
+
+  /// No description provided for @noMajorChange.
+  ///
+  /// In en, this message translates to:
+  /// **'No major movement'**
+  String get noMajorChange;
 
   /// No description provided for @whatChanged.
   ///

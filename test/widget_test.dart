@@ -108,8 +108,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pump();
 
-    expect(find.text('Harborlight • Election brief'), findsOneWidget);
-    expect(find.text('The city before the vote'), findsOneWidget);
+    expect(find.text('HARBORLIGHT'), findsOneWidget);
+    expect(find.text('CITY BRIEF'), findsOneWidget);
+    expect(find.text('THE CITY BEFORE THE VOTE'), findsOneWidget);
     expect(
       controller.activeConfiguration!.startingPressure,
       StartingPressure.crisis,

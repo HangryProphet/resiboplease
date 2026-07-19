@@ -74,6 +74,8 @@ flutter:
     - assets/images/candidates/julian_pratt/julian_pratt_portrait.png
     - assets/images/candidates/victor_chen/victor_chen_portrait.png
     - assets/images/city/bayhaven_base.png
+    - assets/images/city/bayhaven_community_voices.jpg
+    - assets/images/events/
     - assets/images/main_menu/bayhaven_menu_background_v2.png
     - assets/images/main_menu/candidate_group_v2.png
 

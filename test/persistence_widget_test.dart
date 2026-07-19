@@ -26,6 +26,9 @@ void main() {
       topIssue: firstSession.scenario.city.problems.first.id,
       confidence: .6,
     );
+    for (var phase = 0; phase < 4; phase++) {
+      firstSession.advanceTerm();
+    }
     await firstSession.flushSaves();
     firstSession.dispose();
 
@@ -48,7 +51,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 320));
 
-    expect(find.text('Persistent City • Term report'), findsOneWidget);
+    expect(find.text('TERM REPORT'), findsOneWidget);
+    expect(find.text('Persistent City'), findsOneWidget);
     expect(find.text('ADMINISTRATION RECEIPT'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

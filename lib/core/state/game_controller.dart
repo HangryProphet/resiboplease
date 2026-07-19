@@ -9,8 +9,10 @@ import '../../data/seed_content/bayhaven_scenario.dart';
 import '../../domain/models/candidate.dart';
 import '../../domain/models/city_run_configuration.dart';
 import '../../domain/models/evidence_item.dart';
+import '../../domain/models/pre_election_city_brief.dart';
 import '../../domain/models/scenario.dart';
 import '../../domain/models/term_result.dart';
+import '../../domain/simulation/pre_election_brief_engine.dart';
 import '../../domain/simulation/term_engine.dart';
 
 enum CityRunProgress { electionBrief, termInProgress, termReportReady }
@@ -39,6 +41,7 @@ class GameController extends ChangeNotifier {
     bool activeRun = false,
     this.repository,
     this._engine = const TermEngine(),
+    this._briefEngine = const PreElectionBriefEngine(),
   }) : _baseScenario = scenario ?? buildBayhavenScenario() {
     if (activeRun) {
       final configuration = CityRunConfiguration.defaults(
@@ -58,6 +61,7 @@ class GameController extends ChangeNotifier {
   static const saveSlotCount = 5;
 
   final TermEngine _engine;
+  final PreElectionBriefEngine _briefEngine;
   final Scenario _baseScenario;
   final RunRepository? repository;
   final List<_RunSession?> _runs = List<_RunSession?>.filled(
@@ -85,15 +89,28 @@ class GameController extends ChangeNotifier {
   bool get isSaving => _isSaving;
   bool get hasPersistentStorage => repository != null;
   String? get persistenceError => _persistenceError;
-  String get activeResumeRoute => termResult != null
+  String get activeResumeRoute => selectedCandidate == null
+      ? '/city'
+      : isTermReportReady
       ? '/report'
-      : selectedCandidate != null
-      ? '/simulation'
-      : '/city';
+      : '/simulation';
   String get activeCityName => _activeRun?.cityName ?? scenario.city.name;
   CityRunConfiguration? get activeConfiguration => _activeRun?.configuration;
   AssistanceMode get assistanceMode =>
       activeConfiguration?.assistanceMode ?? AssistanceMode.guided;
+  bool get isPreElection => selectedCandidate == null;
+  int get revealedTermPhases => _activeRun?.revealedTermPhases ?? 0;
+  bool get isTermReportReady {
+    final result = termResult;
+    return result != null && revealedTermPhases >= result.phases.length;
+  }
+
+  PreElectionCityBrief get preElectionBrief => _briefEngine.build(
+    scenario: scenario,
+    configuration:
+        activeConfiguration ??
+        CityRunConfiguration.defaults(cityName: scenario.city.name),
+  );
   int? get investigationPointLimit =>
       activeConfiguration?.investigationTime.pointLimit;
   int get investigationPointsUsed => _activeRun?.chargedEvidenceIds.length ?? 0;
@@ -120,7 +137,9 @@ class GameController extends ChangeNotifier {
         scenarioName: _baseScenario.city.name,
         term: run.scenario.city.term,
         configuration: run.configuration,
-        progress: run.termResult != null
+        progress:
+            run.termResult != null &&
+                run.revealedTermPhases >= run.termResult!.phases.length
             ? CityRunProgress.termReportReady
             : run.selectedCandidate != null
             ? CityRunProgress.termInProgress
@@ -317,6 +336,19 @@ class GameController extends ChangeNotifier {
       scenario: run.scenario,
       candidate: activeCandidate,
     );
+    run.revealedTermPhases = 0;
+    run.touch();
+    _commit();
+  }
+
+  void advanceTerm() {
+    final run = _ensureActiveRun();
+    final result = run.termResult;
+    if (result == null || run.selectedCandidate == null) {
+      throw StateError('A confirmed election is required to advance the term.');
+    }
+    if (run.revealedTermPhases >= result.phases.length) return;
+    run.revealedTermPhases++;
     run.touch();
     _commit();
   }
@@ -397,6 +429,9 @@ class GameController extends ChangeNotifier {
       ..termResult = saved.termResultReady && candidate != null
           ? _engine.simulate(scenario: scenario, candidate: candidate)
           : null
+      ..revealedTermPhases = candidate == null
+          ? 0
+          : saved.revealedTermPhases.clamp(0, 4)
       ..topIssue = saved.topIssue
       ..confidence = saved.confidence.clamp(0, 1);
   }
@@ -527,6 +562,7 @@ class _RunSession {
   TermResult? termResult;
   String? topIssue;
   double confidence = 0.5;
+  int revealedTermPhases = 0;
   final DateTime createdAt;
   DateTime updatedAt;
 
@@ -536,6 +572,7 @@ class _RunSession {
     termResult = null;
     topIssue = null;
     confidence = 0.5;
+    revealedTermPhases = 0;
     bookmarkedEvidenceIds.clear();
     viewedEvidenceIds.clear();
     chargedEvidenceIds.clear();
@@ -554,6 +591,7 @@ class _RunSession {
     chargedEvidenceIds: chargedEvidenceIds,
     selectedCandidateId: selectedCandidate?.id,
     termResultReady: termResult != null,
+    revealedTermPhases: revealedTermPhases,
     topIssue: topIssue,
     confidence: confidence,
     createdAt: createdAt,

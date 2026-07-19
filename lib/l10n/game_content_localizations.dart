@@ -101,47 +101,72 @@ extension LocalizedGameContent on AppLocalizations {
 
   String phaseTitleText(TermPhase phase) {
     if (!isFilipino) return phase.title;
-    return switch (phase.number) {
-      1 => 'Ang unang isang daang araw',
-      2 => 'Sinusubok ng ulan ang administrasyon',
-      3 when phase.changes.values.any((value) => value >= 5) =>
+    return switch (phase.eventKind) {
+      TermEventKind.policyLaunch => 'Ang unang isang daang araw',
+      TermEventKind.typhoonResponse => 'Dumating ang bagyo sa lungsod',
+      TermEventKind.clinicOutbreak => 'Dinagsa ng sakit ang mga klinika',
+      TermEventKind.waterEmergency => 'Nasira ang linya ng malinis na tubig',
+      TermEventKind.jobsShock => 'Nayanig ng pagsasara ang mga trabaho',
+      TermEventKind.transportDisruption =>
+        'Naantala ang biyahe dahil sa sirang kalsada',
+      TermEventKind.recordsReview
+          when phase.changes.values.any((value) => value >= 5) =>
         'Lumilitaw ang mga tanong sa kontrata',
-      3 => 'Sinusuri ng publiko ang mga rekord',
-      4 => 'Haharap sa pagpapatupad ang mga pangako',
-      _ => phase.title,
+      TermEventKind.recordsReview => 'Sinusuri ng publiko ang mga rekord',
+      TermEventKind.deliveryMilestone =>
+        'Haharap sa pagpapatupad ang mga pangako',
     };
   }
 
   String phaseNarrativeText(TermPhase phase, Candidate candidate) {
     if (!isFilipino) return phase.narrative;
-    return switch (phase.number) {
-      1 =>
+    final translated = switch (phase.eventKind) {
+      TermEventKind.policyLaunch =>
         'Itinuon ni ${candidate.name} ang unang malaking programa sa isa sa pinakamabigat na problema ng lungsod.',
-      2 =>
-        'Binaha ng tuloy-tuloy na ulan ang mabababang kalsada. Napigil ng mga emergency crew ang ilang pinsala, ngunit pumalya pa rin ang lumang mga sistema.',
-      3 when phase.changes.values.any((value) => value >= 5) =>
+      TermEventKind.typhoonResponse =>
+        'Binaha ng malakas na bagyo ang mabababang kalsada habang inililipat ng mga emergency worker ang mga residente sa ligtas na lugar.',
+      TermEventKind.clinicOutbreak =>
+        'Dinagsa ng sakit sa paghinga ang mga klinika at kinailangang magbukas ng pansamantalang triage area.',
+      TermEventKind.waterEmergency =>
+        'Nagdulot ng kontaminasyon ang sirang linya habang namahagi ng ligtas na tubig at naghanap ng sira ang mga utility worker.',
+      TermEventKind.jobsShock =>
+        'Biglang nagsara ang isang pabrika sa pantalan at naapektuhan ang mga manggagawa at kalapit na maliliit na negosyo.',
+      TermEventKind.transportDisruption =>
+        'Huminto ang mga bus at humaba ang biyahe dahil sa sirang kalsada habang nagsimula ang pansamantalang shuttle at pagkukumpuni.',
+      TermEventKind.recordsReview
+          when phase.changes.values.any((value) => value >= 5) =>
         'Nasundan ng mga mamamahayag ang isang kontrata ng lungsod patungo sa mga kumpanyang may koneksiyong pampolitika. Nagpatuloy ang trabaho habang binubuksan ang imbestigasyon.',
-      3 =>
+      TermEventKind.recordsReview =>
         'Inilabas ang mga rekord sa procurement para sa pagsusuri. Kinukuwestiyon pa rin ng mga kritiko ang bilis ng pag-apruba ng konseho.',
-      4 =>
+      TermEventKind.deliveryMilestone =>
         'Umabot sa dulo ng termino ang mga proyekto na may halong natapos na gawain, bahagyang solusyon, at hindi natupad na pangako.',
-      _ => phase.narrative,
     };
+    if (phase.number == 4 && phase.eventKind.hasArtwork) {
+      return '$translated Kasabay nito, umabot sa dulo ng termino ang mga proyekto na may halong natapos na gawain, bahagyang solusyon, at hindi natupad na pangako.';
+    }
+    return translated;
   }
 
   String phaseExplanationText(TermPhase phase) {
     if (!isFilipino) return phase.explanation;
-    return switch (phase.number) {
-      1 =>
+    final translated = switch (phase.eventKind) {
+      TermEventKind.policyLaunch =>
         'Ang maagang pagbuti ay mula sa kaalaman sa polisiya. Ang gastos sa badyet ay nakabatay sa pagkakapondo sa paglulunsad.',
-      2 =>
-        'Nababawasan ng mahusay na crisis response at kaalaman sa klima at tubig ang epekto ng bagyong nakatali sa seed.',
-      3 =>
+      TermEventKind.typhoonResponse ||
+      TermEventKind.clinicOutbreak ||
+      TermEventKind.waterEmergency ||
+      TermEventKind.jobsShock ||
+      TermEventKind.transportDisruption =>
+        'Pinili ang pangyayari ayon sa seed at panimulang pressure ng lungsod. Nababawasan ang epekto nito ng kaugnay na kaalaman sa polisiya, crisis response, pagpapatupad, at disiplina sa badyet.',
+      TermEventKind.recordsReview =>
         'Hinuhubog ng integridad at panganib sa korupsiyon ang tagas ng yaman; naaapektuhan ng kakayahang bumuo ng koalisyon kung magdudulot ng tiwala ang transparency.',
-      4 =>
+      TermEventKind.deliveryMilestone =>
         'Pinagsasama ng huling epekto ang bigat ng isyu, akma ng polisiya, pagpapatupad, integridad, suporta ng koalisyon, badyet, at seeded variation.',
-      _ => phase.explanation,
     };
+    if (phase.number == 4 && phase.eventKind.hasArtwork) {
+      return '$translated Kasama rin sa huling epekto ang bigat ng isyu, akma ng polisiya, pagpapatupad, integridad, suporta ng koalisyon, badyet, at seeded variation.';
+    }
+    return translated;
   }
 
   String termSummaryText(TermResult result) {

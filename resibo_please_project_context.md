@@ -912,6 +912,34 @@ Dedicated player notes, dated authorship metadata, linked contradictions,
 requestable fact-checks, and score-free candidate comparison remain later
 extensions of this system.
 
+## 14.8 Current pre-election city implementation status
+
+The city before the vote is implemented as a frozen, read-only snapshot. It is
+deliberately separate from the post-election term simulation:
+
+- The City Brief uses the configured city name, starting pressure, selected
+  concerns, indicators, problem severity, urgency, trend, and scenario seed.
+- A deterministic `PreElectionBriefEngine` derives presentation-safe city
+  metrics, estimated affected-resident ranges, contextual reporting, and
+  sampled fictional resident voices. Opening or revisiting the page never
+  advances time or changes the city.
+- Campaign noise changes source ordering and may add one clearly labeled
+  unverified community claim. It does not change city facts, city metrics, or
+  affected-resident estimates.
+- The illustrated city map uses code-native vector concern markers for every
+  configurable problem. Markers open detail sheets with related city systems;
+  no candidate fit or outcome prediction is shown.
+- The City Chronicle displays background news and fictional sampled voices,
+  not random consequential events. Its resident illustration is a compressed
+  reusable raster asset; dynamic icons remain Flutter vectors for performance.
+- City, Dossiers, and Chronicle share a responsive pre-election navigation bar.
+  Consequential events remain reserved for the administration after the ballot
+  is confirmed.
+
+Future pre-election extensions may add dated record provenance, district-level
+maps, and more scenario-authored visual variants without changing this frozen
+state boundary.
+
 ---
 
 # 15. Election System
@@ -1041,6 +1069,33 @@ Examples:
 - greener or more polluted skyline.
 
 For MVP, use layered illustrations rather than a fully simulated city.
+
+## 16.6 Current one-term MVP implementation status
+
+The complete first-election loop is now playable as an offline deterministic
+vertical slice:
+
+- Election Day uses a game-styled ballot with portraits, an issue-priority
+  reflection, confidence input, and explicit confirmation. It still exposes no
+  match score or preferred candidate.
+- Confirming a ballot produces an animated winner reveal using code-generated
+  rays, glow, and paper confetti around the selected candidate portrait.
+- The term remains mostly observational. The player advances through four
+  recorded phases; reopening a local save resumes the next unrevealed phase.
+- Five illustrated major event families are authored: typhoon response, clinic
+  outbreak, water emergency, jobs shock, and transport disruption. A run draws
+  two distinct major events based on its seed, active concerns, and starting
+  weaknesses. Policy launch and records review remain lightweight text events.
+- Event consequences use the elected administration's relevant policy
+  knowledge, crisis response, implementation, and budget discipline. The event
+  artwork is presentation only; the deterministic term engine owns all changes.
+- The final receipt summarizes gains, setbacks, all city indicators, the term
+  timeline, and the player's recorded decision context without declaring the
+  vote correct or incorrect.
+
+The five event scenes are compressed reusable raster files. Dynamic labels,
+indicator chips, controls, winner animation, and explanation panels remain
+code-native for performance and bilingual accessibility.
 
 ---
 
@@ -2079,7 +2134,7 @@ lib/
 
 ## 31.0 Current implementation status
 
-The local save foundation is implemented with five device-local slots on Android and Web. Saves use `schema_version: 1`, are written through a repository abstraction, and are restored before the main menu opens. The stored truth includes the scenario seed, city configuration, indicator state, term number, selected candidate ID, evidence usage, bookmarks, investigation usage, confidence, top issue, active slot, and timestamps. Candidate and narrative content is regenerated deterministically rather than duplicated as translated display text.
+The local save foundation is implemented with five device-local slots on Android and Web. Saves use `schema_version: 2`, are written through a repository abstraction, and are restored before the main menu opens. The stored truth includes the scenario seed, city configuration, indicator state, term number, selected candidate ID, revealed term-phase count, evidence usage, bookmarks, investigation usage, confidence, top issue, active slot, and timestamps. Candidate, event, and narrative content is regenerated deterministically rather than duplicated as translated display text. Version 1 saves migrate with completed legacy results preserved as fully revealed terms.
 
 The repository currently uses Sembast with a file-backed database on native platforms and IndexedDB on Web. Firebase synchronization remains a later adapter and must not replace the local-first repository contract.
 
@@ -2087,7 +2142,7 @@ The repository currently uses Sembast with a file-backed database on native plat
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "run_id": "run_abc123",
   "seed": 5839201,
   "created_at": "2026-07-17T12:00:00Z",
@@ -2578,7 +2633,7 @@ Recommended initial answers:
 3. Increment the term and create a deterministic second-election seed.
 4. Add `Continue to Next Election` and `End Run` actions to the term report.
 5. Build a local run-history/final-summary page with evidence and confidence context.
-6. Add explicit event and promise records rather than relying only on narrative phase text.
+6. Add structured promise-status records alongside the completed event-kind records.
 7. Complete a structured local public-snapshot preview before adding network publishing.
 8. Keep Firebase and AI deferred until the offline multi-election loop and migration tests are stable.
 

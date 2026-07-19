@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/settings/app_settings_controller.dart';
 import '../core/state/game_controller.dart';
+import '../features/city/city_chronicle_screen.dart';
 import '../features/city/city_overview_screen.dart';
 import '../features/dossier/candidate_dossier_screen.dart';
 import '../features/dossier/candidate_roster_screen.dart';
@@ -31,6 +32,11 @@ GoRouter buildRouter(
       GoRoute(
         path: '/city',
         builder: (context, state) => CityOverviewScreen(controller: controller),
+      ),
+      GoRoute(
+        path: '/city/chronicle',
+        builder: (context, state) =>
+            CityChronicleScreen(controller: controller),
       ),
       GoRoute(
         path: '/candidates',

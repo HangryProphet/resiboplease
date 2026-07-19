@@ -9,6 +9,7 @@ import '../../domain/models/city_run_configuration.dart';
 import '../../domain/models/city_problem.dart';
 import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../city/widgets/pre_election_navigation_bar.dart';
 import 'widgets/dossier_ui.dart';
 
 class CandidateRosterScreen extends StatelessWidget {
@@ -21,6 +22,9 @@ class CandidateRosterScreen extends StatelessWidget {
     animation: controller,
     builder: (context, _) => Scaffold(
       backgroundColor: const Color(0xFF0B1725),
+      bottomNavigationBar: const PreElectionNavigationBar(
+        current: PreElectionDestination.dossiers,
+      ),
       body: SafeArea(
         child: InvestigationBackdrop(
           showCity: true,

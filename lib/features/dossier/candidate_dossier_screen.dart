@@ -9,6 +9,7 @@ import '../../domain/models/city_run_configuration.dart';
 import '../../domain/models/evidence_item.dart';
 import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../city/widgets/pre_election_navigation_bar.dart';
 import 'widgets/dossier_ui.dart';
 import 'widgets/evidence_reader.dart';
 
@@ -64,6 +65,9 @@ class _CandidateDossierScreenState extends State<CandidateDossierScreen> {
       }
       return Scaffold(
         backgroundColor: const Color(0xFF0B1725),
+        bottomNavigationBar: const PreElectionNavigationBar(
+          current: PreElectionDestination.dossiers,
+        ),
         body: SafeArea(
           child: InvestigationBackdrop(
             child: Column(
