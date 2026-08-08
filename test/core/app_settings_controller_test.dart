@@ -10,12 +10,14 @@ void main() {
     await controller.setLanguage(AppLanguage.filipino);
     await controller.setReduceMotion(true);
     await controller.setHighContrast(true);
+    await controller.setDialogueSounds(false);
 
     final restored = AppSettingsController(store: store);
     expect(restored.language, AppLanguage.filipino);
     expect(restored.locale, const Locale('fil'));
     expect(restored.reduceMotion, isTrue);
     expect(restored.highContrast, isTrue);
+    expect(restored.dialogueSounds, isFalse);
 
     await restored.reset();
     final afterReset = AppSettingsController(store: store);
@@ -23,6 +25,7 @@ void main() {
     expect(afterReset.locale, isNull);
     expect(afterReset.reduceMotion, isFalse);
     expect(afterReset.highContrast, isFalse);
+    expect(afterReset.dialogueSounds, isTrue);
 
     controller.dispose();
     restored.dispose();

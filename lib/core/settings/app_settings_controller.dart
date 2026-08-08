@@ -30,6 +30,7 @@ class SharedPreferencesSettingsStore implements AppSettingsStore {
     AppSettingsController.languageKey,
     AppSettingsController.reduceMotionKey,
     AppSettingsController.highContrastKey,
+    AppSettingsController.dialogueSoundsKey,
   };
 
   final SharedPreferencesWithCache _preferences;
@@ -98,21 +99,25 @@ class AppSettingsController extends ChangeNotifier {
     );
     _reduceMotion = _store.readBool(reduceMotionKey) ?? false;
     _highContrast = _store.readBool(highContrastKey) ?? false;
+    _dialogueSounds = _store.readBool(dialogueSoundsKey) ?? true;
   }
 
   static const languageKey = 'settings.language';
   static const reduceMotionKey = 'settings.reduce_motion';
   static const highContrastKey = 'settings.high_contrast';
+  static const dialogueSoundsKey = 'settings.dialogue_sounds';
 
   final AppSettingsStore _store;
   late AppLanguage _language;
   late bool _reduceMotion;
   late bool _highContrast;
+  late bool _dialogueSounds;
 
   AppLanguage get language => _language;
   Locale? get locale => _language.locale;
   bool get reduceMotion => _reduceMotion;
   bool get highContrast => _highContrast;
+  bool get dialogueSounds => _dialogueSounds;
 
   Future<void> setLanguage(AppLanguage value) async {
     if (_language == value) return;
@@ -135,15 +140,24 @@ class AppSettingsController extends ChangeNotifier {
     await _store.writeBool(highContrastKey, value);
   }
 
+  Future<void> setDialogueSounds(bool value) async {
+    if (_dialogueSounds == value) return;
+    _dialogueSounds = value;
+    notifyListeners();
+    await _store.writeBool(dialogueSoundsKey, value);
+  }
+
   Future<void> reset() async {
     _language = AppLanguage.system;
     _reduceMotion = false;
     _highContrast = false;
+    _dialogueSounds = true;
     notifyListeners();
     await Future.wait([
       _store.remove(languageKey),
       _store.remove(reduceMotionKey),
       _store.remove(highContrastKey),
+      _store.remove(dialogueSoundsKey),
     ]);
   }
 }

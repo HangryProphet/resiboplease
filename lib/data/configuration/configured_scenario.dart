@@ -1,11 +1,11 @@
 import '../../domain/models/candidate.dart';
 import '../../domain/models/city.dart';
 import '../../domain/models/city_indicator.dart';
-import '../../domain/models/city_problem.dart';
 import '../../domain/models/city_run_configuration.dart';
 import '../../domain/models/evidence_item.dart';
 import '../../domain/models/scenario.dart';
 import '../../domain/simulation/candidate_tradeoff_audit.dart';
+import '../../domain/simulation/city_issue_generator.dart';
 import 'candidate_field_adjustment.dart';
 
 Scenario buildConfiguredScenario({
@@ -14,7 +14,11 @@ Scenario buildConfiguredScenario({
   int? seed,
 }) {
   final scenario = seed == null ? base : base.copyWith(seed: seed);
-  final city = _configuredCity(scenario.city, configuration);
+  final city = _configuredCity(
+    scenario.city,
+    configuration,
+    seed: scenario.seed,
+  );
   final candidates = scenario.candidates
       .map(
         (candidate) => _configuredCandidate(
@@ -37,7 +41,11 @@ Scenario buildConfiguredScenario({
   return scenario.copyWith(city: city, candidates: candidates);
 }
 
-City _configuredCity(City base, CityRunConfiguration configuration) {
+City _configuredCity(
+  City base,
+  CityRunConfiguration configuration, {
+  required int seed,
+}) {
   final pressureDelta = switch (configuration.startingPressure) {
     StartingPressure.stable => 7,
     StartingPressure.strained => 0,
@@ -69,16 +77,34 @@ City _configuredCity(City base, CityRunConfiguration configuration) {
   changes[CityIndicator.publicTrust] = civicDelta;
   changes[CityIndicator.corruptionPressure] = -civicDelta;
 
-  final problems = configuration.mainConcerns
-      .map(
-        (concern) => _problemFor(
-          concern,
-          base: base,
-          pressure: configuration.startingPressure,
-          cityName: configuration.cityName,
-        ),
-      )
-      .toList(growable: false);
+  final problems = const CityIssueGenerator().generate(
+    seed: seed,
+    cityName: configuration.cityName,
+    pressure: configuration.startingPressure,
+    priorities: configuration.mainConcerns,
+  );
+  for (final problem in problems) {
+    final penalty = ((problem.severity - 45) / 18).round().clamp(0, 4);
+    changes.update(
+      problem.primaryIndicator,
+      (value) => value - penalty,
+      ifAbsent: () => -penalty,
+    );
+    if (problem.relatedIndicators.contains(CityIndicator.publicTrust)) {
+      changes.update(
+        CityIndicator.publicTrust,
+        (value) => value - 1,
+        ifAbsent: () => -1,
+      );
+    }
+    if (problem.relatedIndicators.contains(CityIndicator.corruptionPressure)) {
+      changes.update(
+        CityIndicator.corruptionPressure,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
+    }
+  }
   final concernNames = problems.map((problem) => problem.title.toLowerCase());
   return base.copyWith(
     name: configuration.cityName,
@@ -88,162 +114,6 @@ City _configuredCity(City base, CityRunConfiguration configuration) {
     problems: problems,
   );
 }
-
-CityProblem _problemFor(
-  CityConcern concern, {
-  required City base,
-  required StartingPressure pressure,
-  required String cityName,
-}) {
-  final matching = base.problems
-      .where((problem) => problem.primaryIndicator == concern.indicator)
-      .firstOrNull;
-  final source = matching ?? _newProblem(concern, cityName);
-  final severityDelta = switch (pressure) {
-    StartingPressure.stable => -16,
-    StartingPressure.strained => 0,
-    StartingPressure.crisis => 10,
-  };
-  final urgencyDelta = switch (pressure) {
-    StartingPressure.stable => -14,
-    StartingPressure.strained => 0,
-    StartingPressure.crisis => 8,
-  };
-  final trend = switch (pressure) {
-    StartingPressure.stable => ProblemTrend.stable,
-    StartingPressure.strained => matching?.trend ?? ProblemTrend.worsening,
-    StartingPressure.crisis => ProblemTrend.rapidlyWorsening,
-  };
-  return source.copyWith(
-    description: source.description.replaceAll('Bayhaven', cityName),
-    severity: (source.severity + severityDelta).clamp(20, 100),
-    urgency: (source.urgency + urgencyDelta).clamp(20, 100),
-    trend: trend,
-  );
-}
-
-CityProblem _newProblem(
-  CityConcern concern,
-  String cityName,
-) => switch (concern) {
-  CityConcern.food => CityProblem(
-    id: 'food_costs',
-    title: 'Food prices outpacing wages',
-    description:
-        'Families across $cityName are skipping meals as market prices rise faster than household income.',
-    primaryIndicator: CityIndicator.foodSecurity,
-    relatedIndicators: const [
-      CityIndicator.povertyReduction,
-      CityIndicator.employmentQuality,
-    ],
-    severity: 74,
-    urgency: 80,
-    trend: ProblemTrend.worsening,
-    sdgTags: const ['SDG 2', 'SDG 1', 'SDG 8'],
-  ),
-  CityConcern.poverty => CityProblem(
-    id: 'households_falling_behind',
-    title: 'Families falling behind',
-    description:
-        'Rent, transport, and food costs are pushing more $cityName households into unstable living conditions.',
-    primaryIndicator: CityIndicator.povertyReduction,
-    relatedIndicators: const [
-      CityIndicator.foodSecurity,
-      CityIndicator.urbanResilience,
-    ],
-    severity: 76,
-    urgency: 81,
-    trend: ProblemTrend.worsening,
-    sdgTags: const ['SDG 1', 'SDG 2', 'SDG 11'],
-  ),
-  CityConcern.health => CityProblem(
-    id: 'clinic_overload',
-    title: 'Overcrowded public clinics',
-    description:
-        'Patients wait most of a day as $cityName clinics share too few staff and supplies.',
-    primaryIndicator: CityIndicator.publicHealth,
-    relatedIndicators: const [CityIndicator.povertyReduction],
-    severity: 79,
-    urgency: 86,
-    trend: ProblemTrend.worsening,
-    sdgTags: const ['SDG 3', 'SDG 1'],
-  ),
-  CityConcern.education => CityProblem(
-    id: 'schools_stretched_thin',
-    title: 'Schools stretched thin',
-    description:
-        'Crowded classrooms and uneven resources are widening learning gaps across $cityName.',
-    primaryIndicator: CityIndicator.educationQuality,
-    relatedIndicators: const [
-      CityIndicator.povertyReduction,
-      CityIndicator.employmentQuality,
-    ],
-    severity: 72,
-    urgency: 77,
-    trend: ProblemTrend.worsening,
-    sdgTags: const ['SDG 4', 'SDG 1', 'SDG 8'],
-  ),
-  CityConcern.water => CityProblem(
-    id: 'water_contamination',
-    title: 'Unsafe water after heavy rain',
-    description:
-        'Several $cityName districts report unsafe tap water when heavy rain overwhelms damaged lines.',
-    primaryIndicator: CityIndicator.waterSecurity,
-    relatedIndicators: const [
-      CityIndicator.publicHealth,
-      CityIndicator.climateResilience,
-    ],
-    severity: 84,
-    urgency: 90,
-    trend: ProblemTrend.rapidlyWorsening,
-    sdgTags: const ['SDG 6', 'SDG 3', 'SDG 13'],
-  ),
-  CityConcern.jobs => CityProblem(
-    id: 'unemployment',
-    title: 'Unstable jobs and layoffs',
-    description:
-        'Businesses in $cityName are closing while many new jobs remain short-term and low-paid.',
-    primaryIndicator: CityIndicator.employmentQuality,
-    relatedIndicators: const [
-      CityIndicator.povertyReduction,
-      CityIndicator.foodSecurity,
-    ],
-    severity: 76,
-    urgency: 78,
-    trend: ProblemTrend.worsening,
-    sdgTags: const ['SDG 8', 'SDG 1'],
-  ),
-  CityConcern.cityServices => CityProblem(
-    id: 'housing_transport_strain',
-    title: 'Housing and transport under strain',
-    description:
-        'Long commutes, insecure housing, and delayed repairs are making daily life harder across $cityName.',
-    primaryIndicator: CityIndicator.urbanResilience,
-    relatedIndicators: const [
-      CityIndicator.povertyReduction,
-      CityIndicator.employmentQuality,
-    ],
-    severity: 73,
-    urgency: 76,
-    trend: ProblemTrend.worsening,
-    sdgTags: const ['SDG 11', 'SDG 1', 'SDG 8'],
-  ),
-  CityConcern.climate => CityProblem(
-    id: 'climate_readiness',
-    title: 'Flood defenses falling behind',
-    description:
-        '$cityName drainage and emergency plans are not keeping pace with heavier rain and dangerous heat.',
-    primaryIndicator: CityIndicator.climateResilience,
-    relatedIndicators: const [
-      CityIndicator.waterSecurity,
-      CityIndicator.urbanResilience,
-    ],
-    severity: 78,
-    urgency: 84,
-    trend: ProblemTrend.worsening,
-    sdgTags: const ['SDG 13', 'SDG 11', 'SDG 6'],
-  ),
-};
 
 Candidate _configuredCandidate(
   Candidate candidate,

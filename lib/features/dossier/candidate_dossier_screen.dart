@@ -8,8 +8,10 @@ import '../../domain/models/candidate_dossier_profile.dart';
 import '../../domain/models/city_run_configuration.dart';
 import '../../domain/models/evidence_item.dart';
 import '../../l10n/game_content_localizations.dart';
+import '../../l10n/candidate_experience_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../city/widgets/pre_election_navigation_bar.dart';
+import '../candidate_hub/widgets/candidate_image_slot.dart';
 import 'widgets/dossier_ui.dart';
 import 'widgets/evidence_reader.dart';
 
@@ -75,7 +77,8 @@ class _CandidateDossierScreenState extends State<CandidateDossierScreen> {
                 InvestigationHeader(
                   title: context.l10n.dossier,
                   subtitle: candidate.name,
-                  onBack: () => context.go('/candidates'),
+                  onBack: () =>
+                      context.go('/candidates/${candidate.id}?section=records'),
                   trailing: GameIconButton(
                     tooltip: context.l10n.electionDay,
                     icon: Icons.how_to_vote_rounded,
@@ -292,6 +295,7 @@ class _CandidateIdentity extends StatelessWidget {
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 720;
             final portrait = _IdentityPortrait(
+              controller: controller,
               candidate: candidate,
               color: color,
             );
@@ -426,8 +430,13 @@ class _CandidateIdentity extends StatelessWidget {
 }
 
 class _IdentityPortrait extends StatelessWidget {
-  const _IdentityPortrait({required this.candidate, required this.color});
+  const _IdentityPortrait({
+    required this.controller,
+    required this.candidate,
+    required this.color,
+  });
 
+  final GameController controller;
   final Candidate candidate;
   final Color color;
 
@@ -455,11 +464,15 @@ class _IdentityPortrait extends StatelessWidget {
         bottom: -4,
         child: Hero(
           tag: 'portrait_${candidate.id}',
-          child: Image.asset(
-            'assets/images/candidates/${candidate.id}/${candidate.id}_portrait.png',
-            fit: BoxFit.contain,
-            alignment: Alignment.bottomCenter,
+          child: CandidateImageSlot(
+            candidateId: candidate.id,
+            assetKey: controller.candidateExperience
+                .profileFor(candidate.id)!
+                .portraitAssetKey,
             semanticLabel: candidate.name,
+            color: color,
+            fit: BoxFit.contain,
+            borderRadius: 0,
           ),
         ),
       ),
@@ -1046,13 +1059,14 @@ class _EvidenceFileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final opened = controller.isEvidenceViewed(item.id);
     final bookmarked = controller.isBookmarked(item.id);
-    final free = item.type == EvidenceType.profile || opened;
+    final cost = controller.evidenceInvestigationCost(item.id);
+    final free = cost == 0;
     final cityName = controller.scenario.city.name;
     final typeColor = _colorForEvidence(item.type);
     return Semantics(
       button: true,
       label:
-          '${context.l10n.evidenceTitleText(item, cityName)}, ${opened ? context.l10n.fileOpened : context.l10n.fileUnopened}, ${free ? context.l10n.fileFree : context.l10n.filePointCost}',
+          '${context.l10n.evidenceTitleText(item, cityName)}, ${opened ? context.l10n.fileOpened : context.l10n.fileUnopened}, ${free ? context.l10n.fileFree : context.candidateStrings.points(cost)}',
       child: Container(
         decoration: BoxDecoration(
           color: opened ? const Color(0xFFFFF7E3) : const Color(0xFFE7D8B8),
@@ -1188,7 +1202,7 @@ class _EvidenceFileCard extends StatelessWidget {
                             ? (item.type == EvidenceType.profile
                                   ? context.l10n.fileFree
                                   : context.l10n.fileOpened)
-                            : context.l10n.filePointCost,
+                            : context.candidateStrings.points(cost),
                         color: free ? ResiboColors.teal : ResiboColors.mutedRed,
                         icon: free
                             ? Icons.lock_open_rounded
@@ -1239,7 +1253,7 @@ class _DossierNavigation extends StatelessWidget {
             icon: Icons.arrow_back_rounded,
             color: Color(previous.colorValue),
             compact: true,
-            onPressed: () => context.go('/candidates/${previous.id}'),
+            onPressed: () => context.go('/candidates/${previous.id}/dossier'),
           ),
         if (next != null)
           ChunkyActionButton(
@@ -1247,7 +1261,7 @@ class _DossierNavigation extends StatelessWidget {
             icon: Icons.arrow_forward_rounded,
             color: Color(next.colorValue),
             compact: true,
-            onPressed: () => context.go('/candidates/${next.id}'),
+            onPressed: () => context.go('/candidates/${next.id}/dossier'),
           ),
         ChunkyActionButton(
           buttonKey: const Key('review_ballot'),

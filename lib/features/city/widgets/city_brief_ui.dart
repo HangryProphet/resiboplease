@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/resibo_theme.dart';
+import '../../../core/assets/visual_asset_catalog.dart';
 import '../../../domain/models/pre_election_city_brief.dart';
+import '../../../domain/models/city_problem.dart';
 import '../../../l10n/city_brief_localizations.dart';
 import '../../../l10n/l10n_extensions.dart';
+import '../../../l10n/information_ecosystem_localizations.dart';
+import '../../../l10n/tv_broadcast_localizations.dart';
+import '../../information/widgets/information_actions.dart';
 
 const cityBriefInk = Color(0xFF172332);
 const cityBriefPaper = Color(0xFFF4E7C7);
@@ -411,17 +416,118 @@ class CityMetricCard extends StatelessWidget {
   }
 }
 
+class CityIssueVisualSlot extends StatelessWidget {
+  const CityIssueVisualSlot({
+    required this.family,
+    required this.visualKey,
+    this.compact = false,
+    super.key,
+  });
+
+  final CityIssueFamily family;
+  final String visualKey;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = cityIssueFamilyColor(family);
+    final assetPath = VisualAssetCatalog.issue(visualKey);
+    return Semantics(
+      label: visualKey,
+      image: true,
+      child: SizedBox(
+        height: compact ? 72 : 126,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: cityBriefInk, width: 2)),
+          ),
+          child: assetPath == null
+              ? _CityIssueVisualFallback(
+                  family: family,
+                  color: color,
+                  compact: compact,
+                )
+              : Image.asset(
+                  assetPath,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _CityIssueVisualFallback(
+                        family: family,
+                        color: color,
+                        compact: compact,
+                      ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CityIssueVisualFallback extends StatelessWidget {
+  const _CityIssueVisualFallback({
+    required this.family,
+    required this.color,
+    required this.compact,
+  });
+
+  final CityIssueFamily family;
+  final Color color;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color.lerp(color, Colors.white, .22)!, color],
+      ),
+    ),
+    child: Stack(
+      children: [
+        Positioned(
+          right: -12,
+          bottom: -24,
+          child: Icon(
+            cityIssueFamilyIcon(family),
+            size: compact ? 104 : 160,
+            color: const Color(0x28FFF2D0),
+          ),
+        ),
+        Center(
+          child: Icon(
+            cityIssueFamilyIcon(family),
+            size: compact ? 39 : 58,
+            color: const Color(0xFFFFF1CF),
+            shadows: const [
+              Shadow(color: Colors.black54, offset: Offset(2, 3)),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class CityNewsCard extends StatelessWidget {
   const CityNewsCard({
     required this.item,
     required this.cityName,
     this.compact = false,
+    this.onReadCoverage,
+    this.onWatchReport,
+    this.coverageCount = 0,
     super.key,
   });
 
   final CityNewsItem item;
   final String cityName;
   final bool compact;
+  final VoidCallback? onReadCoverage;
+  final VoidCallback? onWatchReport;
+  final int coverageCount;
 
   @override
   Widget build(BuildContext context) {
@@ -497,6 +603,36 @@ class CityNewsCard extends StatelessWidget {
               height: 1.38,
             ),
           ),
+          if (onReadCoverage != null || onWatchReport != null) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (onWatchReport != null)
+                    InformationActionButton(
+                      buttonKey: Key('watch_report_${item.id}'),
+                      onPressed: onWatchReport,
+                      color: ResiboColors.mutedRed,
+                      icon: Icons.live_tv_rounded,
+                      label: context.tvStrings.watchReport,
+                    ),
+                  if (onReadCoverage != null)
+                    InformationActionButton(
+                      buttonKey: Key('read_coverage_${item.id}'),
+                      onPressed: onReadCoverage,
+                      color: const Color(0xFF3277A0),
+                      icon: Icons.newspaper_rounded,
+                      label:
+                          '${context.informationStrings.readCoverage} ($coverageCount)',
+                    ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -537,7 +673,7 @@ class CitizenVoiceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${context.l10n.citizenRoleLabel(voice.role)} · ${context.l10n.citizenDistrictLabel(voice.district)}',
+                  '${context.l10n.citizenRoleLabel(voice.role)} · ${context.l10n.citizenDistrictLabel(voice.district)} · ${context.l10n.citizenSentimentLabel(voice.sentiment)}',
                   style: TextStyle(
                     color: color,
                     fontSize: 12,
@@ -586,15 +722,49 @@ Color cityTopicColor(CityBriefTopic topic) => switch (topic) {
   CityBriefTopic.climate => const Color(0xFF337C79),
 };
 
-Offset cityTopicHotspot(CityBriefTopic topic) => switch (topic) {
-  CityBriefTopic.water => const Offset(.13, .62),
-  CityBriefTopic.health => const Offset(.35, .59),
-  CityBriefTopic.jobs => const Offset(.72, .72),
-  CityBriefTopic.education => const Offset(.82, .59),
-  CityBriefTopic.food => const Offset(.79, .82),
-  CityBriefTopic.poverty => const Offset(.61, .77),
-  CityBriefTopic.cityServices => const Offset(.52, .79),
-  CityBriefTopic.climate => const Offset(.20, .78),
+IconData cityIssueFamilyIcon(CityIssueFamily family) => switch (family) {
+  CityIssueFamily.floodingDrainage => Icons.flood_rounded,
+  CityIssueFamily.corruptionPublicFunds => Icons.receipt_long_rounded,
+  CityIssueFamily.unfinishedRoads => Icons.construction_rounded,
+  CityIssueFamily.drugsCommunitySafety => Icons.health_and_safety_rounded,
+  CityIssueFamily.garbageCleanliness => Icons.delete_sweep_rounded,
+  CityIssueFamily.trafficTransport => Icons.traffic_rounded,
+  CityIssueFamily.waterSupply => Icons.water_drop_rounded,
+  CityIssueFamily.healthcareCapacity => Icons.local_hospital_rounded,
+  CityIssueFamily.employmentQuality => Icons.work_rounded,
+  CityIssueFamily.costOfLiving => Icons.shopping_basket_rounded,
+  CityIssueFamily.governmentServices => Icons.account_balance_rounded,
+  CityIssueFamily.educationCapacity => Icons.school_rounded,
+};
+
+Color cityIssueFamilyColor(CityIssueFamily family) => switch (family) {
+  CityIssueFamily.floodingDrainage => const Color(0xFF337C79),
+  CityIssueFamily.corruptionPublicFunds => const Color(0xFF8C5966),
+  CityIssueFamily.unfinishedRoads => const Color(0xFF9B6B2C),
+  CityIssueFamily.drugsCommunitySafety => const Color(0xFF765A83),
+  CityIssueFamily.garbageCleanliness => const Color(0xFF4C7B59),
+  CityIssueFamily.trafficTransport => const Color(0xFF55717E),
+  CityIssueFamily.waterSupply => const Color(0xFF3277A0),
+  CityIssueFamily.healthcareCapacity => const Color(0xFF3D8A63),
+  CityIssueFamily.employmentQuality => const Color(0xFFC0662E),
+  CityIssueFamily.costOfLiving => const Color(0xFFB47A24),
+  CityIssueFamily.governmentServices => const Color(0xFF5B6374),
+  CityIssueFamily.educationCapacity => const Color(0xFF67528D),
+};
+
+Offset cityIssueHotspot(CityIssueFamily family) => switch (family) {
+  CityIssueFamily.floodingDrainage => const Offset(.17, .75),
+  CityIssueFamily.corruptionPublicFunds => const Offset(.52, .49),
+  CityIssueFamily.unfinishedRoads => const Offset(.58, .79),
+  CityIssueFamily.drugsCommunitySafety => const Offset(.73, .64),
+  CityIssueFamily.garbageCleanliness => const Offset(.83, .79),
+  CityIssueFamily.trafficTransport => const Offset(.43, .81),
+  CityIssueFamily.waterSupply => const Offset(.12, .59),
+  CityIssueFamily.healthcareCapacity => const Offset(.34, .58),
+  CityIssueFamily.employmentQuality => const Offset(.70, .76),
+  CityIssueFamily.costOfLiving => const Offset(.82, .59),
+  CityIssueFamily.governmentServices => const Offset(.62, .56),
+  CityIssueFamily.educationCapacity => const Offset(.89, .68),
 };
 
 IconData _metricIcon(CityMetricKind kind) => switch (kind) {

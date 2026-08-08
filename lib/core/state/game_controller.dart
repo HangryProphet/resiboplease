@@ -5,14 +5,18 @@ import 'package:flutter/foundation.dart';
 import '../../data/configuration/configured_scenario.dart';
 import '../../data/persistence/run_repository.dart';
 import '../../data/persistence/run_save_data.dart';
+import '../../data/seed_content/bayhaven_candidate_experience.dart';
 import '../../data/seed_content/bayhaven_scenario.dart';
 import '../../domain/models/candidate.dart';
+import '../../domain/models/candidate_experience.dart';
 import '../../domain/models/city_run_configuration.dart';
 import '../../domain/models/evidence_item.dart';
+import '../../domain/models/information_ecosystem.dart';
 import '../../domain/models/pre_election_city_brief.dart';
 import '../../domain/models/scenario.dart';
 import '../../domain/models/term_result.dart';
 import '../../domain/simulation/pre_election_brief_engine.dart';
+import '../../domain/simulation/information_ecosystem_engine.dart';
 import '../../domain/simulation/term_engine.dart';
 
 enum CityRunProgress { electionBrief, termInProgress, termReportReady }
@@ -42,18 +46,17 @@ class GameController extends ChangeNotifier {
     this.repository,
     this._engine = const TermEngine(),
     this._briefEngine = const PreElectionBriefEngine(),
+    this._informationEngine = const InformationEcosystemEngine(),
   }) : _baseScenario = scenario ?? buildBayhavenScenario() {
     if (activeRun) {
       final configuration = CityRunConfiguration.defaults(
         cityName: _baseScenario.city.name,
       );
-      _runs[0] = _RunSession(
+      final scenario = buildConfiguredScenario(
+        base: _baseScenario,
         configuration: configuration,
-        scenario: buildConfiguredScenario(
-          base: _baseScenario,
-          configuration: configuration,
-        ),
       );
+      _runs[0] = _newRun(configuration: configuration, scenario: scenario);
       _activeSlotIndex = 0;
     }
   }
@@ -62,6 +65,7 @@ class GameController extends ChangeNotifier {
 
   final TermEngine _engine;
   final PreElectionBriefEngine _briefEngine;
+  final InformationEcosystemEngine _informationEngine;
   final Scenario _baseScenario;
   final RunRepository? repository;
   final List<_RunSession?> _runs = List<_RunSession?>.filled(
@@ -80,6 +84,13 @@ class GameController extends ChangeNotifier {
   }
 
   Scenario get scenario => _activeRun?.scenario ?? _baseScenario;
+  CandidateExperienceCatalog get candidateExperience =>
+      bayhavenCandidateExperience;
+  InformationEcosystem get informationEcosystem => _informationEngine.build(
+    scenario: scenario,
+    brief: preElectionBrief,
+    candidateExperience: candidateExperience,
+  );
   Candidate? get selectedCandidate => _activeRun?.selectedCandidate;
   TermResult? get termResult => _activeRun?.termResult;
   String? get topIssue => _activeRun?.topIssue;
@@ -105,15 +116,25 @@ class GameController extends ChangeNotifier {
     return result != null && revealedTermPhases >= result.phases.length;
   }
 
-  PreElectionCityBrief get preElectionBrief => _briefEngine.build(
-    scenario: scenario,
-    configuration:
-        activeConfiguration ??
-        CityRunConfiguration.defaults(cityName: scenario.city.name),
-  );
+  PreElectionCityBrief get preElectionBrief =>
+      _activeRun?.preElectionBrief ??
+      _briefEngine.build(
+        scenario: scenario,
+        configuration: CityRunConfiguration.defaults(
+          cityName: scenario.city.name,
+        ),
+      );
   int? get investigationPointLimit =>
       activeConfiguration?.investigationTime.pointLimit;
-  int get investigationPointsUsed => _activeRun?.chargedEvidenceIds.length ?? 0;
+  int get investigationPointsUsed {
+    final run = _activeRun;
+    if (run == null) return 0;
+    return run.evidencePointCosts.values.fold<int>(
+      0,
+      (total, cost) => total + cost,
+    );
+  }
+
   int? get remainingInvestigationPoints {
     final limit = investigationPointLimit;
     return limit == null
@@ -126,6 +147,31 @@ class GameController extends ChangeNotifier {
       Set.unmodifiable(_activeRun?.viewedEvidenceIds ?? const <String>{});
   Set<String> get bookmarkedEvidenceIds =>
       Set.unmodifiable(_activeRun?.bookmarkedEvidenceIds ?? const <String>{});
+  Set<String> get unlockedEvidenceIds =>
+      Set.unmodifiable(_activeRun?.unlockedEvidenceIds ?? const <String>{});
+  Set<String> get pinnedCandidateIds =>
+      Set.unmodifiable(_activeRun?.pinnedCandidateIds ?? const <String>{});
+  Set<String> get pinnedContentIds =>
+      Set.unmodifiable(_activeRun?.pinnedContentIds ?? const <String>{});
+  Set<String> get pinnedQuestionIds =>
+      Set.unmodifiable(_activeRun?.pinnedQuestionIds ?? const <String>{});
+  Set<String> get bookmarkedDebateMessageIds => Set.unmodifiable(
+    _activeRun?.bookmarkedDebateMessageIds ?? const <String>{},
+  );
+  Set<String> get pinnedDebateMessageIds =>
+      Set.unmodifiable(_activeRun?.pinnedDebateMessageIds ?? const <String>{});
+  Set<String> get suspiciousDebateMessageIds => Set.unmodifiable(
+    _activeRun?.suspiciousDebateMessageIds ?? const <String>{},
+  );
+  Map<String, String> get receiptNotes =>
+      Map.unmodifiable(_activeRun?.receiptNotes ?? const <String, String>{});
+  Set<String> get usedCandidateNames =>
+      Set.unmodifiable(_activeRun?.usedCandidateNames ?? const <String>{});
+  int get receiptCount =>
+      pinnedContentIds.length +
+      pinnedQuestionIds.length +
+      pinnedDebateMessageIds.length +
+      bookmarkedEvidenceIds.length;
 
   List<CitySaveSlot?> get saveSlots => List<CitySaveSlot?>.unmodifiable(
     List<CitySaveSlot?>.generate(saveSlotCount, (index) {
@@ -203,20 +249,51 @@ class GameController extends ChangeNotifier {
     notifyListeners();
   }
 
+  EvidenceItem? evidenceByIdOrNull(String id) {
+    final run = _activeRun;
+    if (run == null) return null;
+    return _evidenceById(run, id);
+  }
+
+  int evidenceInvestigationCost(String id) {
+    final run = _activeRun;
+    if (run == null || run.viewedEvidenceIds.contains(id)) return 0;
+    final item = _evidenceById(run, id);
+    if (item == null || item.type == EvidenceType.profile) return 0;
+    if (run.unlockedEvidenceIds.contains(id)) return 0;
+    return candidateExperience.investigationCostFor(id).clamp(0, 2);
+  }
+
+  bool canOpenEvidence(String id) {
+    final cost = evidenceInvestigationCost(id);
+    final remaining = remainingInvestigationPoints;
+    return remaining == null || remaining >= cost;
+  }
+
   bool markEvidenceViewed(String id) {
     final run = _ensureActiveRun();
     final item = _evidenceById(run, id);
     if (item == null) return false;
     if (run.viewedEvidenceIds.contains(id)) return true;
-    final costsPoint = item.type != EvidenceType.profile;
+    final cost =
+        item.type == EvidenceType.profile ||
+            run.unlockedEvidenceIds.contains(id)
+        ? 0
+        : candidateExperience.investigationCostFor(id).clamp(0, 2);
     final pointLimit = run.configuration.investigationTime.pointLimit;
-    if (costsPoint &&
-        pointLimit != null &&
-        run.chargedEvidenceIds.length >= pointLimit) {
+    if (pointLimit != null && investigationPointsUsed + cost > pointLimit) {
       return false;
     }
     run.viewedEvidenceIds.add(id);
-    if (costsPoint) run.chargedEvidenceIds.add(id);
+    if (cost > 0) {
+      run.chargedEvidenceIds.add(id);
+      run.evidencePointCosts[id] = cost;
+    }
+    for (final relation in candidateExperience.relationsFrom(id)) {
+      if (relation.unlocksTarget) {
+        run.unlockedEvidenceIds.add(relation.toEvidenceId);
+      }
+    }
     run.touch();
     _commit();
     return true;
@@ -238,9 +315,109 @@ class GameController extends ChangeNotifier {
   bool isEvidenceViewed(String id) =>
       _activeRun?.viewedEvidenceIds.contains(id) ?? false;
 
+  bool isEvidenceUnlocked(String id) =>
+      _activeRun?.unlockedEvidenceIds.contains(id) ?? false;
+
+  void toggleCandidatePin(String candidateId) {
+    final run = _ensureActiveRun();
+    if (candidateByIdOrNull(candidateId) == null) return;
+    _toggle(run.pinnedCandidateIds, candidateId);
+    run.touch();
+    _commit();
+  }
+
+  bool isCandidatePinned(String candidateId) =>
+      _activeRun?.pinnedCandidateIds.contains(candidateId) ?? false;
+
+  void toggleContentPin(String contentId) {
+    final run = _ensureActiveRun();
+    if (candidateExperience.contentById(contentId) == null) return;
+    _toggle(run.pinnedContentIds, contentId);
+    run.touch();
+    _commit();
+  }
+
+  bool isContentPinned(String contentId) =>
+      _activeRun?.pinnedContentIds.contains(contentId) ?? false;
+
+  void toggleQuestionPin(String questionId) {
+    final run = _ensureActiveRun();
+    if (candidateExperience.questionById(questionId) == null) return;
+    _toggle(run.pinnedQuestionIds, questionId);
+    run.touch();
+    _commit();
+  }
+
+  bool isQuestionPinned(String questionId) =>
+      _activeRun?.pinnedQuestionIds.contains(questionId) ?? false;
+
+  void toggleDebateBookmark(String messageId) {
+    final run = _ensureActiveRun();
+    if (candidateExperience.debateMessageById(messageId) == null) return;
+    _toggle(run.bookmarkedDebateMessageIds, messageId);
+    run.touch();
+    _commit();
+  }
+
+  bool isDebateBookmarked(String messageId) =>
+      _activeRun?.bookmarkedDebateMessageIds.contains(messageId) ?? false;
+
+  void toggleDebatePin(String messageId) {
+    final run = _ensureActiveRun();
+    if (candidateExperience.debateMessageById(messageId) == null) return;
+    _toggle(run.pinnedDebateMessageIds, messageId);
+    run.touch();
+    _commit();
+  }
+
+  bool isDebatePinned(String messageId) =>
+      _activeRun?.pinnedDebateMessageIds.contains(messageId) ?? false;
+
+  void toggleDebateSuspicious(String messageId) {
+    final run = _ensureActiveRun();
+    if (candidateExperience.debateMessageById(messageId) == null) return;
+    _toggle(run.suspiciousDebateMessageIds, messageId);
+    run.touch();
+    _commit();
+  }
+
+  bool isDebateSuspicious(String messageId) =>
+      _activeRun?.suspiciousDebateMessageIds.contains(messageId) ?? false;
+
+  void setReceiptNote(String receiptId, String note) {
+    final run = _ensureActiveRun();
+    final cleaned = note.trim();
+    if (cleaned.isEmpty) {
+      run.receiptNotes.remove(receiptId);
+    } else {
+      run.receiptNotes[receiptId] = cleaned;
+    }
+    run.touch();
+    _commit();
+  }
+
+  String receiptNote(String receiptId) =>
+      _activeRun?.receiptNotes[receiptId] ?? '';
+
+  bool reserveCandidateName(String fullName) {
+    final run = _ensureActiveRun();
+    final normalized = fullName.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.isEmpty ||
+        run.usedCandidateNames.any(
+          (name) => name.toLowerCase() == normalized.toLowerCase(),
+        )) {
+      return false;
+    }
+    run.usedCandidateNames.add(normalized);
+    run.touch();
+    _commit();
+    return true;
+  }
+
   void createCity({
     required int slotIndex,
     required CityRunConfiguration configuration,
+    int? worldSeed,
   }) {
     _validateSlotIndex(slotIndex);
     if (_runs[slotIndex] != null) {
@@ -258,11 +435,18 @@ class GameController extends ChangeNotifier {
       cityName: cleanedName,
       mainConcerns: List<CityConcern>.unmodifiable(configuration.mainConcerns),
     );
+    final seed =
+        worldSeed ??
+        (DateTime.now().microsecondsSinceEpoch ^ (slotIndex + 1) * 0x45d9f3b)
+            .abs();
+    final freshBase = _baseScenario.id.startsWith('bayhaven')
+        ? buildBayhavenScenario(seed: seed)
+        : _baseScenario.copyWith(seed: seed);
     final configuredScenario = buildConfiguredScenario(
-      base: _baseScenario,
+      base: freshBase,
       configuration: normalizedConfiguration,
     );
-    _runs[slotIndex] = _RunSession(
+    _runs[slotIndex] = _newRun(
       configuration: normalizedConfiguration,
       scenario: configuredScenario,
     );
@@ -296,17 +480,16 @@ class GameController extends ChangeNotifier {
       final configuration = CityRunConfiguration.defaults(
         cityName: _baseScenario.city.name,
       );
-      _runs[index] = _RunSession(
+      final scenario = buildConfiguredScenario(
+        base: _baseScenario,
         configuration: configuration,
-        scenario: buildConfiguredScenario(
-          base: _baseScenario,
-          configuration: configuration,
-        ),
       );
+      _runs[index] = _newRun(configuration: configuration, scenario: scenario);
       _activeSlotIndex = index;
     } else {
-      active.reset(
-        scenario: _freshScenario(
+      _resetRun(
+        active,
+        _freshScenario(
           active.scenario.seed,
           configuration: active.configuration,
         ),
@@ -355,11 +538,9 @@ class GameController extends ChangeNotifier {
 
   void restartSameSeed() {
     final run = _ensureActiveRun();
-    run.reset(
-      scenario: _freshScenario(
-        run.scenario.seed,
-        configuration: run.configuration,
-      ),
+    _resetRun(
+      run,
+      _freshScenario(run.scenario.seed, configuration: run.configuration),
     );
     _commit();
   }
@@ -396,35 +577,91 @@ class GameController extends ChangeNotifier {
       for (final candidate in scenario.candidates)
         for (final item in candidate.evidence) item.id: item,
     };
-    final profileViews = saved.viewedEvidenceIds.where(
-      (id) => availableEvidence[id]?.type == EvidenceType.profile,
-    );
+    final freeViews = saved.viewedEvidenceIds.where((id) {
+      final item = availableEvidence[id];
+      if (item == null) return false;
+      return item.type == EvidenceType.profile ||
+          candidateExperience.investigationCostFor(id) == 0 ||
+          saved.unlockedEvidenceIds.contains(id);
+    });
     final paidViews = saved.viewedEvidenceIds.where(
       (id) =>
           availableEvidence[id] != null &&
-          availableEvidence[id]!.type != EvidenceType.profile &&
-          saved.chargedEvidenceIds.contains(id),
+          saved.evidencePointCosts.containsKey(id),
     );
     final pointLimit = saved.configuration.investigationTime.pointLimit;
-    final allowedPaidViews = pointLimit == null
-        ? paidViews
-        : paidViews.take(pointLimit);
-    final sanitizedViews = <String>{...profileViews, ...allowedPaidViews};
+    var spent = 0;
+    final allowedPaidViews = <String>[];
+    for (final id in paidViews) {
+      final cost = saved.evidencePointCosts[id]!.clamp(0, 2);
+      if (pointLimit == null || spent + cost <= pointLimit) {
+        allowedPaidViews.add(id);
+        spent += cost;
+      }
+    }
+    final sanitizedViews = <String>{...freeViews, ...allowedPaidViews};
     final sanitizedBookmarks = saved.bookmarkedEvidenceIds.where(
       availableEvidence.containsKey,
     );
-    final sanitizedCharges = sanitizedViews.where(
-      (id) => availableEvidence[id]?.type != EvidenceType.profile,
+    final sanitizedCosts = <String, int>{
+      for (final id in allowedPaidViews)
+        id: saved.evidencePointCosts[id]!.clamp(0, 2),
+    };
+    final validContentIds = <String>{
+      for (final profile in candidateExperience.profiles.values)
+        for (final item in profile.pulse) item.id,
+    };
+    final validDebateIds = <String>{
+      for (final topic in candidateExperience.debateTopics)
+        for (final message in topic.messages) message.id,
+    };
+    final validQuestionIds = <String>{
+      for (final profile in candidateExperience.profiles.values)
+        for (final question in profile.questions) question.id,
+    };
+    final validCandidateIds = scenario.candidates
+        .map((item) => item.id)
+        .toSet();
+    final run = _newRun(
+      configuration: saved.configuration,
+      scenario: scenario,
+      createdAt: saved.createdAt,
+      updatedAt: saved.updatedAt,
+      chronicleStoryIds: saved.chronicleStoryIds,
+      chronicleVoiceIds: saved.chronicleVoiceIds,
+      usedChronicleTemplateIds: saved.usedChronicleTemplateIds,
     );
-    return _RunSession(
-        configuration: saved.configuration,
-        scenario: scenario,
-        createdAt: saved.createdAt,
-        updatedAt: saved.updatedAt,
-      )
+    return run
       ..bookmarkedEvidenceIds.addAll(sanitizedBookmarks)
       ..viewedEvidenceIds.addAll(sanitizedViews)
-      ..chargedEvidenceIds.addAll(sanitizedCharges)
+      ..chargedEvidenceIds.addAll(sanitizedCosts.keys)
+      ..evidencePointCosts.addAll(sanitizedCosts)
+      ..unlockedEvidenceIds.addAll(
+        saved.unlockedEvidenceIds.where(availableEvidence.containsKey),
+      )
+      ..pinnedCandidateIds.addAll(
+        saved.pinnedCandidateIds.where(validCandidateIds.contains),
+      )
+      ..pinnedContentIds.addAll(
+        saved.pinnedContentIds.where(validContentIds.contains),
+      )
+      ..pinnedQuestionIds.addAll(
+        saved.pinnedQuestionIds.where(validQuestionIds.contains),
+      )
+      ..bookmarkedDebateMessageIds.addAll(
+        saved.bookmarkedDebateMessageIds.where(validDebateIds.contains),
+      )
+      ..pinnedDebateMessageIds.addAll(
+        saved.pinnedDebateMessageIds.where(validDebateIds.contains),
+      )
+      ..suspiciousDebateMessageIds.addAll(
+        saved.suspiciousDebateMessageIds.where(validDebateIds.contains),
+      )
+      ..receiptNotes.addAll(saved.receiptNotes)
+      ..usedCandidateNames.addAll({
+        ...saved.usedCandidateNames,
+        ...scenario.candidates.map((candidate) => candidate.name),
+      })
       ..selectedCandidate = candidate
       ..termResult = saved.termResultReady && candidate != null
           ? _engine.simulate(scenario: scenario, candidate: candidate)
@@ -476,6 +713,59 @@ class GameController extends ChangeNotifier {
     }
   }
 
+  _RunSession _newRun({
+    required CityRunConfiguration configuration,
+    required Scenario scenario,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<String> chronicleStoryIds = const [],
+    List<String> chronicleVoiceIds = const [],
+    Set<String> usedChronicleTemplateIds = const {},
+  }) {
+    final generated = _briefEngine.build(
+      scenario: scenario,
+      configuration: configuration,
+    );
+    final news = _orderedById(
+      generated.news,
+      chronicleStoryIds,
+      (item) => item.id,
+    );
+    final voices = _orderedById(
+      generated.voices,
+      chronicleVoiceIds,
+      (item) => item.id,
+    );
+    final brief = PreElectionCityBrief(
+      scenarioSeed: generated.scenarioSeed,
+      metrics: generated.metrics,
+      concerns: generated.concerns,
+      news: List.unmodifiable(news),
+      voices: List.unmodifiable(voices),
+    );
+    return _RunSession(
+        configuration: configuration,
+        scenario: scenario,
+        preElectionBrief: brief,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      )
+      ..chronicleStoryIds.addAll(brief.news.map((item) => item.id))
+      ..chronicleVoiceIds.addAll(brief.voices.map((item) => item.id))
+      ..usedChronicleTemplateIds.addAll({
+        ...usedChronicleTemplateIds,
+        ...brief.usedTemplateIds,
+      });
+  }
+
+  void _resetRun(_RunSession run, Scenario scenario) {
+    final fresh = _briefEngine.build(
+      scenario: scenario,
+      configuration: run.configuration,
+    );
+    run.reset(scenario: scenario, preElectionBrief: fresh);
+  }
+
   _RunSession _ensureActiveRun() {
     final active = _activeRun;
     if (active != null) return active;
@@ -483,13 +773,11 @@ class GameController extends ChangeNotifier {
     final configuration = CityRunConfiguration.defaults(
       cityName: _baseScenario.city.name,
     );
-    final run = _RunSession(
+    final scenario = buildConfiguredScenario(
+      base: _baseScenario,
       configuration: configuration,
-      scenario: buildConfiguredScenario(
-        base: _baseScenario,
-        configuration: configuration,
-      ),
     );
+    final run = _newRun(configuration: configuration, scenario: scenario);
     _runs[index] = run;
     _activeSlotIndex = index;
     return run;
@@ -533,6 +821,10 @@ class GameController extends ChangeNotifier {
     return null;
   }
 
+  void _toggle(Set<String> values, String id) {
+    if (!values.remove(id)) values.add(id);
+  }
+
   @override
   void dispose() {
     final repository = this.repository;
@@ -547,17 +839,34 @@ class _RunSession {
   _RunSession({
     required this.configuration,
     required this.scenario,
+    required this.preElectionBrief,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now().toUtc(),
-       updatedAt = updatedAt ?? DateTime.now().toUtc();
+       updatedAt = updatedAt ?? DateTime.now().toUtc() {
+    initializeCandidateNames();
+  }
 
   final CityRunConfiguration configuration;
   String get cityName => configuration.cityName;
   Scenario scenario;
+  PreElectionCityBrief preElectionBrief;
+  final List<String> chronicleStoryIds = [];
+  final List<String> chronicleVoiceIds = [];
+  final Set<String> usedChronicleTemplateIds = {};
   final Set<String> bookmarkedEvidenceIds = {};
   final Set<String> viewedEvidenceIds = {};
   final Set<String> chargedEvidenceIds = {};
+  final Map<String, int> evidencePointCosts = {};
+  final Set<String> unlockedEvidenceIds = {};
+  final Set<String> pinnedCandidateIds = {};
+  final Set<String> pinnedContentIds = {};
+  final Set<String> pinnedQuestionIds = {};
+  final Set<String> bookmarkedDebateMessageIds = {};
+  final Set<String> pinnedDebateMessageIds = {};
+  final Set<String> suspiciousDebateMessageIds = {};
+  final Map<String, String> receiptNotes = {};
+  final Set<String> usedCandidateNames = {};
   Candidate? selectedCandidate;
   TermResult? termResult;
   String? topIssue;
@@ -566,8 +875,27 @@ class _RunSession {
   final DateTime createdAt;
   DateTime updatedAt;
 
-  void reset({required Scenario scenario}) {
+  void initializeCandidateNames() {
+    usedCandidateNames.addAll(
+      scenario.candidates.map((candidate) => candidate.name),
+    );
+  }
+
+  void reset({
+    required Scenario scenario,
+    required PreElectionCityBrief preElectionBrief,
+  }) {
     this.scenario = scenario;
+    this.preElectionBrief = preElectionBrief;
+    chronicleStoryIds
+      ..clear()
+      ..addAll(preElectionBrief.news.map((item) => item.id));
+    chronicleVoiceIds
+      ..clear()
+      ..addAll(preElectionBrief.voices.map((item) => item.id));
+    usedChronicleTemplateIds
+      ..clear()
+      ..addAll(preElectionBrief.usedTemplateIds);
     selectedCandidate = null;
     termResult = null;
     topIssue = null;
@@ -576,6 +904,16 @@ class _RunSession {
     bookmarkedEvidenceIds.clear();
     viewedEvidenceIds.clear();
     chargedEvidenceIds.clear();
+    evidencePointCosts.clear();
+    unlockedEvidenceIds.clear();
+    pinnedCandidateIds.clear();
+    pinnedContentIds.clear();
+    pinnedQuestionIds.clear();
+    bookmarkedDebateMessageIds.clear();
+    pinnedDebateMessageIds.clear();
+    suspiciousDebateMessageIds.clear();
+    receiptNotes.clear();
+    initializeCandidateNames();
     touch();
   }
 
@@ -589,6 +927,19 @@ class _RunSession {
     bookmarkedEvidenceIds: bookmarkedEvidenceIds,
     viewedEvidenceIds: viewedEvidenceIds,
     chargedEvidenceIds: chargedEvidenceIds,
+    evidencePointCosts: evidencePointCosts,
+    unlockedEvidenceIds: unlockedEvidenceIds,
+    pinnedCandidateIds: pinnedCandidateIds,
+    pinnedContentIds: pinnedContentIds,
+    pinnedQuestionIds: pinnedQuestionIds,
+    bookmarkedDebateMessageIds: bookmarkedDebateMessageIds,
+    pinnedDebateMessageIds: pinnedDebateMessageIds,
+    suspiciousDebateMessageIds: suspiciousDebateMessageIds,
+    receiptNotes: receiptNotes,
+    usedCandidateNames: usedCandidateNames,
+    chronicleStoryIds: chronicleStoryIds,
+    chronicleVoiceIds: chronicleVoiceIds,
+    usedChronicleTemplateIds: usedChronicleTemplateIds,
     selectedCandidateId: selectedCandidate?.id,
     termResultReady: termResult != null,
     revealedTermPhases: revealedTermPhases,
@@ -597,4 +948,20 @@ class _RunSession {
     createdAt: createdAt,
     updatedAt: updatedAt,
   );
+}
+
+List<T> _orderedById<T>(
+  List<T> generated,
+  List<String> savedIds,
+  String Function(T item) idOf,
+) {
+  if (savedIds.isEmpty) return generated;
+  final byId = {for (final item in generated) idOf(item): item};
+  final ordered = <T>[];
+  for (final id in savedIds) {
+    final item = byId.remove(id);
+    if (item != null) ordered.add(item);
+  }
+  ordered.addAll(byId.values);
+  return ordered;
 }

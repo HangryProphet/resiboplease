@@ -10,6 +10,7 @@ import '../../domain/models/city_problem.dart';
 import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../city/widgets/pre_election_navigation_bar.dart';
+import '../candidate_hub/widgets/candidate_image_slot.dart';
 import 'widgets/dossier_ui.dart';
 
 class CandidateRosterScreen extends StatelessWidget {
@@ -397,11 +398,15 @@ class _CandidateFileCard extends StatelessWidget {
                         bottom: -5,
                         child: Hero(
                           tag: 'portrait_${candidate.id}',
-                          child: Image.asset(
-                            'assets/images/candidates/${candidate.id}/${candidate.id}_portrait.png',
-                            fit: BoxFit.contain,
-                            alignment: Alignment.bottomCenter,
+                          child: CandidateImageSlot(
+                            candidateId: candidate.id,
+                            assetKey: controller.candidateExperience
+                                .profileFor(candidate.id)!
+                                .portraitAssetKey,
                             semanticLabel: candidate.name,
+                            color: candidateColor,
+                            fit: BoxFit.contain,
+                            borderRadius: 0,
                           ),
                         ),
                       ),

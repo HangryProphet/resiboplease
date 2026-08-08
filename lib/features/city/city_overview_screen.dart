@@ -300,7 +300,7 @@ class _ConcernMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final point = cityTopicHotspot(concern.topic);
+    final point = cityIssueHotspot(concern.problem.family);
     const size = 43.0;
     return Positioned(
       left: (constraints.maxWidth * point.dx - size / 2).clamp(
@@ -426,20 +426,49 @@ class _ConcernGrid extends StatelessWidget {
       final columns = constraints.maxWidth >= 760 ? 3 : 1;
       const gap = 12.0;
       final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
-      return Wrap(
+      Widget cards(Iterable<CityConcernSnapshot> concerns) => Wrap(
         spacing: gap,
         runSpacing: gap,
+        children: concerns
+            .map(
+              (concern) => SizedBox(
+                key: Key('city_concern_${concern.problem.id}'),
+                width: width,
+                child: _ConcernCard(
+                  concern: concern,
+                  cityName: cityName,
+                  onTap: () => onConcernTap(concern),
+                ),
+              ),
+            )
+            .toList(growable: false),
+      );
+      final major = brief.concerns.take(3);
+      final additional = brief.concerns.skip(3).toList(growable: false);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final concern in brief.concerns)
-            SizedBox(
-              key: Key('city_concern_${concern.problem.id}'),
-              width: width,
-              child: _ConcernCard(
-                concern: concern,
-                cityName: cityName,
-                onTap: () => onConcernTap(concern),
+          cards(major),
+          if (additional.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            CityPaperPanel(
+              padding: EdgeInsets.zero,
+              child: ExpansionTile(
+                key: const Key('additional_city_conditions'),
+                iconColor: cityBriefInk,
+                collapsedIconColor: cityBriefInk,
+                title: Text(
+                  context.l10n.additionalCityConditions(additional.length),
+                  style: const TextStyle(
+                    color: cityBriefInk,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                children: [cards(additional)],
               ),
             ),
+          ],
         ],
       );
     },
@@ -505,6 +534,12 @@ class _ConcernCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          CityIssueVisualSlot(
+            key: Key('city_issue_visual_${problem.id}'),
+            family: problem.family,
+            visualKey: problem.visualKey,
+            compact: true,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(13, 12, 13, 13),
@@ -766,6 +801,18 @@ void _showConcernDetails(
                         ),
                       ),
                       const SizedBox(height: 18),
+                      CityPaperPanel(
+                        padding: EdgeInsets.zero,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(7),
+                          child: CityIssueVisualSlot(
+                            key: Key('city_issue_detail_visual_${problem.id}'),
+                            family: problem.family,
+                            visualKey: problem.visualKey,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
                       CitySectionTitle(
                         title: sheetContext.l10n.currentCondition,
                         icon: Icons.analytics_rounded,
@@ -817,6 +864,24 @@ void _showConcernDetails(
                           ],
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      _IssueDetailList(
+                        title: sheetContext.l10n.affectedGroupsLabel,
+                        icon: Icons.groups_rounded,
+                        values: problem.affectedGroups,
+                      ),
+                      const SizedBox(height: 10),
+                      _IssueDetailList(
+                        title: sheetContext.l10n.possibleCausesLabel,
+                        icon: Icons.account_tree_rounded,
+                        values: problem.possibleCauses,
+                      ),
+                      const SizedBox(height: 10),
+                      _IssueDetailList(
+                        title: sheetContext.l10n.policyPathsLabel,
+                        icon: Icons.policy_rounded,
+                        values: problem.policyHooks,
+                      ),
                     ],
                   ),
                 ),
@@ -825,6 +890,65 @@ void _showConcernDetails(
           ),
         ],
       ),
+    ),
+  );
+}
+
+class _IssueDetailList extends StatelessWidget {
+  const _IssueDetailList({
+    required this.title,
+    required this.icon,
+    required this.values,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<String> values;
+
+  @override
+  Widget build(BuildContext context) => CityPaperPanel(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: ResiboColors.teal, size: 20),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                title.toUpperCase(),
+                style: const TextStyle(
+                  color: cityBriefInk,
+                  fontFamily: 'LilitaOne',
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 7),
+        for (final value in values)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('• ', style: TextStyle(color: cityBriefInk)),
+                Expanded(
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      color: cityBriefInk,
+                      fontSize: 13,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     ),
   );
 }

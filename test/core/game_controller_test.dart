@@ -82,15 +82,22 @@ void main() {
       investigationTime: InvestigationTime.limited,
     );
 
-    controller.createCity(slotIndex: 1, configuration: configuration);
+    controller.createCity(
+      slotIndex: 1,
+      configuration: configuration,
+      worldSeed: 71821,
+    );
 
     expect(
       controller.activeConfiguration!.startingPressure,
       StartingPressure.crisis,
     );
     expect(controller.scenario.city.name, 'Harborlight');
-    expect(controller.scenario.city.problems, hasLength(2));
-    expect(controller.scenario.city.problems.first.id, 'food_costs');
+    expect(controller.scenario.city.problems.length, inInclusiveRange(4, 6));
+    expect(
+      controller.scenario.city.problems.map((problem) => problem.id),
+      containsAll(['cost_of_living_pressure', 'flooding_drainage_backlog']),
+    );
     expect(controller.assistanceMode, AssistanceMode.standard);
     expect(controller.investigationPointLimit, 7);
     expect(controller.remainingInvestigationPoints, 7);
@@ -100,11 +107,21 @@ void main() {
     );
 
     final savedConfiguration = controller.activeConfiguration;
+    final issueIds = controller.scenario.city.problems
+        .map((problem) => problem.id)
+        .toList();
+    final storyIds = controller.preElectionBrief.news
+        .map((story) => story.id)
+        .toList();
     controller.restartSameSeed();
 
     expect(controller.activeConfiguration, same(savedConfiguration));
     expect(controller.scenario.city.name, 'Harborlight');
-    expect(controller.scenario.city.problems, hasLength(2));
+    expect(
+      controller.scenario.city.problems.map((problem) => problem.id),
+      issueIds,
+    );
+    expect(controller.preElectionBrief.news.map((story) => story.id), storyIds);
   });
 
   test('limited investigation prevents opening new paid evidence', () {
@@ -116,23 +133,26 @@ void main() {
       ).copyWith(investigationTime: InvestigationTime.limited),
     );
 
-    final paidEvidence = controller.scenario.candidates
-        .expand((candidate) => candidate.evidence)
-        .where((item) => item.type.name != 'profile')
-        .take(8)
-        .toList(growable: false);
+    const paidEvidenceIds = [
+      'maya_controversy',
+      'maya_publicRecord',
+      'maya_debateAnswer',
+      'maya_factCheck',
+      'maya_budgetDocument',
+      'julian_publicRecord',
+    ];
     final freeProfile = controller.scenario.candidates.first.evidence
         .firstWhere((item) => item.type.name == 'profile');
 
-    for (final item in paidEvidence.take(7)) {
-      expect(controller.markEvidenceViewed(item.id), isTrue);
+    for (final id in paidEvidenceIds) {
+      expect(controller.markEvidenceViewed(id), isTrue);
     }
     expect(controller.remainingInvestigationPoints, 0);
-    expect(controller.markEvidenceViewed(paidEvidence.last.id), isFalse);
-    expect(controller.markEvidenceViewed(paidEvidence.first.id), isTrue);
+    expect(controller.markEvidenceViewed('julian_controversy'), isFalse);
+    expect(controller.markEvidenceViewed(paidEvidenceIds.first), isTrue);
     expect(controller.markEvidenceViewed(freeProfile.id), isTrue);
     expect(controller.markEvidenceViewed('missing_evidence'), isFalse);
-    expect(controller.viewedEvidenceCount, 8);
+    expect(controller.viewedEvidenceCount, 7);
     expect(controller.investigationPointsUsed, 7);
   });
 
@@ -171,6 +191,12 @@ void main() {
           investigationTime: InvestigationTime.limited,
         );
     controller.createCity(slotIndex: 3, configuration: configuration);
+    final chronicleStoryIds = controller.preElectionBrief.news
+        .map((item) => item.id)
+        .toList();
+    final chronicleVoiceIds = controller.preElectionBrief.voices
+        .map((item) => item.id)
+        .toList();
     final candidate = controller.scenario.candidates.first;
     final evidence = candidate.evidence.firstWhere(
       (item) => item.type.name != 'profile',
@@ -201,6 +227,14 @@ void main() {
     expect(restored.isBookmarked(evidence.id), isTrue);
     expect(restored.investigationPointsUsed, 1);
     expect(restored.activeResumeRoute, '/simulation');
+    expect(
+      restored.preElectionBrief.news.map((item) => item.id),
+      chronicleStoryIds,
+    );
+    expect(
+      restored.preElectionBrief.voices.map((item) => item.id),
+      chronicleVoiceIds,
+    );
     for (var phase = 0; phase < 4; phase++) {
       restored.advanceTerm();
     }
@@ -224,7 +258,7 @@ void main() {
       (item) => item.type.name == 'profile',
     );
     final paid = source.scenario.candidates.first.evidence.firstWhere(
-      (item) => item.type.name != 'profile',
+      (item) => item.id == 'maya_publicRecord',
     );
     expect(source.markEvidenceViewed(profile.id), isTrue);
     expect(source.markEvidenceViewed(paid.id), isTrue);
@@ -240,9 +274,10 @@ void main() {
       viewedEvidenceIds: {
         ...clean.viewedEvidenceIds,
         'stale_file',
-        'maya_publicRecord',
+        'julian_publicRecord',
       },
       chargedEvidenceIds: {...clean.chargedEvidenceIds, 'stale_file'},
+      evidencePointCosts: clean.evidencePointCosts,
       selectedCandidateId: clean.selectedCandidateId,
       termResultReady: clean.termResultReady,
       revealedTermPhases: clean.revealedTermPhases,
@@ -265,6 +300,66 @@ void main() {
     expect(restored.investigationPointsUsed, 1);
 
     source.dispose();
+    restored.dispose();
+  });
+
+  test('evidence relationships unlock a free follow-up', () {
+    final controller = GameController();
+    controller.createCity(
+      slotIndex: 0,
+      configuration: CityRunConfiguration.defaults().copyWith(
+        investigationTime: InvestigationTime.limited,
+      ),
+    );
+
+    expect(controller.evidenceInvestigationCost('maya_factCheck'), 1);
+    expect(controller.markEvidenceViewed('maya_socialPost'), isTrue);
+    expect(controller.unlockedEvidenceIds, contains('maya_factCheck'));
+    expect(controller.evidenceInvestigationCost('maya_factCheck'), 0);
+    expect(controller.markEvidenceViewed('maya_factCheck'), isTrue);
+    expect(controller.investigationPointsUsed, 0);
+
+    controller.dispose();
+  });
+
+  test('candidate receipts and world name registry persist', () async {
+    final repository = MemoryRunRepository();
+    final controller = GameController(repository: repository);
+    controller.createCity(
+      slotIndex: 0,
+      configuration: CityRunConfiguration.defaults(cityName: 'Receipt City'),
+    );
+
+    controller.toggleCandidatePin('maya_vargas');
+    controller.toggleContentPin('pulse_maya_promise');
+    controller.toggleQuestionPin('question_maya_donors');
+    controller.toggleDebateBookmark('dw03');
+    controller.toggleDebatePin('dw04');
+    controller.toggleDebateSuspicious('dw07');
+    controller.setReceiptNote(
+      'content:pulse_maya_promise',
+      'Compare this with the budget.',
+    );
+    expect(controller.reserveCandidateName('Ari Santos'), isTrue);
+    expect(controller.reserveCandidateName('  ari   santos '), isFalse);
+    await controller.flushSaves();
+
+    final restored = GameController(repository: repository);
+    await restored.restore();
+
+    expect(restored.isCandidatePinned('maya_vargas'), isTrue);
+    expect(restored.isContentPinned('pulse_maya_promise'), isTrue);
+    expect(restored.isQuestionPinned('question_maya_donors'), isTrue);
+    expect(restored.isDebateBookmarked('dw03'), isTrue);
+    expect(restored.isDebatePinned('dw04'), isTrue);
+    expect(restored.isDebateSuspicious('dw07'), isTrue);
+    expect(
+      restored.receiptNote('content:pulse_maya_promise'),
+      'Compare this with the budget.',
+    );
+    expect(restored.usedCandidateNames, contains('Ari Santos'));
+
+    controller.dispose();
     restored.dispose();
   });
 

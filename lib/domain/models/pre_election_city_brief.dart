@@ -29,6 +29,10 @@ enum CityMetricUnit { percent, hours, people, minutes, condition }
 
 enum CityNewsSource { cityDesk, recordsOffice, publicMedia, communityFeed }
 
+enum ChronicleStoryKind { issue, civicFlavor, unverifiedClaim }
+
+enum CitizenSentiment { concerned, frustrated, hopeful, positive, watchful }
+
 enum CitizenDistrict {
   northWard,
   riverside,
@@ -87,6 +91,10 @@ class CityNewsItem {
     required this.source,
     required this.templateVariant,
     required this.isUnverified,
+    required this.templateId,
+    required this.kind,
+    this.problemId,
+    this.issueFamily,
   });
 
   final String id;
@@ -94,6 +102,12 @@ class CityNewsItem {
   final CityNewsSource source;
   final int templateVariant;
   final bool isUnverified;
+  final String templateId;
+  final ChronicleStoryKind kind;
+  final String? problemId;
+  final CityIssueFamily? issueFamily;
+
+  bool get isFlavor => kind == ChronicleStoryKind.civicFlavor;
 }
 
 class CitizenVoice {
@@ -103,6 +117,10 @@ class CitizenVoice {
     required this.district,
     required this.role,
     required this.templateVariant,
+    required this.templateId,
+    required this.sentiment,
+    required this.problemId,
+    required this.issueFamily,
   });
 
   final String id;
@@ -110,6 +128,10 @@ class CitizenVoice {
   final CitizenDistrict district;
   final CitizenRole role;
   final int templateVariant;
+  final String templateId;
+  final CitizenSentiment sentiment;
+  final String problemId;
+  final CityIssueFamily issueFamily;
 }
 
 /// A reproducible, read-only description of the city before election day.
@@ -131,4 +153,9 @@ class PreElectionCityBrief {
   final List<CityConcernSnapshot> concerns;
   final List<CityNewsItem> news;
   final List<CitizenVoice> voices;
+
+  Set<String> get usedTemplateIds => {
+    ...news.map((item) => item.templateId),
+    ...voices.map((item) => item.templateId),
+  };
 }

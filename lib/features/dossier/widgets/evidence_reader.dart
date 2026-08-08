@@ -5,7 +5,9 @@ import '../../../core/state/game_controller.dart';
 import '../../../domain/models/candidate.dart';
 import '../../../domain/models/evidence_item.dart';
 import '../../../l10n/game_content_localizations.dart';
+import '../../../l10n/candidate_experience_localizations.dart';
 import '../../../l10n/l10n_extensions.dart';
+import '../../information/widgets/source_specific_record_view.dart';
 import 'dossier_ui.dart';
 
 Future<bool> openEvidenceReader(
@@ -132,6 +134,18 @@ class _EvidenceReaderState extends State<_EvidenceReader> {
     final controller = widget.controller;
     final cityName = controller.scenario.city.name;
     final candidateColor = Color(widget.candidate.colorValue);
+    final profile = controller.candidateExperience.profileFor(
+      widget.candidate.id,
+    );
+    final relations =
+        profile?.relations
+            .where(
+              (relation) =>
+                  relation.fromEvidenceId == item.id ||
+                  relation.toEvidenceId == item.id,
+            )
+            .toList(growable: false) ??
+        const [];
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -250,6 +264,12 @@ class _EvidenceReaderState extends State<_EvidenceReader> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 14),
+                    SourceSpecificEvidenceView(
+                      controller: controller,
+                      candidate: widget.candidate,
+                      item: item,
+                    ),
                     const SizedBox(height: 18),
                     Text(
                       context.l10n.evidenceSummaryText(item, cityName),
@@ -319,6 +339,50 @@ class _EvidenceReaderState extends State<_EvidenceReader> {
                         ],
                       ),
                     ),
+                    if (relations.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      PaperPanel(
+                        padding: const EdgeInsets.all(14),
+                        color: const Color(0xFFE4ECD9),
+                        borderWidth: 1.5,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SectionLabel(
+                              label: context.candidateStrings.sourceRelations,
+                              icon: Icons.hub_rounded,
+                              color: ResiboColors.teal,
+                            ),
+                            const SizedBox(height: 9),
+                            for (final relation in relations)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(
+                                      Icons.link_rounded,
+                                      color: ResiboColors.teal,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Expanded(
+                                      child: Text(
+                                        '${context.candidateStrings.relationLabel(relation.type)}: ${relation.explanation}',
+                                        style: const TextStyle(
+                                          color: dossierInk,
+                                          height: 1.35,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 22),
                     Wrap(
                       alignment: WrapAlignment.end,

@@ -59,10 +59,25 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
+    expect(find.byKey(const Key('candidate_hub_bio')), findsOneWidget);
+    expect(find.byKey(const Key('candidate_hub_promises')), findsOneWidget);
+    expect(find.byKey(const Key('candidate_hub_debate')), findsOneWidget);
+    expect(find.byKey(const Key('candidate_hub_records')), findsOneWidget);
+    expect(find.text('MAYA VARGAS'), findsWidgets);
+
+    final hubDossier = find.byKey(const Key('candidate_hub_records'));
+    await tester.ensureVisible(hubDossier);
+    await tester.tap(hubDossier);
+    await tester.pump(const Duration(milliseconds: 220));
+    final openArchive = find.byKey(const Key('open_full_dossier'));
+    await tester.ensureVisible(openArchive);
+    await tester.tap(openArchive);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
     expect(find.byKey(const Key('dossier_tab_overview')), findsOneWidget);
     expect(find.byKey(const Key('dossier_tab_platform')), findsOneWidget);
     expect(find.byKey(const Key('dossier_tab_evidence')), findsOneWidget);
-    expect(find.text('MAYA VARGAS'), findsWidgets);
 
     final platformTab = find.byKey(const Key('dossier_tab_platform'));
     await tester.ensureVisible(platformTab);
@@ -109,26 +124,30 @@ void main() {
         cityName: 'Point Limit City',
       ).copyWith(investigationTime: InvestigationTime.limited),
     );
-    final maya = controller.scenario.candidates.first;
-    final paid = maya.evidence
-        .where((item) => item.type.name != 'profile')
-        .toList(growable: false);
-    for (final item in paid.take(7)) {
-      expect(controller.markEvidenceViewed(item.id), isTrue);
+    const spentIds = [
+      'julian_controversy',
+      'julian_publicRecord',
+      'julian_debateAnswer',
+      'julian_factCheck',
+      'julian_budgetDocument',
+      'victor_publicRecord',
+    ];
+    for (final id in spentIds) {
+      expect(controller.markEvidenceViewed(id), isTrue);
     }
     expect(controller.remainingInvestigationPoints, 0);
 
     await pumpRoute(
       tester,
       controller: controller,
-      location: '/candidates/maya_vargas',
+      location: '/candidates/maya_vargas/dossier',
     );
     final evidenceTab = find.byKey(const Key('dossier_tab_evidence'));
     await tester.ensureVisible(evidenceTab);
     await tester.tap(evidenceTab);
     await tester.pump(const Duration(milliseconds: 220));
 
-    final blockedFile = find.byKey(Key('evidence_${paid.last.id}'));
+    final blockedFile = find.byKey(const Key('evidence_maya_controversy'));
     await tester.ensureVisible(blockedFile);
     await tester.tap(blockedFile);
     await tester.pump(const Duration(milliseconds: 250));
@@ -136,7 +155,7 @@ void main() {
       find.byKey(const Key('no_investigation_points_dialog')),
       findsOneWidget,
     );
-    expect(controller.isEvidenceViewed(paid.last.id), isFalse);
+    expect(controller.isEvidenceViewed('maya_controversy'), isFalse);
 
     await tester.tap(find.byKey(const Key('dismiss_no_points')));
     await tester.pump(const Duration(milliseconds: 250));
@@ -163,6 +182,21 @@ void main() {
       location: '/candidates/maya_vargas',
       locale: const Locale('fil'),
     );
+
+    expect(find.text('BIYOGRAPIYA'), findsOneWidget);
+    expect(find.text('MGA PANGAKO'), findsOneWidget);
+    expect(find.text('DEBATE'), findsOneWidget);
+    expect(find.text('MGA REKORD'), findsOneWidget);
+
+    final hubDossier = find.byKey(const Key('candidate_hub_records'));
+    await tester.ensureVisible(hubDossier);
+    await tester.tap(hubDossier);
+    await tester.pump(const Duration(milliseconds: 220));
+    final openArchive = find.byKey(const Key('open_full_dossier'));
+    await tester.ensureVisible(openArchive);
+    await tester.tap(openArchive);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
 
     expect(find.text('BUOD'), findsOneWidget);
     expect(find.text('PLATAPORMA'), findsOneWidget);

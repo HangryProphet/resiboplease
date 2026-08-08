@@ -6,16 +6,19 @@ import '../../../app/theme/resibo_theme.dart';
 import '../../../domain/models/candidate.dart';
 import '../../../l10n/l10n_extensions.dart';
 import '../../dossier/widgets/dossier_ui.dart';
+import '../../candidate_hub/widgets/candidate_image_slot.dart';
 
 class WinnerReveal extends StatefulWidget {
   const WinnerReveal({
     required this.candidate,
     required this.cityName,
+    required this.portraitAssetKey,
     super.key,
   });
 
   final Candidate candidate;
   final String cityName;
+  final String portraitAssetKey;
 
   @override
   State<WinnerReveal> createState() => _WinnerRevealState();
@@ -130,12 +133,15 @@ class _WinnerRevealState extends State<WinnerReveal>
                               ],
                             ),
                             clipBehavior: Clip.antiAlias,
-                            child: Image.asset(
-                              'assets/images/candidates/${widget.candidate.id}/${widget.candidate.id}_portrait.png',
+                            child: CandidateImageSlot(
                               key: const Key('winner_portrait'),
+                              candidateId: widget.candidate.id,
+                              assetKey: widget.portraitAssetKey,
+                              semanticLabel: widget.candidate.name,
+                              color: color,
+                              aspectRatio: 226 / 292,
                               fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
-                              filterQuality: FilterQuality.medium,
+                              borderRadius: 0,
                             ),
                           ),
                           for (var index = 0; index < 8; index++)

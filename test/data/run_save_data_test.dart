@@ -14,6 +14,19 @@ void main() {
       bookmarkedEvidenceIds: {'maya_factCheck'},
       viewedEvidenceIds: {'maya_profile', 'maya_factCheck'},
       chargedEvidenceIds: {'maya_factCheck'},
+      evidencePointCosts: {'maya_factCheck': 1},
+      unlockedEvidenceIds: {'maya_budgetDocument'},
+      pinnedCandidateIds: {'maya_vargas'},
+      pinnedContentIds: {'pulse_maya_promise'},
+      pinnedQuestionIds: {'question_maya_donors'},
+      bookmarkedDebateMessageIds: {'dw03'},
+      pinnedDebateMessageIds: {'dw04'},
+      suspiciousDebateMessageIds: {'dw07'},
+      receiptNotes: {'content:pulse_maya_promise': 'Check the funding.'},
+      usedCandidateNames: {'Maya Vargas', 'Julian Pratt', 'Victor Chen'},
+      chronicleStoryIds: ['brief_water', 'brief_flavor_market_0'],
+      chronicleVoiceIds: ['voice_water_0'],
+      usedChronicleTemplateIds: {'issue_waterSupply_0', 'flavor_market_0'},
       selectedCandidateId: 'maya_vargas',
       termResultReady: true,
       revealedTermPhases: 4,
@@ -43,6 +56,27 @@ void main() {
     expect(run.termResultReady, isTrue);
     expect(run.revealedTermPhases, 4);
     expect(run.viewedEvidenceIds, {'maya_profile', 'maya_factCheck'});
+    expect(run.evidencePointCosts, {'maya_factCheck': 1});
+    expect(run.unlockedEvidenceIds, {'maya_budgetDocument'});
+    expect(run.pinnedCandidateIds, {'maya_vargas'});
+    expect(run.pinnedContentIds, {'pulse_maya_promise'});
+    expect(run.pinnedQuestionIds, {'question_maya_donors'});
+    expect(run.bookmarkedDebateMessageIds, {'dw03'});
+    expect(run.pinnedDebateMessageIds, {'dw04'});
+    expect(run.suspiciousDebateMessageIds, {'dw07'});
+    expect(run.receiptNotes, {
+      'content:pulse_maya_promise': 'Check the funding.',
+    });
+    expect(
+      run.usedCandidateNames,
+      containsAll(['Maya Vargas', 'Julian Pratt', 'Victor Chen']),
+    );
+    expect(run.chronicleStoryIds, ['brief_water', 'brief_flavor_market_0']);
+    expect(run.chronicleVoiceIds, ['voice_water_0']);
+    expect(run.usedChronicleTemplateIds, {
+      'issue_waterSupply_0',
+      'flavor_market_0',
+    });
     expect(run.indicators, buildBayhavenScenario(seed: 42).city.indicators);
   });
 
@@ -55,6 +89,34 @@ void main() {
 
     expect(restored.activeSlotIndex, 0);
     expect(restored.slots.single!.configuration.cityName, 'Harborlight');
+    expect(restored.slots.single!.evidencePointCosts, {'maya_factCheck': 1});
+  });
+
+  test('schema two investigation data migrates to one-point legacy costs', () {
+    final raw = GameSaveData(activeSlotIndex: 0, slots: [sampleRun()]).toJson()
+      ..['schema_version'] = 2;
+    final slot = (raw['slots']! as List).single! as Map<String, Object?>;
+    for (final key in const [
+      'evidence_point_costs',
+      'unlocked_evidence_ids',
+      'pinned_candidate_ids',
+      'pinned_content_ids',
+      'pinned_question_ids',
+      'bookmarked_debate_message_ids',
+      'pinned_debate_message_ids',
+      'suspicious_debate_message_ids',
+      'receipt_notes',
+      'used_candidate_names',
+    ]) {
+      slot.remove(key);
+    }
+
+    final restored = GameSaveData.fromJson(raw).slots.single!;
+
+    expect(restored.evidencePointCosts, {'maya_factCheck': 1});
+    expect(restored.pinnedContentIds, isEmpty);
+    expect(restored.pinnedQuestionIds, isEmpty);
+    expect(restored.receiptNotes, isEmpty);
   });
 
   test('future save schemas are rejected instead of silently discarded', () {
@@ -62,5 +124,20 @@ void main() {
       ..['schema_version'] = 99;
 
     expect(() => GameSaveData.fromJson(raw), throwsUnsupportedError);
+  });
+
+  test('schema four saves gain empty Chronicle persistence fields', () {
+    final raw = GameSaveData(activeSlotIndex: 0, slots: [sampleRun()]).toJson()
+      ..['schema_version'] = 4;
+    final slot = (raw['slots']! as List).single! as Map<String, Object?>;
+    slot.remove('chronicle_story_ids');
+    slot.remove('chronicle_voice_ids');
+    slot.remove('used_chronicle_template_ids');
+
+    final restored = GameSaveData.fromJson(raw).slots.single!;
+
+    expect(restored.chronicleStoryIds, isEmpty);
+    expect(restored.chronicleVoiceIds, isEmpty);
+    expect(restored.usedChronicleTemplateIds, isEmpty);
   });
 }

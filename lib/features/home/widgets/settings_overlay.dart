@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/resibo_theme.dart';
 import '../../../core/settings/app_settings_controller.dart';
 import '../../../l10n/l10n_extensions.dart';
+import '../../../l10n/tv_broadcast_localizations.dart';
 import 'game_overlay_shell.dart';
 
 Future<void> showSettingsOverlay({
@@ -78,6 +79,16 @@ class _SettingsSheet extends StatelessWidget {
                   value: controller.highContrast,
                   onChanged: (value) =>
                       unawaited(controller.setHighContrast(value)),
+                ),
+                const SizedBox(height: 9),
+                _SettingsSwitch(
+                  switchKey: const Key('dialogue_sounds_setting'),
+                  icon: Icons.graphic_eq_rounded,
+                  title: context.tvStrings.dialogueSounds,
+                  subtitle: context.tvStrings.dialogueSoundsDescription,
+                  value: controller.dialogueSounds,
+                  onChanged: (value) =>
+                      unawaited(controller.setDialogueSounds(value)),
                 ),
                 const SizedBox(height: 9),
                 _InformationTile(

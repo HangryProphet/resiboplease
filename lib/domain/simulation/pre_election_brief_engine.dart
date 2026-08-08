@@ -1,4 +1,5 @@
 import '../models/city_indicator.dart';
+import '../models/city_problem.dart';
 import '../models/city_run_configuration.dart';
 import '../models/pre_election_city_brief.dart';
 import '../models/scenario.dart';
@@ -20,7 +21,7 @@ class PreElectionBriefEngine {
         .map(
           (problem) => CityConcernSnapshot(
             problem: problem,
-            topic: _topicFor(problem.primaryIndicator),
+            topic: _topicFor(problem),
             affectedResidentsPercent: _affectedResidents(
               scenario: scenario,
               indicator: problem.primaryIndicator,
@@ -75,13 +76,20 @@ class PreElectionBriefEngine {
       final concern = concerns[index];
       final districtIndex = cityRandom.nextInt(districts.length);
       final district = districts.removeAt(districtIndex);
+      final sentiment = _sentimentFor(index, concerns.length, cityRandom);
+      final variant = cityRandom.nextInt(3);
       voices.add(
         CitizenVoice(
           id: 'voice_${concern.problem.id}_$index',
           topic: concern.topic,
           district: district,
           role: _roleFor(concern.topic, cityRandom.nextInt(2)),
-          templateVariant: cityRandom.nextInt(3),
+          templateVariant: variant,
+          templateId:
+              'voice_${concern.problem.family.name}_${sentiment.name}_$variant',
+          sentiment: sentiment,
+          problemId: concern.problem.id,
+          issueFamily: concern.problem.family,
         ),
       );
     }
@@ -140,6 +148,41 @@ class PreElectionBriefEngine {
           source: source,
           templateVariant: random.nextInt(2),
           isUnverified: false,
+          templateId:
+              'issue_${concern.problem.family.name}_${index.isEven ? 0 : 1}',
+          kind: ChronicleStoryKind.issue,
+          problemId: concern.problem.id,
+          issueFamily: concern.problem.family,
+        ),
+      );
+    }
+    final flavorCount =
+        concerns.length >= 6 ||
+            (concerns.length >= 5 && noise == CampaignNoise.noisy)
+        ? 2
+        : 1;
+    final flavorIds = <String>{};
+    for (var index = 0; index < flavorCount; index++) {
+      late CityBriefTopic topic;
+      late int variant;
+      late String flavorId;
+      do {
+        topic =
+            CityBriefTopic.values[random.nextInt(CityBriefTopic.values.length)];
+        variant = random.nextInt(6);
+        flavorId = 'brief_flavor_${topic.name}_$variant';
+      } while (!flavorIds.add(flavorId));
+      items.add(
+        CityNewsItem(
+          id: flavorId,
+          topic: topic,
+          source: index.isEven
+              ? CityNewsSource.communityFeed
+              : CityNewsSource.publicMedia,
+          templateVariant: variant,
+          isUnverified: false,
+          templateId: 'flavor_${topic.name}_$variant',
+          kind: ChronicleStoryKind.civicFlavor,
         ),
       );
     }
@@ -153,6 +196,10 @@ class PreElectionBriefEngine {
           source: CityNewsSource.communityFeed,
           templateVariant: random.nextInt(2),
           isUnverified: true,
+          templateId: 'unverified_${concern.problem.family.name}',
+          kind: ChronicleStoryKind.unverifiedClaim,
+          problemId: concern.problem.id,
+          issueFamily: concern.problem.family,
         ),
       );
     }
@@ -160,23 +207,32 @@ class PreElectionBriefEngine {
   }
 }
 
-CityBriefTopic _topicFor(CityIndicator indicator) => switch (indicator) {
-  CityIndicator.foodSecurity => CityBriefTopic.food,
-  CityIndicator.povertyReduction => CityBriefTopic.poverty,
-  CityIndicator.publicHealth => CityBriefTopic.health,
-  CityIndicator.educationQuality => CityBriefTopic.education,
-  CityIndicator.waterSecurity => CityBriefTopic.water,
-  CityIndicator.employmentQuality => CityBriefTopic.jobs,
-  CityIndicator.urbanResilience => CityBriefTopic.cityServices,
-  CityIndicator.climateResilience => CityBriefTopic.climate,
-  CityIndicator.budgetHealth ||
-  CityIndicator.publicTrust ||
-  CityIndicator.corruptionPressure => throw ArgumentError.value(
-    indicator,
-    'indicator',
-    'Supporting indicators are not city-concern topics.',
-  ),
+CityBriefTopic _topicFor(CityProblem problem) => switch (problem.family) {
+  CityIssueFamily.floodingDrainage => CityBriefTopic.climate,
+  CityIssueFamily.corruptionPublicFunds => CityBriefTopic.cityServices,
+  CityIssueFamily.unfinishedRoads => CityBriefTopic.cityServices,
+  CityIssueFamily.drugsCommunitySafety => CityBriefTopic.health,
+  CityIssueFamily.garbageCleanliness => CityBriefTopic.cityServices,
+  CityIssueFamily.trafficTransport => CityBriefTopic.cityServices,
+  CityIssueFamily.waterSupply => CityBriefTopic.water,
+  CityIssueFamily.healthcareCapacity => CityBriefTopic.health,
+  CityIssueFamily.employmentQuality => CityBriefTopic.jobs,
+  CityIssueFamily.costOfLiving => CityBriefTopic.poverty,
+  CityIssueFamily.governmentServices => CityBriefTopic.cityServices,
+  CityIssueFamily.educationCapacity => CityBriefTopic.education,
 };
+
+CitizenSentiment _sentimentFor(int index, int count, SeededRandom random) {
+  if (index == count - 1) {
+    return random.nextInt(2) == 0
+        ? CitizenSentiment.hopeful
+        : CitizenSentiment.positive;
+  }
+  if (index == count - 2) return CitizenSentiment.watchful;
+  return random.nextInt(3) == 0
+      ? CitizenSentiment.frustrated
+      : CitizenSentiment.concerned;
+}
 
 CityBriefMetric _metricFor(CityIndicator indicator, int condition) =>
     switch (indicator) {

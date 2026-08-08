@@ -29,5 +29,6 @@ void main() {
     expect(settings.language, AppLanguage.filipino);
     expect(find.text(filipino.language.toUpperCase()), findsOneWidget);
     expect(find.text(filipino.reduceMotion), findsOneWidget);
+    expect(find.byKey(const Key('dialogue_sounds_setting')), findsOneWidget);
   });
 }

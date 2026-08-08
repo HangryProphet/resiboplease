@@ -9,6 +9,7 @@ import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../city/widgets/city_brief_ui.dart';
 import '../dossier/widgets/dossier_ui.dart';
+import '../candidate_hub/widgets/candidate_image_slot.dart';
 
 class TermReportScreen extends StatelessWidget {
   const TermReportScreen({required this.controller, super.key});
@@ -249,10 +250,14 @@ class _ReportHero extends StatelessWidget {
           final portrait = SizedBox(
             width: compact ? 138 : 210,
             height: compact ? 300 : 235,
-            child: Image.asset(
-              'assets/images/candidates/${result.candidate.id}/${result.candidate.id}_portrait.png',
+            child: CandidateImageSlot(
+              candidateId: result.candidate.id,
+              assetKey: 'candidate_${result.candidate.id}_neutral',
+              semanticLabel: result.candidate.name,
+              color: color,
+              aspectRatio: compact ? 138 / 300 : 210 / 235,
               fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
+              borderRadius: 0,
             ),
           );
           final copy = Expanded(

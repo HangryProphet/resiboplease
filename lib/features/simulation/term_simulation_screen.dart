@@ -11,6 +11,7 @@ import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../city/widgets/city_brief_ui.dart';
 import '../dossier/widgets/dossier_ui.dart';
+import '../candidate_hub/widgets/candidate_image_slot.dart';
 
 class TermSimulationScreen extends StatefulWidget {
   const TermSimulationScreen({required this.controller, super.key});
@@ -313,10 +314,14 @@ class _AdministrationStrip extends StatelessWidget {
               border: Border.all(color: cityBriefInk, width: 2),
             ),
             clipBehavior: Clip.antiAlias,
-            child: Image.asset(
-              'assets/images/candidates/${result.candidate.id}/${result.candidate.id}_portrait.png',
+            child: CandidateImageSlot(
+              candidateId: result.candidate.id,
+              assetKey: 'candidate_${result.candidate.id}_neutral',
+              semanticLabel: result.candidate.name,
+              color: color,
+              aspectRatio: 66 / 72,
               fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
+              borderRadius: 0,
             ),
           ),
           const SizedBox(width: 11),

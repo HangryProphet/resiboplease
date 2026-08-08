@@ -1,8 +1,22 @@
 import '../domain/models/pre_election_city_brief.dart';
+import '../domain/models/city_problem.dart';
 import 'app_localizations.dart';
 
 extension LocalizedCityBrief on AppLocalizations {
   bool get _filipinoBrief => localeName.startsWith('fil');
+
+  String additionalCityConditions(int count) => _filipinoBrief
+      ? '$count pang kondisyon ng lungsod'
+      : '$count more city conditions';
+
+  String get affectedGroupsLabel =>
+      _filipinoBrief ? 'Mga grupong apektado' : 'Affected groups';
+
+  String get possibleCausesLabel =>
+      _filipinoBrief ? 'Mga posibleng dahilan' : 'Possible causes';
+
+  String get policyPathsLabel =>
+      _filipinoBrief ? 'Mga maaaring tugon' : 'Policy paths';
 
   String cityMetricLabel(CityMetricKind kind) => _filipinoBrief
       ? switch (kind) {
@@ -119,6 +133,9 @@ extension LocalizedCityBrief on AppLocalizations {
           ? 'Kumakalat na pahayag tungkol sa ${cityTopicLabel(item.topic).toLowerCase()}'
           : 'A claim about ${cityTopicLabel(item.topic).toLowerCase()} is spreading';
     }
+    if (item.isFlavor) return _flavorTitle(item.templateVariant);
+    final family = item.issueFamily;
+    if (family != null) return _issueNewsTitle(family, item.templateVariant);
     final second = item.templateVariant.isOdd;
     if (_filipinoBrief) {
       return switch (item.topic) {
@@ -198,6 +215,9 @@ extension LocalizedCityBrief on AppLocalizations {
           ? 'Walang dokumento o pinangalanang source ang post. Inilalarawan nito ang kasalukuyang pag-aalala, ngunit hindi ito beripikadong rekord.'
           : 'The post supplies no document or named source. It reflects current concern, but it is not a verified record.';
     }
+    if (item.isFlavor) return _flavorSummary(cityName);
+    final family = item.issueFamily;
+    if (family != null) return _issueNewsSummary(family, cityName);
     if (_filipinoBrief) {
       return switch (item.topic) {
         CityBriefTopic.food =>
@@ -270,6 +290,11 @@ extension LocalizedCityBrief on AppLocalizations {
         };
 
   String citizenVoiceQuote(CitizenVoice voice) {
+    if (voice.sentiment == CitizenSentiment.hopeful ||
+        voice.sentiment == CitizenSentiment.positive) {
+      return _positiveVoice(voice.issueFamily);
+    }
+    if (voice.problemId.isNotEmpty) return _issueVoice(voice);
     final variant = voice.templateVariant % 3;
     final english = switch (voice.topic) {
       CityBriefTopic.food => [
@@ -356,6 +381,348 @@ extension LocalizedCityBrief on AppLocalizations {
       ],
     };
     return (_filipinoBrief ? filipino : english)[variant];
+  }
+
+  String citizenSentimentLabel(CitizenSentiment sentiment) => _filipinoBrief
+      ? switch (sentiment) {
+          CitizenSentiment.concerned => 'Nag-aalala',
+          CitizenSentiment.frustrated => 'Naiinis',
+          CitizenSentiment.hopeful => 'Umaasa',
+          CitizenSentiment.positive => 'Positibo',
+          CitizenSentiment.watchful => 'Mapagmasid',
+        }
+      : switch (sentiment) {
+          CitizenSentiment.concerned => 'Concerned',
+          CitizenSentiment.frustrated => 'Frustrated',
+          CitizenSentiment.hopeful => 'Hopeful',
+          CitizenSentiment.positive => 'Positive',
+          CitizenSentiment.watchful => 'Watchful',
+        };
+
+  String _issueNewsTitle(CityIssueFamily family, int variant) {
+    final alternate = variant.isOdd;
+    if (_filipinoBrief) {
+      return switch (family) {
+        CityIssueFamily.floodingDrainage =>
+          alternate
+              ? 'Inilabas ang audit sa drainage'
+              : 'Muling binaha ang mabababang kalye',
+        CityIssueFamily.corruptionPublicFunds =>
+          alternate
+              ? 'Sinusuri ang mga kontrata ng lungsod'
+              : 'Humihingi ng resibo ang budget watchers',
+        CityIssueFamily.unfinishedRoads =>
+          alternate
+              ? 'Lumampas na naman sa deadline ang roadworks'
+              : 'Mga detour, patuloy sa mga barangay',
+        CityIssueFamily.drugsCommunitySafety =>
+          alternate
+              ? 'Nagpulong ang komunidad para sa ligtas na kalye'
+              : 'Hindi pantay ang kaligtasan sa gabi',
+        CityIssueFamily.garbageCleanliness =>
+          alternate
+              ? 'Sinuri ang mga rutang hindi nakokolektahan'
+              : 'Basura, naiipon malapit sa daluyan ng tubig',
+        CityIssueFamily.trafficTransport =>
+          alternate
+              ? 'Sinukat ang oras ng biyahe sa rush hour'
+              : 'Hindi maaasahang ruta, dagdag gastos sa biyahero',
+        CityIssueFamily.waterSupply =>
+          alternate
+              ? 'Lumang tubo, kasama sa repair list'
+              : 'Water warning, bumalik sa ilang distrito',
+        CityIssueFamily.healthcareCapacity =>
+          alternate
+              ? 'Kulang pa rin ang kawani sa mga klinika'
+              : 'Mahabang pila, hamon sa serbisyong pangkalusugan',
+        CityIssueFamily.employmentQuality =>
+          alternate
+              ? 'Pansamantalang trabaho ang karamihan sa hiring'
+              : 'Matatag na trabaho, mabagal ang pagdami',
+        CityIssueFamily.costOfLiving =>
+          alternate
+              ? 'Sinukat muli ang presyo ng pangunahing bilihin'
+              : 'Gastos ng pamilya, mas mabilis sa kita',
+        CityIssueFamily.governmentServices =>
+          alternate
+              ? 'Sinukat ang haba ng permit queue'
+              : 'Paulit-ulit na papeles, reklamo ng aplikante',
+        CityIssueFamily.educationCapacity =>
+          alternate
+              ? 'Kulang ang silid sa bagong enrollment count'
+              : 'Siksikang klase, hamon sa mga guro',
+      };
+    }
+    return switch (family) {
+      CityIssueFamily.floodingDrainage =>
+        alternate
+            ? 'Drainage audit identifies weak points'
+            : 'Low-lying streets flood again',
+      CityIssueFamily.corruptionPublicFunds =>
+        alternate
+            ? 'City contracts face closer review'
+            : 'Budget watchers ask for receipts',
+      CityIssueFamily.unfinishedRoads =>
+        alternate
+            ? 'Roadworks miss another deadline'
+            : 'Detours continue across neighborhoods',
+      CityIssueFamily.drugsCommunitySafety =>
+        alternate
+            ? 'Community meets over safer streets'
+            : 'Nighttime safety remains uneven',
+      CityIssueFamily.garbageCleanliness =>
+        alternate
+            ? 'Missed collection routes face review'
+            : 'Waste builds up near waterways',
+      CityIssueFamily.trafficTransport =>
+        alternate
+            ? 'Rush-hour travel times measured'
+            : 'Unreliable routes cost commuters',
+      CityIssueFamily.waterSupply =>
+        alternate
+            ? 'Aging pipes added to repair list'
+            : 'Water warning returns in several districts',
+      CityIssueFamily.healthcareCapacity =>
+        alternate
+            ? 'Clinics continue to report staff gaps'
+            : 'Long queues test public health services',
+      CityIssueFamily.employmentQuality =>
+        alternate
+            ? 'Temporary work dominates new hiring'
+            : 'Stable job growth remains slow',
+      CityIssueFamily.costOfLiving =>
+        alternate
+            ? 'Essential-goods prices checked again'
+            : 'Household costs rise faster than income',
+      CityIssueFamily.governmentServices =>
+        alternate
+            ? 'Permit queue times put under review'
+            : 'Applicants report repeated paperwork',
+      CityIssueFamily.educationCapacity =>
+        alternate
+            ? 'Enrollment count reveals room shortage'
+            : 'Crowded classes challenge teachers',
+    };
+  }
+
+  String _issueNewsSummary(CityIssueFamily family, String cityName) {
+    final subject = _filipinoBrief
+        ? switch (family) {
+            CityIssueFamily.floodingDrainage =>
+              'drainage at paghahanda sa baha',
+            CityIssueFamily.corruptionPublicFunds =>
+              'pagbili at paggamit ng pondong publiko',
+            CityIssueFamily.unfinishedRoads => 'naantalang proyekto sa kalsada',
+            CityIssueFamily.drugsCommunitySafety =>
+              'kaligtasan, pag-iwas, at paggamot',
+            CityIssueFamily.garbageCleanliness =>
+              'koleksiyon ng basura at ilegal na pagtatapon',
+            CityIssueFamily.trafficTransport =>
+              'ruta, trapiko, at oras ng biyahe',
+            CityIssueFamily.waterSupply => 'suplay at kalidad ng tubig',
+            CityIssueFamily.healthcareCapacity =>
+              'kawani, suplay, at pila sa klinika',
+            CityIssueFamily.employmentQuality =>
+              'katatagan at kalidad ng trabaho',
+            CityIssueFamily.costOfLiving => 'presyo, renta, at kita ng pamilya',
+            CityIssueFamily.governmentServices =>
+              'proseso, pila, at mga permit',
+            CityIssueFamily.educationCapacity =>
+              'silid-aralan, guro, at kagamitan',
+          }
+        : switch (family) {
+            CityIssueFamily.floodingDrainage => 'drainage and flood readiness',
+            CityIssueFamily.corruptionPublicFunds =>
+              'procurement and public spending',
+            CityIssueFamily.unfinishedRoads => 'delayed road projects',
+            CityIssueFamily.drugsCommunitySafety =>
+              'safety, prevention, and treatment',
+            CityIssueFamily.garbageCleanliness =>
+              'waste collection and illegal dumping',
+            CityIssueFamily.trafficTransport =>
+              'routes, congestion, and travel times',
+            CityIssueFamily.waterSupply => 'water supply and quality',
+            CityIssueFamily.healthcareCapacity =>
+              'clinic staff, supplies, and queues',
+            CityIssueFamily.employmentQuality => 'job stability and quality',
+            CityIssueFamily.costOfLiving =>
+              'prices, rent, and household income',
+            CityIssueFamily.governmentServices =>
+              'process steps, queues, and permits',
+            CityIssueFamily.educationCapacity =>
+              'classrooms, teachers, and materials',
+          };
+    return _filipinoBrief
+        ? 'Pinagsama ng Chronicle ang mga rekord at ulat ng komunidad tungkol sa $subject sa $cityName.'
+        : 'The Chronicle combines public records and community reports about $subject in $cityName.';
+  }
+
+  String _flavorTitle(int variant) {
+    const english = [
+      'Weekend market adds an early opening hour',
+      'Students repaint a well-used waiting shed',
+      'Neighborhood league reaches its final round',
+      'Library desk starts a book-swap shelf',
+      'Community garden shares its first harvest',
+      'Local band rehearses for the plaza program',
+    ];
+    const filipino = [
+      'Mas maagang magbubukas ang weekend market',
+      'Pinintahan ng mga estudyante ang waiting shed',
+      'Final round na ng liga sa barangay',
+      'May bagong book-swap shelf sa aklatan',
+      'Ibinahagi ang unang ani ng community garden',
+      'Naghahanda ang banda para sa programa sa plaza',
+    ];
+    return (_filipinoBrief ? filipino : english)[variant % english.length];
+  }
+
+  String _flavorSummary(String cityName) => _filipinoBrief
+      ? 'Isang maliit ngunit tunay na bahagi ng araw-araw na buhay sa $cityName—walang krisis, campaign claim, o nakatagong epekto sa laro.'
+      : 'A small but genuine part of daily life in $cityName—with no crisis, campaign claim, or hidden gameplay effect.';
+
+  String _positiveVoice(CityIssueFamily family) {
+    final subject = _filipinoBrief
+        ? switch (family) {
+            CityIssueFamily.floodingDrainage => 'paglilinis ng kanal',
+            CityIssueFamily.corruptionPublicFunds => 'pagbubukas ng mga rekord',
+            CityIssueFamily.unfinishedRoads => 'pag-usad ng pagkukumpuni',
+            CityIssueFamily.drugsCommunitySafety => 'programa para sa kabataan',
+            CityIssueFamily.garbageCleanliness => 'sama-samang paglilinis',
+            CityIssueFamily.trafficTransport => 'mas maayos na ruta',
+            CityIssueFamily.waterSupply => 'pag-ayos ng linya ng tubig',
+            CityIssueFamily.healthcareCapacity => 'dedikasyon ng clinic staff',
+            CityIssueFamily.employmentQuality => 'bagong apprenticeship',
+            CityIssueFamily.costOfLiving => 'kooperatiba sa komunidad',
+            CityIssueFamily.governmentServices => 'mas malinaw na checklist',
+            CityIssueFamily.educationCapacity => 'bagong silid-aralan',
+          }
+        : switch (family) {
+            CityIssueFamily.floodingDrainage => 'drain-clearing work',
+            CityIssueFamily.corruptionPublicFunds =>
+              'opening of public records',
+            CityIssueFamily.unfinishedRoads => 'visible repair progress',
+            CityIssueFamily.drugsCommunitySafety => 'youth program',
+            CityIssueFamily.garbageCleanliness => 'community cleanup',
+            CityIssueFamily.trafficTransport => 'more reliable route',
+            CityIssueFamily.waterSupply => 'water-line repair',
+            CityIssueFamily.healthcareCapacity => 'clinic staff',
+            CityIssueFamily.employmentQuality => 'new apprenticeship',
+            CityIssueFamily.costOfLiving => 'community cooperative',
+            CityIssueFamily.governmentServices => 'clearer service checklist',
+            CityIssueFamily.educationCapacity => 'new classroom',
+          };
+    return _filipinoBrief
+        ? 'May nakikita kaming pag-usad sa $subject. Maliit pa, pero puwedeng palakihin kung tuloy-tuloy.'
+        : 'We can see progress in the $subject. It is still small, but consistent work could build on it.';
+  }
+
+  String _issueVoice(CitizenVoice voice) {
+    final alternate =
+        voice.sentiment == CitizenSentiment.watchful ||
+        voice.templateVariant.isOdd;
+    if (_filipinoBrief) {
+      return switch (voice.issueFamily) {
+        CityIssueFamily.floodingDrainage =>
+          alternate
+              ? 'Babantayan namin kung lilinisin ang kanal bago ang susunod na malakas na ulan.'
+              : 'Paulit-ulit na pumapasok ang baha sa kalye namin at nawawala ang isang araw ng trabaho.',
+        CityIssueFamily.corruptionPublicFunds =>
+          alternate
+              ? 'Gusto naming makita ang kontrata, presyo, at pangalan ng supplier—hindi slogan lang.'
+              : 'Bawat pisong nawawala sa malabong kontrata ay kulang sa tunay na serbisyo.',
+        CityIssueFamily.unfinishedRoads =>
+          alternate
+              ? 'May deadline sa karatula; gusto naming makita kung tugma iyon sa aktuwal na trabaho.'
+              : 'Ilang buwan nang barikado ang harap ng tindahan pero kakaunti ang gumagawa.',
+        CityIssueFamily.drugsCommunitySafety =>
+          alternate
+              ? 'Kailangan ang ligtas na kalye kasama ang prevention at treatment, hindi takot lang.'
+              : 'Hindi kampante ang mga umuuwi sa gabi, lalo na ang mga kabataan at night-shift worker.',
+        CityIssueFamily.garbageCleanliness =>
+          alternate
+              ? 'Handa kaming tumulong maglinis, pero kailangan ding dumating ang regular na koleksiyon.'
+              : 'Kapag hindi dumarating ang truck, napupunta ang basura sa tabi ng kanal.',
+        CityIssueFamily.trafficTransport =>
+          alternate
+              ? 'Susukatin namin kung talagang bumilis at naging mas maaasahan ang bagong ruta.'
+              : 'Oras sa pamilya ang nauubos kapag hindi dumarating sa oras ang sasakyan.',
+        CityIssueFamily.waterSupply =>
+          alternate
+              ? 'Gusto namin ng regular na test result, hindi assurance lang pagkatapos ng warning.'
+              : 'Kapag bumababa ang pressure, hindi namin alam kung ligtas pa ang tubig sa gripo.',
+        CityIssueFamily.healthcareCapacity =>
+          alternate
+              ? 'Masipag ang clinic staff, pero kailangan nila ng dagdag na tao, gamot, at oras.'
+              : 'Hindi dapat maubos ang buong araw ng trabaho para lang sa isang checkup.',
+        CityIssueFamily.employmentQuality =>
+          alternate
+              ? 'May saysay ang training kung may matatag at disenteng trabaho sa dulo.'
+              : 'May hiring nga, pero marami ang kontratang nawawala pagkatapos ng ilang buwan.',
+        CityIssueFamily.costOfLiving =>
+          alternate
+              ? 'Linggo-linggo kong kinukumpara ang presyo dahil hindi sumasabay ang kita.'
+              : 'Sabay-sabay tumaas ang pagkain, renta, kuryente, at pamasahe.',
+        CityIssueFamily.governmentServices =>
+          alternate
+              ? 'Isang malinaw na checklist at totoong queue time ang malaking tulong na agad.'
+              : 'Paulit-ulit kaming bumabalik dahil may bagong requirement sa bawat counter.',
+        CityIssueFamily.educationCapacity =>
+          alternate
+              ? 'Ginagawa ng mga guro ang makakaya nila, pero hindi puwedeng siksikan habang-buhay.'
+              : 'Hati ang oras at gamit ng mga estudyante dahil kulang ang silid-aralan.',
+      };
+    }
+    return switch (voice.issueFamily) {
+      CityIssueFamily.floodingDrainage =>
+        alternate
+            ? 'We will watch whether the drains are cleared before the next heavy rain.'
+            : 'The same street floods again, and families lose another day of work.',
+      CityIssueFamily.corruptionPublicFunds =>
+        alternate
+            ? 'Show us the contract, price, and supplier—not another slogan.'
+            : 'Every peso lost through an unclear contract is missing from a real service.',
+      CityIssueFamily.unfinishedRoads =>
+        alternate
+            ? 'The sign lists a deadline; we want to see whether the work matches it.'
+            : 'Barricades have blocked the shops for months, but little work is visible.',
+      CityIssueFamily.drugsCommunitySafety =>
+        alternate
+            ? 'Safe streets need prevention and treatment too, not fear alone.'
+            : 'People coming home at night do not feel safe, especially young and shift workers.',
+      CityIssueFamily.garbageCleanliness =>
+        alternate
+            ? 'We will help clean, but regular collection still has to arrive.'
+            : 'When the truck misses us, rubbish ends up beside the drainage canal.',
+      CityIssueFamily.trafficTransport =>
+        alternate
+            ? 'We will measure whether the new route is actually faster and more reliable.'
+            : 'Unreliable transport takes away hours that should be spent with family.',
+      CityIssueFamily.waterSupply =>
+        alternate
+            ? 'We need regular test results, not reassurance only after a warning.'
+            : 'When pressure drops, we do not know whether the tap is still safe.',
+      CityIssueFamily.healthcareCapacity =>
+        alternate
+            ? 'Clinic staff work hard, but they need more people, medicine, and hours.'
+            : 'A basic checkup should not consume an entire workday.',
+      CityIssueFamily.employmentQuality =>
+        alternate
+            ? 'Training matters when a stable, decent job exists at the end.'
+            : 'There is hiring, but too many contracts disappear after a few months.',
+      CityIssueFamily.costOfLiving =>
+        alternate
+            ? 'I compare prices every week because our income is not keeping up.'
+            : 'Food, rent, power, and transport all rose at the same time.',
+      CityIssueFamily.governmentServices =>
+        alternate
+            ? 'A clear checklist and honest queue time would help immediately.'
+            : 'We keep returning because every counter asks for something new.',
+      CityIssueFamily.educationCapacity =>
+        alternate
+            ? 'Teachers do what they can, but overcrowding cannot become permanent.'
+            : 'Students split time and materials because there are not enough rooms.',
+    };
   }
 
   String _conditionLabel(int value) => switch (value) {

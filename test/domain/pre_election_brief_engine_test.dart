@@ -109,4 +109,43 @@ void main() {
     expect(clear.news.any((item) => item.isUnverified), isFalse);
     expect(noisy.news.first.isUnverified, isTrue);
   });
+
+  test('Chronicle mix is issue-rooted, harmless, and non-repeating', () {
+    final config = configuration(noise: CampaignNoise.noisy);
+    final scenario = buildConfiguredScenario(
+      base: buildBayhavenScenario(seed: 88031),
+      configuration: config,
+    );
+    final brief = engine.build(scenario: scenario, configuration: config);
+    final activeProblemIds = scenario.city.problems
+        .map((problem) => problem.id)
+        .toSet();
+    final issueStories = brief.news.where((item) => !item.isFlavor);
+    final flavors = brief.news.where((item) => item.isFlavor);
+
+    expect(
+      issueStories
+          .where((item) => !item.isUnverified)
+          .every((item) => activeProblemIds.contains(item.problemId)),
+      isTrue,
+    );
+    final flavorShare = flavors.length / brief.news.length;
+    expect(flavorShare, inInclusiveRange(.15, .30));
+    expect(
+      brief.news.map((item) => item.templateId).toSet().length,
+      brief.news.length,
+    );
+    expect(
+      brief.voices.any(
+        (voice) =>
+            voice.sentiment.name == 'hopeful' ||
+            voice.sentiment.name == 'positive',
+      ),
+      isTrue,
+    );
+    expect(
+      brief.voices.every((voice) => activeProblemIds.contains(voice.problemId)),
+      isTrue,
+    );
+  });
 }

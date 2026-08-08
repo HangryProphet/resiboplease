@@ -184,7 +184,7 @@ class GameIconButton extends StatelessWidget {
         color: color,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(9),
-          side: const BorderSide(color: Color(0xFFAEC0C7), width: 1.5),
+          side: const BorderSide(color: Color(0xFF07111D), width: 2.5),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(

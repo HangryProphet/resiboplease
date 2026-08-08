@@ -37,6 +37,32 @@ It defines:
 
 When implementation decisions conflict with this document, update this file first so it remains the single source of truth.
 
+## Current implementation snapshot — August 2026
+
+The offline Bayhaven vertical slice now implements the candidate experience
+defined in `docs/RESIBO_CANDIDATE_EXPERIENCE_ROADMAP.md`:
+
+- Candidate Hub navigation with Pulse, Dossier, and Debate;
+- six authored Pulse items for each current candidate using Glance, Inspect,
+  and Deep Dive disclosure;
+- a three-topic authored debate with linked evidence and player curation;
+- a persistent Receipts Board for claims, questions, debate statements,
+  evidence bookmarks, notes, issue filters, and two-candidate comparison;
+- structured evidence relationships and free follow-up unlocks;
+- zero-, one-, and two-point investigation costs;
+- intentional stable media and portrait fallbacks without runtime generation;
+- hidden candidate quality bands and distinct rhetorical styles with no exposed
+  match score or recommendation;
+- a world-level used-name registry with deterministic unique-name fallback;
+- local-save schema version 4 and migrations for older saves; and
+- English/Filipino-compatible candidate-interface chrome.
+
+Bayhaven still uses the three authored candidates. Procedural narrative writing,
+runtime AI, final campaign art, and full future-election candidate generation
+remain later phases; the required models, identity rules, and save fields are
+now prepared for them. The deterministic post-election simulation remains
+unchanged.
+
 ---
 
 # 2. Project Summary

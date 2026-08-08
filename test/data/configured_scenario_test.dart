@@ -23,9 +23,13 @@ void main() {
     );
 
     expect(configured.city.name, 'Bagong Pag-asa');
+    expect(configured.city.problems.length, inInclusiveRange(4, 6));
     expect(
       configured.city.problems.map((problem) => problem.primaryIndicator),
-      [CityIndicator.educationQuality, CityIndicator.climateResilience],
+      containsAll([
+        CityIndicator.educationQuality,
+        CityIndicator.climateResilience,
+      ]),
     );
     expect(
       configured.city.indicators.valueOf(CityIndicator.publicTrust),

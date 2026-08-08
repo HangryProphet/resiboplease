@@ -49,6 +49,13 @@ void main() {
     for (final problem in controller.scenario.city.problems) {
       expect(find.byKey(Key('city_hotspot_${problem.id}')), findsOneWidget);
     }
+    expect(find.byKey(const Key('additional_city_conditions')), findsOneWidget);
+    expect(
+      find.byKey(
+        Key('city_issue_visual_${controller.scenario.city.problems.first.id}'),
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('Advance to phase'), findsNothing);
     expect(find.textContaining('Term in progress'), findsNothing);
     expect(tester.takeException(), isNull);

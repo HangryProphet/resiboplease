@@ -8,6 +8,7 @@ import '../../domain/models/city_problem.dart';
 import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../dossier/widgets/dossier_ui.dart';
+import '../candidate_hub/widgets/candidate_image_slot.dart';
 import 'widgets/winner_reveal.dart';
 
 class ElectionScreen extends StatefulWidget {
@@ -98,6 +99,7 @@ class _ElectionScreenState extends State<ElectionScreen> {
                           const SizedBox(height: 10),
                           for (final candidate in scenario.candidates) ...[
                             _BallotCandidateCard(
+                              controller: widget.controller,
                               candidate: candidate,
                               cityName: scenario.city.name,
                               selected: _candidateId == candidate.id,
@@ -352,6 +354,9 @@ class _ElectionScreenState extends State<ElectionScreen> {
       pageBuilder: (_, _, _) => WinnerReveal(
         candidate: candidate,
         cityName: widget.controller.activeCityName,
+        portraitAssetKey: widget.controller.candidateExperience
+            .profileFor(candidate.id)!
+            .portraitAssetKey,
       ),
       transitionBuilder: (_, animation, _, child) => FadeTransition(
         opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
@@ -396,6 +401,7 @@ class _DarkSectionLabel extends StatelessWidget {
 
 class _BallotCandidateCard extends StatelessWidget {
   const _BallotCandidateCard({
+    required this.controller,
     required this.candidate,
     required this.cityName,
     required this.selected,
@@ -403,6 +409,7 @@ class _BallotCandidateCard extends StatelessWidget {
     required this.onDossier,
   });
 
+  final GameController controller;
   final Candidate candidate;
   final String cityName;
   final bool selected;
@@ -460,11 +467,16 @@ class _BallotCandidateCard extends StatelessWidget {
                       right: BorderSide(color: dossierInk, width: 2),
                     ),
                   ),
-                  child: Image.asset(
-                    'assets/images/candidates/${candidate.id}/${candidate.id}_portrait.png',
+                  child: CandidateImageSlot(
+                    candidateId: candidate.id,
+                    assetKey: controller.candidateExperience
+                        .profileFor(candidate.id)!
+                        .portraitAssetKey,
+                    semanticLabel: candidate.name,
+                    color: color,
+                    aspectRatio: 112 / 154,
                     fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    filterQuality: FilterQuality.medium,
+                    borderRadius: 0,
                   ),
                 ),
                 Expanded(

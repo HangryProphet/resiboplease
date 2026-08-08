@@ -81,6 +81,30 @@ class CityChronicleScreen extends StatelessWidget {
                                 child: CityNewsCard(
                                   item: brief.news[index],
                                   cityName: controller.activeCityName,
+                                  coverageCount: _coverageCount(
+                                    controller,
+                                    brief.news[index].id,
+                                  ),
+                                  onReadCoverage:
+                                      _coverageEventId(
+                                            controller,
+                                            brief.news[index].id,
+                                          ) ==
+                                          null
+                                      ? null
+                                      : () => context.push(
+                                          '/news/event/${_coverageEventId(controller, brief.news[index].id)}',
+                                        ),
+                                  onWatchReport:
+                                      _broadcastId(
+                                            controller,
+                                            brief.news[index].id,
+                                          ) ==
+                                          null
+                                      ? null
+                                      : () => context.go(
+                                          '/tv/${_broadcastId(controller, brief.news[index].id)}',
+                                        ),
                                 ),
                               ),
                               if (index != brief.news.length - 1)
@@ -118,6 +142,23 @@ class CityChronicleScreen extends StatelessWidget {
       );
     },
   );
+}
+
+String? _coverageEventId(GameController controller, String chronicleId) =>
+    controller.informationEcosystem.news.eventForChronicle(chronicleId)?.id;
+
+int _coverageCount(GameController controller, String chronicleId) {
+  final eventId = _coverageEventId(controller, chronicleId);
+  return eventId == null
+      ? 0
+      : controller.informationEcosystem.news.coverageForEvent(eventId).length;
+}
+
+String? _broadcastId(GameController controller, String chronicleId) {
+  final eventId = _coverageEventId(controller, chronicleId);
+  return eventId == null
+      ? null
+      : controller.informationEcosystem.tvBroadcasts.forEvent(eventId)?.id;
 }
 
 class _CommunityIllustration extends StatelessWidget {

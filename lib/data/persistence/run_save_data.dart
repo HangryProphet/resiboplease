@@ -8,7 +8,7 @@ class GameSaveData {
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now().toUtc();
 
-  static const currentSchemaVersion = 2;
+  static const currentSchemaVersion = 5;
 
   final int? activeSlotIndex;
   final List<RunSaveData?> slots;
@@ -55,6 +55,19 @@ class RunSaveData {
     required this.revealedTermPhases,
     required this.topIssue,
     required this.confidence,
+    this.evidencePointCosts = const {},
+    this.unlockedEvidenceIds = const {},
+    this.pinnedCandidateIds = const {},
+    this.pinnedContentIds = const {},
+    this.pinnedQuestionIds = const {},
+    this.bookmarkedDebateMessageIds = const {},
+    this.pinnedDebateMessageIds = const {},
+    this.suspiciousDebateMessageIds = const {},
+    this.receiptNotes = const {},
+    this.usedCandidateNames = const {},
+    this.chronicleStoryIds = const [],
+    this.chronicleVoiceIds = const [],
+    this.usedChronicleTemplateIds = const {},
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now().toUtc(),
@@ -72,6 +85,19 @@ class RunSaveData {
   final int revealedTermPhases;
   final String? topIssue;
   final double confidence;
+  final Map<String, int> evidencePointCosts;
+  final Set<String> unlockedEvidenceIds;
+  final Set<String> pinnedCandidateIds;
+  final Set<String> pinnedContentIds;
+  final Set<String> pinnedQuestionIds;
+  final Set<String> bookmarkedDebateMessageIds;
+  final Set<String> pinnedDebateMessageIds;
+  final Set<String> suspiciousDebateMessageIds;
+  final Map<String, String> receiptNotes;
+  final Set<String> usedCandidateNames;
+  final List<String> chronicleStoryIds;
+  final List<String> chronicleVoiceIds;
+  final Set<String> usedChronicleTemplateIds;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -88,6 +114,21 @@ class RunSaveData {
     'revealed_term_phases': revealedTermPhases,
     'top_issue': topIssue,
     'confidence': confidence,
+    'evidence_point_costs': Map<String, int>.from(evidencePointCosts),
+    'unlocked_evidence_ids': unlockedEvidenceIds.toList()..sort(),
+    'pinned_candidate_ids': pinnedCandidateIds.toList()..sort(),
+    'pinned_content_ids': pinnedContentIds.toList()..sort(),
+    'pinned_question_ids': pinnedQuestionIds.toList()..sort(),
+    'bookmarked_debate_message_ids': bookmarkedDebateMessageIds.toList()
+      ..sort(),
+    'pinned_debate_message_ids': pinnedDebateMessageIds.toList()..sort(),
+    'suspicious_debate_message_ids': suspiciousDebateMessageIds.toList()
+      ..sort(),
+    'receipt_notes': Map<String, String>.from(receiptNotes),
+    'used_candidate_names': usedCandidateNames.toList()..sort(),
+    'chronicle_story_ids': List<String>.from(chronicleStoryIds),
+    'chronicle_voice_ids': List<String>.from(chronicleVoiceIds),
+    'used_chronicle_template_ids': usedChronicleTemplateIds.toList()..sort(),
     'created_at': createdAt.toIso8601String(),
     'updated_at': updatedAt.toIso8601String(),
   };
@@ -121,6 +162,55 @@ class RunSaveData {
     ),
     topIssue: _optionalString(json['top_issue']),
     confidence: _requiredNum(json['confidence'], 'confidence').toDouble(),
+    evidencePointCosts: _intMap(
+      json['evidence_point_costs'],
+      'evidence_point_costs',
+    ),
+    unlockedEvidenceIds: _stringSet(
+      json['unlocked_evidence_ids'],
+      'unlocked_evidence_ids',
+    ),
+    pinnedCandidateIds: _stringSet(
+      json['pinned_candidate_ids'],
+      'pinned_candidate_ids',
+    ),
+    pinnedContentIds: _stringSet(
+      json['pinned_content_ids'],
+      'pinned_content_ids',
+    ),
+    pinnedQuestionIds: _stringSet(
+      json['pinned_question_ids'],
+      'pinned_question_ids',
+    ),
+    bookmarkedDebateMessageIds: _stringSet(
+      json['bookmarked_debate_message_ids'],
+      'bookmarked_debate_message_ids',
+    ),
+    pinnedDebateMessageIds: _stringSet(
+      json['pinned_debate_message_ids'],
+      'pinned_debate_message_ids',
+    ),
+    suspiciousDebateMessageIds: _stringSet(
+      json['suspicious_debate_message_ids'],
+      'suspicious_debate_message_ids',
+    ),
+    receiptNotes: _textMap(json['receipt_notes'], 'receipt_notes'),
+    usedCandidateNames: _stringSet(
+      json['used_candidate_names'],
+      'used_candidate_names',
+    ),
+    chronicleStoryIds: _stringList(
+      json['chronicle_story_ids'],
+      'chronicle_story_ids',
+    ),
+    chronicleVoiceIds: _stringList(
+      json['chronicle_voice_ids'],
+      'chronicle_voice_ids',
+    ),
+    usedChronicleTemplateIds: _stringSet(
+      json['used_chronicle_template_ids'],
+      'used_chronicle_template_ids',
+    ),
     createdAt: _dateTime(json['created_at'], 'created_at'),
     updatedAt: _dateTime(json['updated_at'], 'updated_at'),
   );
@@ -140,6 +230,9 @@ abstract final class RunSaveMigrator {
       json = switch (version) {
         0 => _migrateV0ToV1(json),
         1 => _migrateV1ToV2(json),
+        2 => _migrateV2ToV3(json),
+        3 => _migrateV3ToV4(json),
+        4 => _migrateV4ToV5(json),
         _ => throw UnsupportedError('No migration exists for schema $version.'),
       };
       version = _requiredInt(json['schema_version'], 'schema_version');
@@ -173,6 +266,81 @@ abstract final class RunSaveMigrator {
                 'revealed_term_phases': migrated['term_result_ready'] == true
                     ? 4
                     : 0,
+              };
+            })
+            .toList(growable: false),
+    };
+  }
+
+  static Map<String, Object?> _migrateV2ToV3(Map<String, Object?> source) {
+    final slots = source['slots'];
+    return {
+      ...source,
+      'schema_version': 3,
+      if (slots is List)
+        'slots': slots
+            .map((slot) {
+              if (slot is! Map) return slot;
+              final migrated = slot.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+              final charged = migrated['charged_evidence_ids'];
+              final legacyCosts = <String, int>{
+                if (charged is List)
+                  for (final id in charged.whereType<String>()) id: 1,
+              };
+              return {
+                ...migrated,
+                'evidence_point_costs': legacyCosts,
+                'unlocked_evidence_ids': <String>[],
+                'pinned_candidate_ids': <String>[],
+                'pinned_content_ids': <String>[],
+                'bookmarked_debate_message_ids': <String>[],
+                'pinned_debate_message_ids': <String>[],
+                'suspicious_debate_message_ids': <String>[],
+                'receipt_notes': <String, String>{},
+                'used_candidate_names': <String>[],
+              };
+            })
+            .toList(growable: false),
+    };
+  }
+
+  static Map<String, Object?> _migrateV3ToV4(Map<String, Object?> source) {
+    final slots = source['slots'];
+    return {
+      ...source,
+      'schema_version': 4,
+      if (slots is List)
+        'slots': slots
+            .map((slot) {
+              if (slot is! Map) return slot;
+              final migrated = slot.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+              return {...migrated, 'pinned_question_ids': <String>[]};
+            })
+            .toList(growable: false),
+    };
+  }
+
+  static Map<String, Object?> _migrateV4ToV5(Map<String, Object?> source) {
+    final slots = source['slots'];
+    return {
+      ...source,
+      'schema_version': 5,
+      if (slots is List)
+        'slots': slots
+            .map((slot) {
+              if (slot is! Map) return slot;
+              final migrated = slot.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+              return {
+                ...migrated,
+                'chronicle_story_ids': <String>[],
+                'chronicle_voice_ids': <String>[],
+                'used_chronicle_template_ids': <String>[],
               };
             })
             .toList(growable: false),
@@ -247,6 +415,24 @@ List<String> _stringList(Object? value, String field) {
 
 Set<String> _stringSet(Object? value, String field) =>
     _stringList(value, field).toSet();
+
+Map<String, int> _intMap(Object? value, String field) {
+  final map = _stringMap(value, field);
+  return map.map((key, item) {
+    if (item is! num) throw FormatException('Invalid $field value for $key.');
+    return MapEntry(key, item.toInt());
+  });
+}
+
+Map<String, String> _textMap(Object? value, String field) {
+  final map = _stringMap(value, field);
+  return map.map((key, item) {
+    if (item is! String) {
+      throw FormatException('Invalid $field value for $key.');
+    }
+    return MapEntry(key, item);
+  });
+}
 
 int _requiredInt(Object? value, String field) {
   if (value is! num) throw FormatException('Invalid $field number.');

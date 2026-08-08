@@ -28,6 +28,22 @@ extension LocalizedGameContent on AppLocalizations {
       'unemployment' => 'Hindi matatag na trabaho at tanggalan',
       'housing_transport_strain' => 'Problema sa pabahay at transportasyon',
       'climate_readiness' => 'Nahuhuli ang depensa laban sa baha',
+      'flooding_drainage_backlog' => 'Lumalantad ang kakulangan sa drainage',
+      'public_funds_leakage' => 'Sinusuri ang paggamit ng pondong publiko',
+      'unfinished_road_projects' => 'Hindi matapos-tapos ang mga kalsada',
+      'community_safety_drug_trade' =>
+        'Hindi pantay ang kaligtasan sa komunidad',
+      'garbage_collection_gaps' =>
+        'May mga lugar na hindi nakokolektahan ang basura',
+      'traffic_transport_overload' =>
+        'Mabigat ang trapiko sa araw-araw na biyahe',
+      'water_supply_contamination' => 'Hindi maaasahan ang serbisyo ng tubig',
+      'clinic_capacity_shortage' => 'Siksikan ang mga pampublikong klinika',
+      'unstable_low_quality_jobs' => 'Kapos ang matatag na trabaho',
+      'cost_of_living_pressure' => 'Mas mabilis ang gastos kaysa kita',
+      'slow_government_services' =>
+        'Masyadong matagal ang mga pangunahing permit',
+      'crowded_school_capacity' => 'Lampas sa kapasidad ang mga paaralan',
       _ => problem.title,
     };
   }
@@ -51,6 +67,30 @@ extension LocalizedGameContent on AppLocalizations {
         'Mahabang biyahe, alanganing pabahay, at mabagal na pagkukumpuni ang nagpapahirap sa araw-araw sa $cityName.',
       'climate_readiness' =>
         'Hindi makahabol ang drainage at planong pang-emergency ng $cityName sa mas malakas na ulan at mapanganib na init.',
+      'flooding_drainage_backlog' =>
+        'Binabaha ang mabababang lugar kapag malakas ang ulan dahil hindi kaya ng barado at maliit na drainage ang rumaragasang tubig.',
+      'public_funds_leakage' =>
+        'May mahihinang safeguard, hindi malinaw na presyo, at mga kontratang naiipon sa iilang supplier ayon sa procurement review.',
+      'unfinished_road_projects' =>
+        'Nakaaabala pa rin ang mga barikada at naantalang pagkukumpuni kahit lampas na sa orihinal na deadline.',
+      'community_safety_drug_trade' =>
+        'May ulat ng bentahan ng ilegal na droga at hindi ligtas na pampublikong lugar habang kulang ang prevention at treatment services.',
+      'garbage_collection_gaps' =>
+        'Naiiwan ang basura malapit sa bahay, daluyan ng tubig, at palengke dahil hindi regular ang koleksiyon at may ilegal na pagtatapon.',
+      'traffic_transport_overload' =>
+        'Pinahahaba at pinatataas ng hindi maaasahang ruta, bottleneck, at delikadong lipatan ang ordinaryong biyahe.',
+      'water_supply_contamination' =>
+        'Nagdudulot ang lumang tubo ng kakulangan sa tubig at contamination warning kapag bumababa ang pressure o malakas ang ulan.',
+      'clinic_capacity_shortage' =>
+        'Ilang oras naghihintay ang pasyente dahil kulang ang kawani, kama, gamot, at oras ng serbisyo ng mga klinika.',
+      'unstable_low_quality_jobs' =>
+        'Karamihan sa bagong trabaho ay pansamantala at mababa ang sahod kaya kulang ang pangmatagalang seguridad ng mga pamilya.',
+      'cost_of_living_pressure' =>
+        'Mas mabilis tumaas ang pagkain, renta, kuryente, at pamasahe kaysa kita ng maraming sambahayan.',
+      'slow_government_services' =>
+        'Paulit-ulit na biyahe, malabong requirement, at mahabang pila ang dinaranas sa mga karaniwang serbisyo ng lungsod.',
+      'crowded_school_capacity' =>
+        'Pinalalaki ng siksikang silid, shifting schedule, at hindi pantay na learning materials ang agwat ng mga distrito.',
       _ => problem.description,
     };
   }
