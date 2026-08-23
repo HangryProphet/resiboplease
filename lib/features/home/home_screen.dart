@@ -430,9 +430,10 @@ class _MenuActions extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         MenuActionButton(
+          buttonKey: const Key('visit_cities_button'),
           label: context.l10n.visitCities,
           color: const Color(0xFF4A873E),
-          onPressed: () => _showVisits(context),
+          onPressed: () => context.go('/visit-cities'),
         ),
         const SizedBox(height: 17),
         _SettingsButton(
@@ -467,37 +468,6 @@ class _MenuActions extends StatelessWidget {
       context.go(controller.activeResumeRoute);
     }
   }
-
-  void _showVisits(BuildContext context) => _showPaperDialog(
-    context,
-    title: context.l10n.visitCities,
-    icon: Icons.travel_explore_rounded,
-    body: Text(context.l10n.visitCitiesBody),
-  );
-
-  Future<void> _showPaperDialog(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required Widget body,
-  }) => showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      scrollable: true,
-      icon: Icon(icon, color: ResiboColors.teal, size: 34),
-      title: Text(title),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
-        child: body,
-      ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(context.l10n.gotIt),
-        ),
-      ],
-    ),
-  );
 }
 
 class _SettingsButton extends StatelessWidget {

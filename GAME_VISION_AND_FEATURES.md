@@ -6,7 +6,7 @@ This document separates the game that exists in the repository today from the lo
 
 ### Core premise
 
-`Resibo, Please` is a fictional civic decision simulation. The player studies a city, investigates three mayoral candidates, votes, and then observes a deterministic term simulation. It teaches evidence evaluation and trade-off thinking rather than endorsing real candidates or giving official election guidance.
+`Resibo, Please` is a fictional civic decision simulation. The player studies a city, investigates five procedurally generated mayoral candidates, votes, and then observes a deterministic term simulation. It teaches evidence evaluation and trade-off thinking rather than endorsing real candidates or giving official election guidance.
 
 ### Main menu, saves, and settings
 
@@ -17,6 +17,12 @@ This document separates the game that exists in the repository today from the lo
   high-contrast presentation, and dialogue sounds. About, credits, disclaimer,
   privacy information, and app version belong under Settings.
 - Save data is versioned and migrated instead of silently discarding older supported saves.
+- Visit Cities is an implemented asynchronous public gallery. Completed Term
+  Reports can POST a sanitized fictional summary to Supabase REST, while the
+  gallery GETs newest snapshots, caches the latest successful response, and
+  provides list/detail, loading, empty, retry, offline, and safe error states.
+  It never uploads the save file, world seed, hidden candidate capabilities,
+  investigation history, or private notes.
 
 ### Procedural city foundation
 
@@ -44,19 +50,45 @@ This document separates the game that exists in the repository today from the lo
 
 ### Candidate investigation
 
-- The current election has three authored candidate archetypes with structured Civic Archive biographies, career timelines, platforms, promises, concerns, and evidence files.
+- Normal city creation generates exactly five mayoral candidates. Five unique
+  portraits are selected from a reusable pool of seven, and gender-tagged
+  portrait metadata selects a compatible fictional first-name pool.
+- A versioned world seed derives independent paths for portrait selection and
+  each candidate's identity, truth, history, platform, Biography, CityBook,
+  debate, news, and evidence. Adding a draw in one path does not consume a
+  global random stream or reroll unrelated systems.
+- Each candidate begins as a hidden structured truth profile containing
+  competence and implementation tradeoffs, integrity/corruption risk,
+  coalition/communication/budget/crisis abilities, experience, adaptability,
+  populism, ambition, policy strengths, controversies, relationships,
+  presentation style, and information footprint. Raw values and quality bands
+  are never rendered to the voter.
+- Structured history is generated before prose. The Civic Archive biography,
+  quick summary, promises, Then-vs-Now comparison, Campaign Trail, CityBook,
+  debate, candidate news, and nine records then reference that same history and
+  evidence graph rather than inventing independent facts.
+- Maya Vargas, Julian Pratt, and Victor Chen remain available as the authored
+  reference/debug fixture, but normal **Create City** runs use generated candidates.
 - Candidate pages use a dossier/political-cartoon presentation rather than default Flutter information screens.
 - Evidence includes profiles, public records, budgets, fact-checks, platform material, debate answers, controversies, campaign media, and social posts with distinct reliability/truth states.
 - Investigation points can be relaxed or limited. Profiles and explicitly free/unlocked records cost no points; paid evidence is charged once and remains available.
 - Evidence relationships can unlock connected material. Players can view, bookmark, pin, and annotate relevant receipts.
 - The Candidate Hub is organized as **Bio / Promises / Debate / Records**. Bio citations, promise records, and debate claims all lead into the same evidence reader and persisted investigation state. Campaign Pulse material remains available as the nested Campaign Trail under Promises.
 - Neutral **Then vs Now** cards expose changes in public statements with source context; they do not automatically label a candidate hypocritical or dishonest.
-- The content model includes an internal information-footprint field for future procedural generation, but it is not rendered as a player-facing score.
+- The information-footprint field now controls generated public-material volume,
+  and the campaign-noise setup modifies that volume without changing candidate
+  identity or hidden truth. It is not rendered as a player-facing score.
 - The candidate experience also includes civic pulse content, questions, debate material, a receipt board, and persisted interaction state. The system avoids exposing a single hidden “best candidate” score.
 
 ### Fictional information ecosystem
 
-- **CityBook** gives each authored candidate a recognizable social profile with a banner slot, portrait, handle, biography, party, attention count, Posts/About/Media tabs, and four authored posts. Posts support different message types, reactions, ten-comment threads generated from each post's subject and context, historical statements, issue links, related coverage, and receipt links. Reactions represent public sentiment only and never change truth or candidate scoring.
+- **CityBook** gives each generated candidate a recognizable social profile with
+  a banner slot, portrait, handle, biography, party, attention count,
+  Posts/About/Media tabs, and four to seven generated posts. Posts derive from
+  actual promises, accomplishments, failures, controversies, corrections, and
+  historical statements. Every post has ten contextual fictional comments and
+  evidence/news/receipt links where applicable. Reactions represent public
+  sentiment only and never change truth or candidate scoring.
 - Historical CityBook posts can open the existing neutral **Then vs Now** comparison. Evidence-linked claims open the same Evidence Reader and retain its investigation costs, unlocks, bookmarks, and persistence rules.
 - Every world has three seed-stable fictional news outlets. Their names are selected deterministically, while structured traits describe sensationalism, depth, speed, tone, editorial aggression, and headline style.
 - A major Chronicle entry creates one underlying news event and three compatible outlet framings. Each framing has its own headline, emphasis, summary, and full article, but all three preserve one factual event source rather than creating competing hidden truths.
@@ -64,7 +96,11 @@ This document separates the game that exists in the repository today from the lo
 - Chronicle cards can open the three reports about their event. Candidate Hubs include a compact CityBook link and recent-coverage entry without displacing the fast Bio / Promises / Debate / Records path.
 - Evidence Reader presentation now reflects source type. Public records use a reusable **Bayhaven Transparency Portal** treatment; budget, social-media, campaign, fact-check, debate, investigation, platform, and archive sources receive distinct visual treatments while retaining the normalized deep-reading view.
 - A generic information relationship layer connects city problems, Chronicle entries, candidates, promises, debate material, CityBook posts, news events, coverage, and evidence using relationships such as supports, contradicts, references, disputes, updates, adds context, responds to, reports on, and originates from.
-- CityBook posts, comments, reactions, outlet identities, underlying events, headlines, and article text are authored or derived deterministically from the saved world seed. Their stable IDs prepare later anti-repetition history without changing save schema 5.
+- CityBook posts, comments, reactions, outlet identities, underlying events,
+  headlines, and article text are derived deterministically and stored as part
+  of the generated election. Save schema 7 serializes both the complete
+  procedural election and the later living-city term snapshot, so loading a
+  city never rerolls either history.
 - Profile banners, selected CityBook posts, Campaign Trail media, and news articles now use fixed-aspect-ratio authored artwork. News outlets covering the same event reuse the same underlying issue image, preserving the one-event/many-framings rule; unknown future media keys retain coded fallbacks.
 - Two or three high-impact underlying news events receive deterministic R-8 TV
   reports. Chronicle cards, event coverage, and full articles link to the same
@@ -80,7 +116,18 @@ This document separates the game that exists in the repository today from the lo
 - The ballot asks the player to choose a candidate, identify the top issue, and record confidence.
 - A winner presentation transitions from the pre-election snapshot into the term.
 - The term engine is seeded and deterministic. It combines city indicators, problem weights, candidate policy knowledge, implementation, coalition skill, crisis response, budget discipline, integrity, and trade-offs.
-- The term unfolds through staged events/updates and ends in a report showing indicator changes and explanations. Existing event artwork is used where available.
+- The term keeps four broad player-paced phases, but every phase now contains
+  several weighted city events and project milestones. Events cover active
+  issues, indicator thresholds, administration behavior, external shocks,
+  positive opportunities, politics, ordinary city life, and rare surprises.
+- Candidate hidden traits and campaign promises influence project progress,
+  crisis impact, trust, corruption pressure, and broad budget health without
+  exposing a perfect-candidate score.
+- Revealed events create inspectable markers on the existing city artwork.
+  Chronicle, News, City 8 TV, CityBook, the map, and the final report reuse the
+  same saved event IDs.
+- The final report includes indicator movement, project/promise status, all
+  phase events, and explanations. Existing event artwork is used where available.
 - Candidate/election/term behavior remains separate from the procedural city-foundation work described above.
 
 ### Technical boundaries
@@ -101,14 +148,22 @@ The items below are design direction, not claims about the current build. They s
 
 ### Procedural elections and candidates
 
-- Future elections should generate new names, identities, parties, careers, platforms, relationships, strengths, weaknesses, contradictions, and evidence histories from a seed.
-- No candidate should be perfect. Advantages should create opportunity costs, institutional dependencies, or credible risks.
-- The authored three-candidate election remains the reference slice until a procedural candidate generator can match its coherence and evidence quality.
+- The first version is implemented for one five-candidate mayoral election.
+  Future work should expand the reusable content libraries, anti-repetition
+  history, and downstream promise consequences without changing version-1 saves.
+- No candidate is forced into a good/average/bad slot. Each quality band is
+  rolled independently, allowing unusually strong fields, mostly poor fields,
+  capable-but-compromised candidates, honest-but-ineffective candidates, or
+  charismatic high-risk candidates.
+- Vice Mayor and other offices remain deliberately out of scope.
 
 ### Procedural biography and life history
 
-- Structured biographies, citations, and life-event timelines are implemented for Maya Vargas, Julian Pratt, and Victor Chen. A future generator may assemble equivalent records for new candidates.
-- Procedural biography facts must be generated as structured truth first and then exposed through records of varying reliability. Flavor text must not invent consequential facts.
+- Structured biographies, citations, and five-event life-history timelines are
+  generated for every candidate from saved candidate truth. Maya, Julian, and
+  Victor retain authored equivalents as reference fixtures.
+- Future biography expansion must keep generating factual structure before
+  presentation prose; flavor text may not invent consequential facts.
 
 ### Connections and accountability graph
 
@@ -147,10 +202,14 @@ The items below are design direction, not claims about the current build. They s
 - The map should summarize the same simulation state as the cards, not run a second hidden simulation.
 - Flame is a suitable tool for animated overlays, event markers, and a living city canvas once the underlying district model exists.
 
-### Asynchronous multiplayer
+### Asynchronous sharing expansion
 
-- Players may eventually publish privacy-safe city snapshots or compare administrations asynchronously.
-- Possible modes include visiting a city, reviewing a friend’s public record, shared civic challenges, or comparing outcomes from the same seed.
+- Privacy-safe public city snapshot publishing and browsing are implemented as
+  a small Supabase REST gallery. Future work may add richer administration
+  comparison or shared civic challenges without expanding the uploaded private
+  data surface.
+- Possible future modes include reviewing a friend’s public record or comparing
+  outcomes from the same seed.
 - Multiplayer must never allow another player to corrupt the owner’s canonical save, and moderation/privacy requirements must be designed before sharing is enabled.
 
 ### AI presentation rule
@@ -162,6 +221,7 @@ AI may help present already-generated truth—for example, paraphrasing a struct
 1. Stabilize and test the procedural issue library, City Brief, Chronicle, voices, persistence, and migrations.
 2. Let post-election events consume the same issue hooks and add persistent city history.
 3. Introduce district/map state and the Then vs Now record.
-4. Prototype procedural candidates against the authored reference election.
-5. Add deeper biography, connections, reactive debates, and richer media.
-6. Consider asynchronous sharing only after deterministic state, privacy, and moderation are mature.
+4. Expand procedural content libraries and track promises into later terms.
+5. Add deeper connection navigation, reactive debates, and richer media.
+6. Add moderation and carefully scoped comparison tools to the implemented
+   asynchronous snapshot gallery only after its privacy rules remain stable.

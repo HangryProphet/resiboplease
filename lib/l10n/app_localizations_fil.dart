@@ -177,7 +177,7 @@ class AppLocalizationsFil extends AppLocalizations {
 
   @override
   String get visitCitiesBody =>
-      'Gumagamit ang pagbisita sa lungsod ng ligtas at asynchronous na snapshots—hindi live multiplayer. Nakalaan ang bahaging ito habang ginagawa ang local snapshot publishing.';
+      'Tingnan ang ligtas at kathang-isip na resulta ng lungsod mula sa Public City Gallery API.';
 
   @override
   String get menuBackgroundSemantics =>

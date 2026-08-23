@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../core/settings/app_settings_controller.dart';
 import '../core/state/game_controller.dart';
+import '../data/gallery/city_gallery_api_service.dart';
+import '../data/gallery/city_gallery_cache.dart';
+import '../data/gallery/city_gallery_repository.dart';
 import '../l10n/app_localizations.dart';
 import 'router.dart';
 import 'theme/resibo_theme.dart';
@@ -12,11 +15,13 @@ class ResiboPleaseApp extends StatefulWidget {
   const ResiboPleaseApp({
     this.gameController,
     this.settingsController,
+    this.galleryRepository,
     super.key,
   });
 
   final GameController? gameController;
   final AppSettingsController? settingsController;
+  final CityGalleryRepository? galleryRepository;
 
   @override
   State<ResiboPleaseApp> createState() => _ResiboPleaseAppState();
@@ -27,6 +32,8 @@ class _ResiboPleaseAppState extends State<ResiboPleaseApp> {
   late final bool _ownsGameController;
   late final AppSettingsController _settingsController;
   late final bool _ownsSettingsController;
+  late final CityGalleryRepository _galleryRepository;
+  late final bool _ownsGalleryRepository;
   late final GoRouter _router;
 
   @override
@@ -38,12 +45,22 @@ class _ResiboPleaseAppState extends State<ResiboPleaseApp> {
     _settingsController =
         widget.settingsController ??
         AppSettingsController(store: MemorySettingsStore());
-    _router = buildRouter(_controller, _settingsController);
+    _ownsGalleryRepository = widget.galleryRepository == null;
+    _galleryRepository =
+        widget.galleryRepository ??
+        CityGalleryRepository(
+          remote: CityGalleryApiService(
+            config: CityGalleryApiConfig.fromEnvironment(),
+          ),
+          cache: MemoryCityGalleryCache(),
+        );
+    _router = buildRouter(_controller, _settingsController, _galleryRepository);
   }
 
   @override
   void dispose() {
     _router.dispose();
+    if (_ownsGalleryRepository) _galleryRepository.close();
     if (_ownsGameController) _controller.dispose();
     if (_ownsSettingsController) _settingsController.dispose();
     super.dispose();

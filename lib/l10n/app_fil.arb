@@ -51,7 +51,7 @@
   "howToPlay": "Paano Maglaro",
   "visitCities": "Bumisita sa mga Lungsod",
   "fictionalDisclaimer": "Isang kathang-isip na civic decision simulation.\nHindi opisyal na gabay sa halalan.",
-  "visitCitiesBody": "Gumagamit ang pagbisita sa lungsod ng ligtas at asynchronous na snapshots—hindi live multiplayer. Nakalaan ang bahaging ito habang ginagawa ang local snapshot publishing.",
+  "visitCitiesBody": "Tingnan ang ligtas at kathang-isip na resulta ng lungsod mula sa Public City Gallery API.",
   "menuBackgroundSemantics": "Isang city hall, mga komunidad, klinika, paaralan, drainage canal, at waterfront.",
   "candidateGroupSemantics": "Mga kandidato sa pagka-alkalde na sina Julian Pratt, Maya Vargas, at Victor Chen.",
   "logoSemantics": "Resibo, Please",

@@ -1,0 +1,64 @@
+[
+  {
+    "id": "8cbe205b-3304-4a6e-a28a-5e5ad8b27741",
+    "city_name": "Harborlight",
+    "term_number": 1,
+    "starting_pressure": "strained",
+    "top_issue": "Water access",
+    "selected_candidate_name": "Maya Vargas",
+    "candidate_party": "Bayhaven Civic Alliance",
+    "final_city_condition": "mixed",
+    "outcome_summary": "Public health improved while transport remained under pressure.",
+    "major_issues": [
+      "Water access",
+      "Transport congestion",
+      "Clinic capacity"
+    ],
+    "major_events": [
+      "Mobile clinic response",
+      "Water emergency"
+    ],
+    "created_at": "2026-08-18T09:30:00.000Z"
+  },
+  {
+    "id": "04f20bb4-8bce-45ee-b74c-87ab51bc8205",
+    "city_name": "Bagong Silangan",
+    "term_number": 1,
+    "starting_pressure": "crisis",
+    "top_issue": "Flooding and drainage",
+    "selected_candidate_name": "Victor Chen",
+    "candidate_party": "Forward Bayhaven",
+    "final_city_condition": "functional",
+    "outcome_summary": "Drainage readiness improved, but the city budget tightened.",
+    "major_issues": [
+      "Flooding and drainage",
+      "Public funds",
+      "Employment"
+    ],
+    "major_events": [
+      "Typhoon response",
+      "Records review"
+    ],
+    "created_at": "2026-08-17T15:10:00.000Z"
+  },
+  {
+    "id": "91543cf2-4753-4535-bb0d-ff83c287c4ce",
+    "city_name": "Port Mabini",
+    "term_number": 2,
+    "starting_pressure": "stable",
+    "top_issue": "Employment quality",
+    "selected_candidate_name": "Julian Pratt",
+    "candidate_party": "Workers and Enterprise Coalition",
+    "final_city_condition": "strong",
+    "outcome_summary": "Job access rose alongside measured gains in public trust.",
+    "major_issues": [
+      "Employment quality",
+      "Cost of living"
+    ],
+    "major_events": [
+      "Jobs compact",
+      "Delivery milestone"
+    ],
+    "created_at": "2026-08-16T08:45:00.000Z"
+  }
+]

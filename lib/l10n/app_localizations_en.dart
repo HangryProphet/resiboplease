@@ -176,7 +176,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get visitCitiesBody =>
-      'City visits use safe, asynchronous snapshots—not live multiplayer. This space is reserved while local snapshot publishing is built.';
+      'Browse sanitized fictional city results retrieved from the Public City Gallery API.';
 
   @override
   String get menuBackgroundSemantics =>

@@ -1,8 +1,11 @@
 import '../models/candidate.dart';
+import '../models/candidate_biography.dart';
+import '../models/living_city_simulation.dart';
 import '../models/city_indicator.dart';
 import '../models/scenario.dart';
 import '../models/term_result.dart';
 import 'seeded_random.dart';
+import 'living_city_engine.dart';
 
 class TermEngine {
   const TermEngine();
@@ -10,7 +13,15 @@ class TermEngine {
   TermResult simulate({
     required Scenario scenario,
     required Candidate candidate,
+    CandidateTruthSnapshot? truth,
+    List<CandidatePromise> promises = const [],
   }) {
+    final livingCity = const LivingCityEngine().simulate(
+      scenario: scenario,
+      candidate: candidate,
+      truth: truth,
+      promises: promises,
+    );
     final random = SeededRandom(scenario.seed ^ _stableHash(candidate.id));
     final eventRandom = SeededRandom(
       scenario.seed ^ _stableHash(candidate.id) ^ _stableHash('event-deck'),
@@ -155,26 +166,50 @@ class TermEngine {
       after = after.apply(phase.changes);
     }
 
+    var livingBefore = livingCity.initialIndicators;
+    final livingPhases = <TermPhase>[];
+    for (final livingPhase in livingCity.phases) {
+      final visualEvent = livingPhase.events
+          .where((event) => event.visualAssetKey != null)
+          .firstOrNull;
+      final artworkSlot = livingPhase.number == 2 || livingPhase.number == 4;
+      final fallback = livingPhase.number == 2
+          ? majorEvents.first
+          : majorEvents.last;
+      final kind = artworkSlot
+          ? fallback.kind
+          : livingPhase.number == 1
+          ? TermEventKind.policyLaunch
+          : TermEventKind.recordsReview;
+      final lead = livingPhase.events.first;
+      livingPhases.add(
+        TermPhase(
+          number: livingPhase.number,
+          eventKind: kind,
+          title: artworkSlot && visualEvent != null
+              ? visualEvent.title
+              : livingPhase.title,
+          narrative: livingPhase.events
+              .map((event) => '${event.title}: ${event.factualSummary}')
+              .join(' '),
+          explanation:
+              '${lead.explanation} This phase also records ${livingPhase.events.length} city developments and ${livingPhase.projectMilestones.length} project updates.',
+          changes: livingPhase.changesFrom(livingBefore),
+        ),
+      );
+      livingBefore = livingPhase.indicatorsAfter;
+    }
+
     return TermResult(
       seed: scenario.seed,
       candidate: candidate,
-      before: scenario.city.indicators,
-      after: after,
-      phases: phases,
-      summary: _summary(candidate),
+      before: livingCity.initialIndicators,
+      after: livingCity.finalIndicators,
+      phases: List.unmodifiable(livingPhases),
+      summary: livingCity.summary,
+      livingCity: livingCity,
     );
   }
-
-  String _summary(Candidate candidate) => switch (candidate.id) {
-    'maya_vargas' =>
-      'Clinic access improves and crisis messaging steadies the city, but aggressive spending leaves less fiscal room.',
-    'julian_pratt' =>
-      'Employment programs move quickly, while contracting concerns and weak flood planning erode part of the gain.',
-    'victor_chen' =>
-      'Water systems and public accountability improve, though limited council support slows broader economic action.',
-    _ =>
-      'The administration produces gains and costs shaped by its record and Bayhaven\'s conditions.',
-  };
 
   List<_TermEventDefinition> _selectMajorEvents(
     Scenario scenario,

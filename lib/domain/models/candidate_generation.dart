@@ -1,7 +1,60 @@
 import 'dart:math';
 
 import 'candidate_experience.dart';
+import 'candidate_biography.dart';
 import 'candidate_name_registry.dart';
+
+enum CandidateControversyStatus {
+  verified,
+  stronglySupported,
+  partiallySupported,
+  disputed,
+  unresolved,
+  misleading,
+  falseAccusation,
+}
+
+enum CandidateRelationshipType {
+  donor,
+  contractor,
+  ally,
+  rival,
+  organization,
+  formerEmployer,
+  advocacyGroup,
+}
+
+class CandidateControversyTruth {
+  const CandidateControversyTruth({
+    required this.id,
+    required this.kind,
+    required this.summary,
+    required this.status,
+    required this.relatedIssueKeys,
+  });
+
+  final String id;
+  final String kind;
+  final String summary;
+  final CandidateControversyStatus status;
+  final List<String> relatedIssueKeys;
+}
+
+class CandidateRelationshipTruth {
+  const CandidateRelationshipTruth({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.summary,
+    required this.isPotentialConflict,
+  });
+
+  final String id;
+  final String name;
+  final CandidateRelationshipType type;
+  final String summary;
+  final bool isPotentialConflict;
+}
 
 /// Hidden, deterministic truth used to construct a future candidate.
 /// This model must never be passed directly to player-facing widgets.
@@ -18,6 +71,15 @@ class CandidateTruthProfile {
     required this.policyScores,
     required this.motivations,
     required this.hiddenRisks,
+    this.crisisResponse = 50,
+    this.adaptability = 50,
+    this.experience = 50,
+    this.populism = 50,
+    this.ambition = 50,
+    this.informationFootprint = CandidateInformationFootprint.normal,
+    this.personalityTags = const [],
+    this.controversies = const [],
+    this.relationships = const [],
   });
 
   final CandidateQualityBand qualityBand;
@@ -31,6 +93,15 @@ class CandidateTruthProfile {
   final Map<String, int> policyScores;
   final List<String> motivations;
   final List<String> hiddenRisks;
+  final int crisisResponse;
+  final int adaptability;
+  final int experience;
+  final int populism;
+  final int ambition;
+  final CandidateInformationFootprint informationFootprint;
+  final List<String> personalityTags;
+  final List<CandidateControversyTruth> controversies;
+  final List<CandidateRelationshipTruth> relationships;
 }
 
 /// A content-safe outline. Authored templates or a later narrative service may

@@ -1,5 +1,9 @@
 import '../../domain/models/city_indicator_set.dart';
 import '../../domain/models/city_run_configuration.dart';
+import '../../domain/models/procedural_election.dart';
+import '../../domain/models/living_city_simulation.dart';
+import 'procedural_election_codec.dart';
+import 'living_city_codec.dart';
 
 class GameSaveData {
   GameSaveData({
@@ -8,7 +12,7 @@ class GameSaveData {
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now().toUtc();
 
-  static const currentSchemaVersion = 5;
+  static const currentSchemaVersion = 7;
 
   final int? activeSlotIndex;
   final List<RunSaveData?> slots;
@@ -68,6 +72,8 @@ class RunSaveData {
     this.chronicleStoryIds = const [],
     this.chronicleVoiceIds = const [],
     this.usedChronicleTemplateIds = const {},
+    this.proceduralElection,
+    this.livingCity,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now().toUtc(),
@@ -98,6 +104,8 @@ class RunSaveData {
   final List<String> chronicleStoryIds;
   final List<String> chronicleVoiceIds;
   final Set<String> usedChronicleTemplateIds;
+  final ProceduralElection? proceduralElection;
+  final LivingTermSimulation? livingCity;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -129,6 +137,12 @@ class RunSaveData {
     'chronicle_story_ids': List<String>.from(chronicleStoryIds),
     'chronicle_voice_ids': List<String>.from(chronicleVoiceIds),
     'used_chronicle_template_ids': usedChronicleTemplateIds.toList()..sort(),
+    'procedural_election': proceduralElection == null
+        ? null
+        : ProceduralElectionCodec.encode(proceduralElection!),
+    'living_city': livingCity == null
+        ? null
+        : LivingCityCodec.encode(livingCity!),
     'created_at': createdAt.toIso8601String(),
     'updated_at': updatedAt.toIso8601String(),
   };
@@ -211,6 +225,16 @@ class RunSaveData {
       json['used_chronicle_template_ids'],
       'used_chronicle_template_ids',
     ),
+    proceduralElection: json['procedural_election'] == null
+        ? null
+        : ProceduralElectionCodec.decode(
+            _stringMap(json['procedural_election'], 'procedural_election'),
+          ),
+    livingCity: json['living_city'] == null
+        ? null
+        : LivingCityCodec.decode(
+            _stringMap(json['living_city'], 'living_city'),
+          ),
     createdAt: _dateTime(json['created_at'], 'created_at'),
     updatedAt: _dateTime(json['updated_at'], 'updated_at'),
   );
@@ -233,6 +257,8 @@ abstract final class RunSaveMigrator {
         2 => _migrateV2ToV3(json),
         3 => _migrateV3ToV4(json),
         4 => _migrateV4ToV5(json),
+        5 => _migrateV5ToV6(json),
+        6 => _migrateV6ToV7(json),
         _ => throw UnsupportedError('No migration exists for schema $version.'),
       };
       version = _requiredInt(json['schema_version'], 'schema_version');
@@ -342,6 +368,42 @@ abstract final class RunSaveMigrator {
                 'chronicle_voice_ids': <String>[],
                 'used_chronicle_template_ids': <String>[],
               };
+            })
+            .toList(growable: false),
+    };
+  }
+
+  static Map<String, Object?> _migrateV5ToV6(Map<String, Object?> source) {
+    final slots = source['slots'];
+    return {
+      ...source,
+      'schema_version': 6,
+      if (slots is List)
+        'slots': slots
+            .map((slot) {
+              if (slot is! Map) return slot;
+              final migrated = slot.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+              return {...migrated, 'procedural_election': null};
+            })
+            .toList(growable: false),
+    };
+  }
+
+  static Map<String, Object?> _migrateV6ToV7(Map<String, Object?> source) {
+    final slots = source['slots'];
+    return {
+      ...source,
+      'schema_version': 7,
+      if (slots is List)
+        'slots': slots
+            .map((slot) {
+              if (slot is! Map) return slot;
+              final migrated = slot.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+              return {...migrated, 'living_city': null};
             })
             .toList(growable: false),
     };

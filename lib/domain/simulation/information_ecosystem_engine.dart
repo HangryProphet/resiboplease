@@ -5,6 +5,7 @@ import '../models/citybook.dart';
 import '../models/information_ecosystem.dart';
 import '../models/information_reference.dart';
 import '../models/news_media.dart';
+import '../models/living_city_simulation.dart';
 import '../models/pre_election_city_brief.dart';
 import '../models/scenario.dart';
 import 'tv_broadcast_engine.dart';
@@ -17,6 +18,10 @@ class InformationEcosystemEngine {
     required Scenario scenario,
     required PreElectionCityBrief brief,
     required CandidateExperienceCatalog candidateExperience,
+    CityBookCatalog? cityBookCatalog,
+    List<UnderlyingNewsEvent> candidateNewsEvents = const [],
+    List<NewsCoverage> candidateNewsCoverages = const [],
+    LivingTermSimulation? livingCity,
   }) {
     final outlets = _buildOutlets(scenario.seed);
     final events = <UnderlyingNewsEvent>[];
@@ -77,7 +82,44 @@ class InformationEcosystemEngine {
       }
     }
 
-    final rawCityBook = buildBayhavenCityBook();
+    events.addAll(candidateNewsEvents);
+    coverages.addAll(candidateNewsCoverages);
+    if (livingCity != null) {
+      events.addAll(
+        livingCity.eventHistory
+            .where((event) => event.newsEligible)
+            .map(
+              (event) => UnderlyingNewsEvent(
+                id: event.id,
+                fictionalDate: event.fictionalDate,
+                title: event.title,
+                eventType: event.category.name,
+                chronicleItemId: 'chronicle_${event.id}',
+                relatedProblemId: event.relatedIssueIds.firstOrNull,
+                relatedIssueFamily: livingCity
+                    .finalIssueStates[event.relatedIssueIds.firstOrNull]
+                    ?.family,
+                relatedCandidateIds: event.relatedCandidateIds,
+                factualSummary: event.factualSummary,
+                knownFacts: [event.factualSummary, event.explanation],
+                publicImpact: switch (event.severity) {
+                  CityEventSeverity.ambient => 22,
+                  CityEventSeverity.minor => 38,
+                  CityEventSeverity.moderate => 56,
+                  CityEventSeverity.major => 76,
+                  CityEventSeverity.critical => 92,
+                  CityEventSeverity.rare => 80,
+                },
+                importance: event.isMajor ? 85 : 55,
+                imageAssetKey: event.visualAssetKey,
+                chronicleVisibility: event.chronicleEligible,
+              ),
+            ),
+      );
+      coverages.addAll(livingCity.newsCoverages);
+    }
+
+    final rawCityBook = cityBookCatalog ?? buildBayhavenCityBook();
     final posts = [
       for (final post in rawCityBook.posts)
         post.copyWith(
@@ -93,11 +135,15 @@ class InformationEcosystemEngine {
               .take(1)
               .toList(growable: false),
         ),
+      ...?livingCity?.cityBookPosts,
     ];
     final cityBook = CityBookCatalog(
       profiles: rawCityBook.profiles,
       posts: List.unmodifiable(posts),
-      commentThreads: rawCityBook.commentThreads,
+      commentThreads: {
+        ...rawCityBook.commentThreads,
+        ...?livingCity?.cityBookCommentThreads,
+      },
     );
     final news = NewsCatalog(
       outlets: List.unmodifiable(outlets),
@@ -108,7 +154,10 @@ class InformationEcosystemEngine {
     return InformationEcosystem(
       cityBook: cityBook,
       news: news,
-      tvBroadcasts: const TvBroadcastEngine().build(news),
+      tvBroadcasts: const TvBroadcastEngine().build(
+        news,
+        preferredEventIds: livingCity?.tvReportEventIds ?? const [],
+      ),
       relationships: List.unmodifiable(
         _relationships(
           scenario: scenario,

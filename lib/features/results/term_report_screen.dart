@@ -3,18 +3,26 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/resibo_theme.dart';
 import '../../core/state/game_controller.dart';
+import '../../data/gallery/city_gallery_repository.dart';
 import '../../domain/models/city_indicator.dart';
 import '../../domain/models/term_result.dart';
+import '../../domain/models/living_city_simulation.dart';
 import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../city/widgets/city_brief_ui.dart';
 import '../dossier/widgets/dossier_ui.dart';
 import '../candidate_hub/widgets/candidate_image_slot.dart';
+import '../gallery/publish_city_snapshot_panel.dart';
 
 class TermReportScreen extends StatelessWidget {
-  const TermReportScreen({required this.controller, super.key});
+  const TermReportScreen({
+    required this.controller,
+    required this.galleryRepository,
+    super.key,
+  });
 
   final GameController controller;
+  final CityGalleryRepository galleryRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +137,30 @@ class TermReportScreen extends StatelessWidget {
                           _IndicatorReportGrid(result: result),
                           const SizedBox(height: 27),
                           CitySectionTitle(
+                            title: 'Promise & Project Ledger',
+                            icon: Icons.engineering_rounded,
+                          ),
+                          const SizedBox(height: 11),
+                          _ProjectLedger(projects: result.livingCity.projects),
+                          const SizedBox(height: 27),
+                          CitySectionTitle(
+                            title: 'City Event Record',
+                            icon: Icons.location_city_rounded,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            '${result.livingCity.eventHistory.length} saved developments across four phases. Administrative actions, outside shocks, ordinary city life, and recovery events are kept distinct.',
+                            style: const TextStyle(
+                              color: Color(0xFFB9C7CF),
+                              fontSize: 11,
+                              height: 1.35,
+                            ),
+                          ),
+                          const SizedBox(height: 11),
+                          for (final phase in result.livingCity.phases)
+                            _LivingPhaseSummary(phase: phase),
+                          const SizedBox(height: 27),
+                          CitySectionTitle(
                             title: context.l10n.administrationTimeline,
                             icon: Icons.history_rounded,
                           ),
@@ -198,6 +230,11 @@ class TermReportScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 24),
+                          PublishCitySnapshotPanel(
+                            controller: controller,
+                            repository: galleryRepository,
+                          ),
+                          const SizedBox(height: 14),
                           _ReportActions(
                             controller: controller,
                             result: result,
@@ -214,6 +251,131 @@ class TermReportScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProjectLedger extends StatelessWidget {
+  const _ProjectLedger({required this.projects});
+
+  final List<AdministrationProject> projects;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (final project in projects)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: CityPaperPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        project.title.toUpperCase(),
+                        style: const TextStyle(
+                          color: cityBriefInk,
+                          fontFamily: 'LilitaOne',
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${project.progress}%',
+                      style: const TextStyle(
+                        color: ResiboColors.mutedRed,
+                        fontFamily: 'LuckiestGuy',
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    minHeight: 10,
+                    value: project.progress / 100,
+                    backgroundColor: const Color(0xFFD1C3A5),
+                    valueColor: AlwaysStoppedAnimation(
+                      project.state == AdministrationProjectState.completed
+                          ? ResiboColors.teal
+                          : const Color(0xFFC9872B),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  '${project.promiseStatus.name.toUpperCase()} · ${project.state.name} · ${project.milestones.length} recorded updates',
+                  style: const TextStyle(
+                    color: Color(0xFF675946),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
+class _LivingPhaseSummary extends StatelessWidget {
+  const _LivingPhaseSummary({required this.phase});
+
+  final LivingCityPhase phase;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 9),
+    child: CityPaperPanel(
+      padding: const EdgeInsets.all(11),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PHASE ${phase.number} · ${phase.title.toUpperCase()}',
+            style: const TextStyle(
+              color: ResiboColors.mutedRed,
+              fontFamily: 'LilitaOne',
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 7),
+          for (final event in phase.events)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    event.isMajor
+                        ? Icons.warning_rounded
+                        : Icons.chevron_right_rounded,
+                    color: event.isMajor
+                        ? ResiboColors.mutedRed
+                        : ResiboColors.teal,
+                    size: 17,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${event.fictionalDate}: ${event.title}',
+                      style: const TextStyle(
+                        color: cityBriefInk,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 int _healthyChange(CityIndicator indicator, int change) =>
@@ -292,6 +454,8 @@ class _ReportHero extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     context.l10n.termSummaryText(result),
+                    maxLines: compact ? 16 : 7,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -304,7 +468,7 @@ class _ReportHero extends StatelessWidget {
             ),
           );
           return SizedBox(
-            height: compact ? 430 : 235,
+            height: compact ? 560 : 235,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [portrait, copy],

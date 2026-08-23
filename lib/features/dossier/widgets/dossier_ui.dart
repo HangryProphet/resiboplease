@@ -284,6 +284,7 @@ class FileStamp extends StatelessWidget {
   Widget build(BuildContext context) => Transform.rotate(
     angle: angle,
     child: Container(
+      constraints: const BoxConstraints(maxWidth: 280),
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .07),
@@ -297,16 +298,18 @@ class FileStamp extends StatelessWidget {
             Icon(icon, size: 15, color: color),
             const SizedBox(width: 4),
           ],
-          Text(
-            label.toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: color,
-              fontFamily: 'LilitaOne',
-              fontSize: 13,
-              height: 1,
-              letterSpacing: .7,
+          Flexible(
+            child: Text(
+              label.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontFamily: 'LilitaOne',
+                fontSize: 13,
+                height: 1,
+                letterSpacing: .7,
+              ),
             ),
           ),
         ],

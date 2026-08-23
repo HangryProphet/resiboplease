@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resiboplease/core/state/game_controller.dart';
 import 'package:resiboplease/data/persistence/run_repository.dart';
@@ -133,14 +135,19 @@ void main() {
       ).copyWith(investigationTime: InvestigationTime.limited),
     );
 
-    const paidEvidenceIds = [
-      'maya_controversy',
-      'maya_publicRecord',
-      'maya_debateAnswer',
-      'maya_factCheck',
-      'maya_budgetDocument',
-      'julian_publicRecord',
-    ];
+    final paidEvidenceIds = <String>[];
+    var plannedSpend = 0;
+    for (final candidate in controller.scenario.candidates) {
+      for (final evidence in candidate.evidence) {
+        final cost = controller.evidenceInvestigationCost(evidence.id);
+        if (cost <= 0 || plannedSpend + cost > 7) continue;
+        paidEvidenceIds.add(evidence.id);
+        plannedSpend += cost;
+        if (plannedSpend == 7) break;
+      }
+      if (plannedSpend == 7) break;
+    }
+    expect(plannedSpend, 7);
     final freeProfile = controller.scenario.candidates.first.evidence
         .firstWhere((item) => item.type.name == 'profile');
 
@@ -148,11 +155,18 @@ void main() {
       expect(controller.markEvidenceViewed(id), isTrue);
     }
     expect(controller.remainingInvestigationPoints, 0);
-    expect(controller.markEvidenceViewed('julian_controversy'), isFalse);
+    final blockedEvidence = controller.scenario.candidates
+        .expand((candidate) => candidate.evidence)
+        .firstWhere(
+          (item) =>
+              !paidEvidenceIds.contains(item.id) &&
+              controller.evidenceInvestigationCost(item.id) > 0,
+        );
+    expect(controller.markEvidenceViewed(blockedEvidence.id), isFalse);
     expect(controller.markEvidenceViewed(paidEvidenceIds.first), isTrue);
     expect(controller.markEvidenceViewed(freeProfile.id), isTrue);
     expect(controller.markEvidenceViewed('missing_evidence'), isFalse);
-    expect(controller.viewedEvidenceCount, 7);
+    expect(controller.viewedEvidenceCount, paidEvidenceIds.length + 1);
     expect(controller.investigationPointsUsed, 7);
   });
 
@@ -197,9 +211,26 @@ void main() {
     final chronicleVoiceIds = controller.preElectionBrief.voices
         .map((item) => item.id)
         .toList();
+    String candidateSnapshot(GameController source) => jsonEncode([
+      for (final item in source.scenario.candidates)
+        {
+          'id': item.id,
+          'name': item.name,
+          'evidence': item.evidence.map((evidence) => evidence.id).toList(),
+          'portrait': source.candidateExperience
+              .profileFor(item.id)!
+              .portraitAssetKey,
+          'pulse': source.candidateExperience
+              .profileFor(item.id)!
+              .pulse
+              .map((content) => content.id)
+              .toList(),
+        },
+    ]);
+    final initialCandidateSnapshot = candidateSnapshot(controller);
     final candidate = controller.scenario.candidates.first;
     final evidence = candidate.evidence.firstWhere(
-      (item) => item.type.name != 'profile',
+      (item) => controller.evidenceInvestigationCost(item.id) > 0,
     );
     expect(controller.markEvidenceViewed(evidence.id), isTrue);
     controller.toggleBookmark(evidence.id);
@@ -227,6 +258,7 @@ void main() {
     expect(restored.isBookmarked(evidence.id), isTrue);
     expect(restored.investigationPointsUsed, 1);
     expect(restored.activeResumeRoute, '/simulation');
+    expect(candidateSnapshot(restored), initialCandidateSnapshot);
     expect(
       restored.preElectionBrief.news.map((item) => item.id),
       chronicleStoryIds,
@@ -258,8 +290,15 @@ void main() {
       (item) => item.type.name == 'profile',
     );
     final paid = source.scenario.candidates.first.evidence.firstWhere(
-      (item) => item.id == 'maya_publicRecord',
+      (item) => source.evidenceInvestigationCost(item.id) > 0,
     );
+    final uncharged = source.scenario.candidates
+        .expand((candidate) => candidate.evidence)
+        .firstWhere(
+          (item) =>
+              item.id != paid.id &&
+              source.evidenceInvestigationCost(item.id) > 0,
+        );
     expect(source.markEvidenceViewed(profile.id), isTrue);
     expect(source.markEvidenceViewed(paid.id), isTrue);
     await source.flushSaves();
@@ -274,7 +313,7 @@ void main() {
       viewedEvidenceIds: {
         ...clean.viewedEvidenceIds,
         'stale_file',
-        'julian_publicRecord',
+        uncharged.id,
       },
       chargedEvidenceIds: {...clean.chargedEvidenceIds, 'stale_file'},
       evidencePointCosts: clean.evidencePointCosts,
@@ -285,6 +324,7 @@ void main() {
       confidence: clean.confidence,
       createdAt: clean.createdAt,
       updatedAt: clean.updatedAt,
+      proceduralElection: clean.proceduralElection,
     );
     final repository = MemoryRunRepository(
       initialValue: GameSaveData(
@@ -312,11 +352,33 @@ void main() {
       ),
     );
 
-    expect(controller.evidenceInvestigationCost('maya_factCheck'), 1);
-    expect(controller.markEvidenceViewed('maya_socialPost'), isTrue);
-    expect(controller.unlockedEvidenceIds, contains('maya_factCheck'));
-    expect(controller.evidenceInvestigationCost('maya_factCheck'), 0);
-    expect(controller.markEvidenceViewed('maya_factCheck'), isTrue);
+    final unlockRelation = controller.candidateExperience.profiles.values
+        .expand((profile) => profile.relations)
+        .firstWhere(
+          (relation) =>
+              relation.unlocksTarget &&
+              controller.candidateExperience.investigationCostFor(
+                    relation.toEvidenceId,
+                  ) >
+                  0,
+        );
+    expect(
+      controller.evidenceInvestigationCost(unlockRelation.toEvidenceId),
+      greaterThan(0),
+    );
+    expect(
+      controller.markEvidenceViewed(unlockRelation.fromEvidenceId),
+      isTrue,
+    );
+    expect(
+      controller.unlockedEvidenceIds,
+      contains(unlockRelation.toEvidenceId),
+    );
+    expect(
+      controller.evidenceInvestigationCost(unlockRelation.toEvidenceId),
+      0,
+    );
+    expect(controller.markEvidenceViewed(unlockRelation.toEvidenceId), isTrue);
     expect(controller.investigationPointsUsed, 0);
 
     controller.dispose();
@@ -330,14 +392,23 @@ void main() {
       configuration: CityRunConfiguration.defaults(cityName: 'Receipt City'),
     );
 
-    controller.toggleCandidatePin('maya_vargas');
-    controller.toggleContentPin('pulse_maya_promise');
-    controller.toggleQuestionPin('question_maya_donors');
-    controller.toggleDebateBookmark('dw03');
-    controller.toggleDebatePin('dw04');
-    controller.toggleDebateSuspicious('dw07');
+    final candidateId = controller.scenario.candidates.first.id;
+    final profile = controller.candidateExperience.profileFor(candidateId)!;
+    final contentId = profile.pulse.first.id;
+    final questionId = profile.questions.first.id;
+    final debateMessages = controller.candidateExperience.debateTopics
+        .expand((topic) => topic.messages)
+        .where((message) => message.bookmarkable)
+        .take(3)
+        .toList();
+    controller.toggleCandidatePin(candidateId);
+    controller.toggleContentPin(contentId);
+    controller.toggleQuestionPin(questionId);
+    controller.toggleDebateBookmark(debateMessages[0].id);
+    controller.toggleDebatePin(debateMessages[1].id);
+    controller.toggleDebateSuspicious(debateMessages[2].id);
     controller.setReceiptNote(
-      'content:pulse_maya_promise',
+      'content:$contentId',
       'Compare this with the budget.',
     );
     expect(controller.reserveCandidateName('Ari Santos'), isTrue);
@@ -347,14 +418,14 @@ void main() {
     final restored = GameController(repository: repository);
     await restored.restore();
 
-    expect(restored.isCandidatePinned('maya_vargas'), isTrue);
-    expect(restored.isContentPinned('pulse_maya_promise'), isTrue);
-    expect(restored.isQuestionPinned('question_maya_donors'), isTrue);
-    expect(restored.isDebateBookmarked('dw03'), isTrue);
-    expect(restored.isDebatePinned('dw04'), isTrue);
-    expect(restored.isDebateSuspicious('dw07'), isTrue);
+    expect(restored.isCandidatePinned(candidateId), isTrue);
+    expect(restored.isContentPinned(contentId), isTrue);
+    expect(restored.isQuestionPinned(questionId), isTrue);
+    expect(restored.isDebateBookmarked(debateMessages[0].id), isTrue);
+    expect(restored.isDebatePinned(debateMessages[1].id), isTrue);
+    expect(restored.isDebateSuspicious(debateMessages[2].id), isTrue);
     expect(
-      restored.receiptNote('content:pulse_maya_promise'),
+      restored.receiptNote('content:$contentId'),
       'Compare this with the budget.',
     );
     expect(restored.usedCandidateNames, contains('Ari Santos'));

@@ -7,6 +7,7 @@ import '../../domain/models/candidate.dart';
 import '../../domain/models/city_indicator.dart';
 import '../../domain/models/city_indicator_set.dart';
 import '../../domain/models/term_result.dart';
+import '../../domain/models/living_city_simulation.dart';
 import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../city/widgets/city_brief_ui.dart';
@@ -89,11 +90,41 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
                           _TermCityHero(
                             cityName: widget.controller.activeCityName,
                             indicators: current,
+                            events: result.livingCity.phases
+                                .take(revealed)
+                                .expand((phase) => phase.events)
+                                .toList(growable: false),
                           ),
                           const SizedBox(height: 12),
                           _AdministrationStrip(
                             result: result,
                             currentPhase: revealed,
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ChunkyActionButton(
+                                  label: 'City Chronicle',
+                                  icon: Icons.newspaper_rounded,
+                                  compact: true,
+                                  color: const Color(0xFF3277A0),
+                                  onPressed: () => context.go('/city/chronicle'),
+                                ),
+                              ),
+                              const SizedBox(width: 9),
+                              Expanded(
+                                child: ChunkyActionButton(
+                                  label: 'CityBook',
+                                  icon: Icons.forum_rounded,
+                                  compact: true,
+                                  color: ResiboColors.teal,
+                                  onPressed: () => context.go(
+                                    '/citybook/${result.candidate.id}',
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 22),
                           CitySectionTitle(
@@ -114,6 +145,8 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
                               _TermPhaseCard(
                                 key: Key('term_phase_${phase.number}'),
                                 phase: phase,
+                                livingPhase:
+                                    result.livingCity.phases[phase.number - 1],
                                 candidate: result.candidate,
                                 latest: phase.number == revealed,
                               ),
@@ -162,10 +195,15 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
 }
 
 class _TermCityHero extends StatelessWidget {
-  const _TermCityHero({required this.cityName, required this.indicators});
+  const _TermCityHero({
+    required this.cityName,
+    required this.indicators,
+    required this.events,
+  });
 
   final String cityName;
   final CityIndicatorSet indicators;
+  final List<CityEvent> events;
 
   @override
   Widget build(BuildContext context) {
@@ -227,30 +265,153 @@ class _TermCityHero extends StatelessWidget {
                 ),
               ),
             ),
+            for (final event in events.reversed.take(7))
+              Align(
+                alignment: Alignment(
+                  event.markerX * 2 - 1,
+                  event.markerY * 2 - 1,
+                ),
+                child: Semantics(
+                  button: true,
+                  label: 'Inspect ${event.title}',
+                  child: Tooltip(
+                    message: event.title,
+                    child: InkWell(
+                      key: Key('city_event_marker_${event.id}'),
+                      onTap: () => _showCityEvent(context, event),
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: event.isMajor
+                              ? ResiboColors.mutedRed
+                              : const Color(0xFF247E78),
+                          border: Border.all(color: cityBriefInk, width: 2.5),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black87,
+                              offset: Offset(2, 3),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _markerIcon(event.markerType),
+                          size: 17,
+                          color: const Color(0xFFFFEBC1),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               left: 10,
               right: 10,
               bottom: 10,
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final indicator in visible)
-                    _ConditionPill(
-                      label: context.l10n.indicatorLabel(indicator),
-                      value: indicators.valueOf(indicator),
-                    ),
-                ],
+              child: IgnorePointer(
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final indicator in visible)
+                      _ConditionPill(
+                        label: context.l10n.indicatorLabel(indicator),
+                        value: indicators.valueOf(indicator),
+                      ),
+                  ],
+                ),
               ),
             ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF07111D), width: 3),
-                borderRadius: BorderRadius.circular(10),
+            IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: const Color(0xFF07111D),
+                    width: 3,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  static IconData _markerIcon(CityMapMarkerType type) => switch (type) {
+    CityMapMarkerType.flood || CityMapMarkerType.weather => Icons.water,
+    CityMapMarkerType.clinic => Icons.local_hospital_rounded,
+    CityMapMarkerType.water => Icons.water_drop_rounded,
+    CityMapMarkerType.roadworks ||
+    CityMapMarkerType.transport => Icons.construction_rounded,
+    CityMapMarkerType.jobs => Icons.work_rounded,
+    CityMapMarkerType.market => Icons.storefront_rounded,
+    CityMapMarkerType.publicSafety => Icons.shield_rounded,
+    CityMapMarkerType.waste => Icons.delete_rounded,
+    CityMapMarkerType.school => Icons.school_rounded,
+    CityMapMarkerType.government ||
+    CityMapMarkerType.audit => Icons.account_balance_rounded,
+    CityMapMarkerType.protest => Icons.campaign_rounded,
+    CityMapMarkerType.opportunity => Icons.auto_awesome_rounded,
+    CityMapMarkerType.festival => Icons.celebration_rounded,
+    CityMapMarkerType.community => Icons.groups_rounded,
+    CityMapMarkerType.power => Icons.bolt_rounded,
+    CityMapMarkerType.news => Icons.newspaper_rounded,
+  };
+
+  static void _showCityEvent(BuildContext context, CityEvent event) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: CityPaperPanel(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${event.fictionalDate} · ${event.district.name.toUpperCase()}',
+                  style: const TextStyle(
+                    color: ResiboColors.mutedRed,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  event.title.toUpperCase(),
+                  style: const TextStyle(
+                    color: cityBriefInk,
+                    fontFamily: 'LilitaOne',
+                    fontSize: 22,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(event.factualSummary),
+                const SizedBox(height: 10),
+                Text(
+                  event.explanation,
+                  style: const TextStyle(fontSize: 12, height: 1.35),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final effect in event.indicatorEffects.entries)
+                      _ImpactChip(indicator: effect.key, change: effect.value),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -430,12 +591,14 @@ class _TermOpeningCard extends StatelessWidget {
 class _TermPhaseCard extends StatelessWidget {
   const _TermPhaseCard({
     required this.phase,
+    required this.livingPhase,
     required this.candidate,
     required this.latest,
     super.key,
   });
 
   final TermPhase phase;
+  final LivingCityPhase livingPhase;
   final Candidate candidate;
   final bool latest;
 
@@ -524,6 +687,55 @@ class _TermPhaseCard extends StatelessWidget {
                       height: 1.08,
                     ),
                   ),
+                  const SizedBox(height: 15),
+                  Text(
+                    'CITY EVENTS'.toUpperCase(),
+                    style: TextStyle(
+                      color: accent,
+                      fontFamily: 'LilitaOne',
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  for (final event in livingPhase.events)
+                    _LivingEventRow(event: event),
+                  if (livingPhase.projectMilestones.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'PROJECT LEDGER',
+                      style: TextStyle(
+                        color: accent,
+                        fontFamily: 'LilitaOne',
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    for (final milestone in livingPhase.projectMilestones)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.engineering_rounded,
+                              size: 17,
+                              color: ResiboColors.navy,
+                            ),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                '${milestone.summary} +${milestone.progressDelta}%',
+                                style: const TextStyle(
+                                  color: cityBriefInk,
+                                  fontSize: 11,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                   const SizedBox(height: 8),
                   Text(
                     context.l10n.phaseNarrativeText(phase, candidate),
@@ -590,6 +802,58 @@ class _TermPhaseCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LivingEventRow extends StatelessWidget {
+  const _LivingEventRow({required this.event});
+
+  final CityEvent event;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 7),
+    padding: const EdgeInsets.all(9),
+    decoration: BoxDecoration(
+      color: event.isMajor ? const Color(0x1FA43D49) : const Color(0x14247E78),
+      borderRadius: BorderRadius.circular(7),
+      border: Border.all(color: const Color(0x665A4C38)),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          event.isMajor ? Icons.warning_rounded : Icons.place_rounded,
+          size: 18,
+          color: event.isMajor ? ResiboColors.mutedRed : ResiboColors.teal,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                event.title,
+                style: const TextStyle(
+                  color: cityBriefInk,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                event.factualSummary,
+                style: const TextStyle(
+                  color: cityBriefInk,
+                  fontSize: 10.5,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ImpactChip extends StatelessWidget {

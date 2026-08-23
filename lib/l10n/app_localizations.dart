@@ -407,7 +407,7 @@ abstract class AppLocalizations {
   /// No description provided for @visitCitiesBody.
   ///
   /// In en, this message translates to:
-  /// **'City visits use safe, asynchronous snapshots—not live multiplayer. This space is reserved while local snapshot publishing is built.'**
+  /// **'Browse sanitized fictional city results retrieved from the Public City Gallery API.'**
   String get visitCitiesBody;
 
   /// No description provided for @menuBackgroundSemantics.

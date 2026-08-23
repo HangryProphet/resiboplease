@@ -51,7 +51,7 @@
   "howToPlay": "How to Play",
   "visitCities": "Visit Cities",
   "fictionalDisclaimer": "A fictional civic decision simulation.\nNot official election guidance.",
-  "visitCitiesBody": "City visits use safe, asynchronous snapshots—not live multiplayer. This space is reserved while local snapshot publishing is built.",
+  "visitCitiesBody": "Browse sanitized fictional city results retrieved from the Public City Gallery API.",
   "menuBackgroundSemantics": "A civic hall, neighborhoods, clinic, school, drainage canal, and waterfront.",
   "candidateGroupSemantics": "Mayoral candidates Julian Pratt, Maya Vargas, and Victor Chen.",
   "logoSemantics": "Resibo, Please",

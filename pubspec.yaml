@@ -40,6 +40,7 @@ dependencies:
   flame: ^1.37.0
   flutter_riverpod: ^3.3.2
   go_router: ^17.3.0
+  http: ^1.6.0
   intl: ^0.20.2
   path_provider: ^2.1.6
   sembast: ^3.8.9+1
@@ -74,6 +75,10 @@ flutter:
     - assets/images/candidates/maya_vargas/maya_vargas_portrait.png
     - assets/images/candidates/julian_pratt/julian_pratt_portrait.png
     - assets/images/candidates/victor_chen/victor_chen_portrait.png
+    - assets/images/candidates/portrait_04.png
+    - assets/images/candidates/portrait_05.png
+    - assets/images/candidates/portrait_06.png
+    - assets/images/candidates/portrait_07.png
     - assets/images/city/bayhaven_base.png
     - assets/images/city/bayhaven_community_voices.jpg
     - assets/images/events/

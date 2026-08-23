@@ -6,17 +6,23 @@ import '../../data/configuration/configured_scenario.dart';
 import '../../data/persistence/run_repository.dart';
 import '../../data/persistence/run_save_data.dart';
 import '../../data/seed_content/bayhaven_candidate_experience.dart';
+import '../../data/seed_content/bayhaven_citybook.dart';
 import '../../data/seed_content/bayhaven_scenario.dart';
 import '../../domain/models/candidate.dart';
 import '../../domain/models/candidate_experience.dart';
 import '../../domain/models/city_run_configuration.dart';
 import '../../domain/models/evidence_item.dart';
 import '../../domain/models/information_ecosystem.dart';
+import '../../domain/models/citybook.dart';
+import '../../domain/models/news_media.dart';
 import '../../domain/models/pre_election_city_brief.dart';
+import '../../domain/models/procedural_election.dart';
 import '../../domain/models/scenario.dart';
 import '../../domain/models/term_result.dart';
+import '../../domain/models/living_city_simulation.dart';
 import '../../domain/simulation/pre_election_brief_engine.dart';
 import '../../domain/simulation/information_ecosystem_engine.dart';
+import '../../domain/simulation/procedural_candidate_generator.dart';
 import '../../domain/simulation/term_engine.dart';
 
 enum CityRunProgress { electionBrief, termInProgress, termReportReady }
@@ -47,6 +53,7 @@ class GameController extends ChangeNotifier {
     this._engine = const TermEngine(),
     this._briefEngine = const PreElectionBriefEngine(),
     this._informationEngine = const InformationEcosystemEngine(),
+    this._candidateGenerator = const ProceduralCandidateGenerator(),
   }) : _baseScenario = scenario ?? buildBayhavenScenario() {
     if (activeRun) {
       final configuration = CityRunConfiguration.defaults(
@@ -66,6 +73,7 @@ class GameController extends ChangeNotifier {
   final TermEngine _engine;
   final PreElectionBriefEngine _briefEngine;
   final InformationEcosystemEngine _informationEngine;
+  final ProceduralCandidateGenerator _candidateGenerator;
   final Scenario _baseScenario;
   final RunRepository? repository;
   final List<_RunSession?> _runs = List<_RunSession?>.filled(
@@ -85,11 +93,19 @@ class GameController extends ChangeNotifier {
 
   Scenario get scenario => _activeRun?.scenario ?? _baseScenario;
   CandidateExperienceCatalog get candidateExperience =>
-      bayhavenCandidateExperience;
+      _activeRun?.candidateExperience ?? bayhavenCandidateExperience;
+  int? get generationVersion =>
+      _activeRun?.proceduralElection?.generationVersion;
   InformationEcosystem get informationEcosystem => _informationEngine.build(
     scenario: scenario,
     brief: preElectionBrief,
     candidateExperience: candidateExperience,
+    cityBookCatalog: _activeRun?.cityBook ?? buildBayhavenCityBook(),
+    candidateNewsEvents:
+        _activeRun?.candidateNewsEvents ?? const <UnderlyingNewsEvent>[],
+    candidateNewsCoverages:
+        _activeRun?.candidateNewsCoverages ?? const <NewsCoverage>[],
+    livingCity: _activeRun?.termResult?.livingCity,
   );
   Candidate? get selectedCandidate => _activeRun?.selectedCandidate;
   TermResult? get termResult => _activeRun?.termResult;
@@ -446,9 +462,19 @@ class GameController extends ChangeNotifier {
       base: freshBase,
       configuration: normalizedConfiguration,
     );
+    final proceduralElection = _candidateGenerator.generate(
+      worldSeed: seed,
+      city: configuredScenario.city,
+      candidateField: normalizedConfiguration.candidateField,
+      campaignNoise: normalizedConfiguration.campaignNoise,
+    );
+    final proceduralScenario = configuredScenario.copyWith(
+      candidates: proceduralElection.candidates,
+    );
     _runs[slotIndex] = _newRun(
       configuration: normalizedConfiguration,
-      scenario: configuredScenario,
+      scenario: proceduralScenario,
+      proceduralElection: proceduralElection,
     );
     _activeSlotIndex = slotIndex;
     _commit();
@@ -489,10 +515,12 @@ class GameController extends ChangeNotifier {
     } else {
       _resetRun(
         active,
-        _freshScenario(
-          active.scenario.seed,
-          configuration: active.configuration,
-        ),
+        active.proceduralElection == null
+            ? _freshScenario(
+                active.scenario.seed,
+                configuration: active.configuration,
+              )
+            : active.scenario,
       );
     }
     _commit();
@@ -515,9 +543,15 @@ class GameController extends ChangeNotifier {
     run.selectedCandidate = activeCandidate;
     run.topIssue = topIssue;
     run.confidence = confidence;
+    final generatedTruth =
+        run.proceduralElection?.truthProfiles[activeCandidate.id];
     run.termResult = _engine.simulate(
       scenario: run.scenario,
       candidate: activeCandidate,
+      promises: run.candidateExperience.promisesFor(activeCandidate.id),
+      truth: generatedTruth == null
+          ? null
+          : truthSnapshotFromProfile(generatedTruth, activeCandidate),
     );
     run.revealedTermPhases = 0;
     run.touch();
@@ -538,10 +572,7 @@ class GameController extends ChangeNotifier {
 
   void restartSameSeed() {
     final run = _ensureActiveRun();
-    _resetRun(
-      run,
-      _freshScenario(run.scenario.seed, configuration: run.configuration),
-    );
+    _resetRun(run, run.scenario);
     _commit();
   }
 
@@ -553,6 +584,10 @@ class GameController extends ChangeNotifier {
       base: freshBase,
       configuration: saved.configuration,
     );
+    final proceduralElection = saved.proceduralElection;
+    if (proceduralElection != null) {
+      scenario = scenario.copyWith(candidates: proceduralElection.candidates);
+    }
     scenario = scenario.copyWith(
       city: scenario.city.copyWith(
         indicators: saved.indicators,
@@ -577,11 +612,13 @@ class GameController extends ChangeNotifier {
       for (final candidate in scenario.candidates)
         for (final item in candidate.evidence) item.id: item,
     };
+    final restoredExperience =
+        proceduralElection?.candidateExperience ?? bayhavenCandidateExperience;
     final freeViews = saved.viewedEvidenceIds.where((id) {
       final item = availableEvidence[id];
       if (item == null) return false;
       return item.type == EvidenceType.profile ||
-          candidateExperience.investigationCostFor(id) == 0 ||
+          restoredExperience.investigationCostFor(id) == 0 ||
           saved.unlockedEvidenceIds.contains(id);
     });
     final paidViews = saved.viewedEvidenceIds.where(
@@ -608,15 +645,15 @@ class GameController extends ChangeNotifier {
         id: saved.evidencePointCosts[id]!.clamp(0, 2),
     };
     final validContentIds = <String>{
-      for (final profile in candidateExperience.profiles.values)
+      for (final profile in restoredExperience.profiles.values)
         for (final item in profile.pulse) item.id,
     };
     final validDebateIds = <String>{
-      for (final topic in candidateExperience.debateTopics)
+      for (final topic in restoredExperience.debateTopics)
         for (final message in topic.messages) message.id,
     };
     final validQuestionIds = <String>{
-      for (final profile in candidateExperience.profiles.values)
+      for (final profile in restoredExperience.profiles.values)
         for (final question in profile.questions) question.id,
     };
     final validCandidateIds = scenario.candidates
@@ -630,7 +667,11 @@ class GameController extends ChangeNotifier {
       chronicleStoryIds: saved.chronicleStoryIds,
       chronicleVoiceIds: saved.chronicleVoiceIds,
       usedChronicleTemplateIds: saved.usedChronicleTemplateIds,
+      proceduralElection: proceduralElection,
     );
+    final restoredTruth = candidate == null
+        ? null
+        : proceduralElection?.truthProfiles[candidate.id];
     return run
       ..bookmarkedEvidenceIds.addAll(sanitizedBookmarks)
       ..viewedEvidenceIds.addAll(sanitizedViews)
@@ -664,7 +705,17 @@ class GameController extends ChangeNotifier {
       })
       ..selectedCandidate = candidate
       ..termResult = saved.termResultReady && candidate != null
-          ? _engine.simulate(scenario: scenario, candidate: candidate)
+          ? _restoreTermResult(
+              _engine.simulate(
+                scenario: scenario,
+                candidate: candidate,
+                promises: restoredExperience.promisesFor(candidate.id),
+                truth: restoredTruth == null
+                    ? null
+                    : truthSnapshotFromProfile(restoredTruth, candidate),
+              ),
+              saved.livingCity,
+            )
           : null
       ..revealedTermPhases = candidate == null
           ? 0
@@ -721,6 +772,7 @@ class GameController extends ChangeNotifier {
     List<String> chronicleStoryIds = const [],
     List<String> chronicleVoiceIds = const [],
     Set<String> usedChronicleTemplateIds = const {},
+    ProceduralElection? proceduralElection,
   }) {
     final generated = _briefEngine.build(
       scenario: scenario,
@@ -749,6 +801,7 @@ class GameController extends ChangeNotifier {
         preElectionBrief: brief,
         createdAt: createdAt,
         updatedAt: updatedAt,
+        proceduralElection: proceduralElection,
       )
       ..chronicleStoryIds.addAll(brief.news.map((item) => item.id))
       ..chronicleVoiceIds.addAll(brief.voices.map((item) => item.id))
@@ -842,6 +895,7 @@ class _RunSession {
     required this.preElectionBrief,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.proceduralElection,
   }) : createdAt = createdAt ?? DateTime.now().toUtc(),
        updatedAt = updatedAt ?? DateTime.now().toUtc() {
     initializeCandidateNames();
@@ -851,6 +905,15 @@ class _RunSession {
   String get cityName => configuration.cityName;
   Scenario scenario;
   PreElectionCityBrief preElectionBrief;
+  final ProceduralElection? proceduralElection;
+  CandidateExperienceCatalog get candidateExperience =>
+      proceduralElection?.candidateExperience ?? bayhavenCandidateExperience;
+  CityBookCatalog get cityBook =>
+      proceduralElection?.cityBook ?? buildBayhavenCityBook();
+  List<UnderlyingNewsEvent> get candidateNewsEvents =>
+      proceduralElection?.candidateNewsEvents ?? const [];
+  List<NewsCoverage> get candidateNewsCoverages =>
+      proceduralElection?.candidateNewsCoverages ?? const [];
   final List<String> chronicleStoryIds = [];
   final List<String> chronicleVoiceIds = [];
   final Set<String> usedChronicleTemplateIds = {};
@@ -947,8 +1010,25 @@ class _RunSession {
     confidence: confidence,
     createdAt: createdAt,
     updatedAt: updatedAt,
+    proceduralElection: proceduralElection,
+    livingCity: termResult?.livingCity,
   );
 }
+
+TermResult _restoreTermResult(
+  TermResult generated,
+  LivingTermSimulation? persisted,
+) => persisted == null
+    ? generated
+    : TermResult(
+        seed: generated.seed,
+        candidate: generated.candidate,
+        before: persisted.initialIndicators,
+        after: persisted.finalIndicators,
+        phases: generated.phases,
+        summary: persisted.summary,
+        livingCity: persisted,
+      );
 
 List<T> _orderedById<T>(
   List<T> generated,

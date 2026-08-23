@@ -345,6 +345,18 @@ class CandidateExperienceCatalog {
           errors.add('Missing relation target: ${relation.toEvidenceId}');
         }
       }
+      for (final question in profile.questions) {
+        for (final evidenceId in question.relatedEvidenceIds) {
+          if (!availableEvidenceIds.contains(evidenceId)) {
+            errors.add('Missing question evidence: $evidenceId');
+          }
+        }
+      }
+      for (final evidenceId in profile.evidenceCosts.keys) {
+        if (!availableEvidenceIds.contains(evidenceId)) {
+          errors.add('Missing costed evidence: $evidenceId');
+        }
+      }
       for (final item in profile.pulse) {
         for (final evidenceId in item.relatedEvidenceIds) {
           if (!availableEvidenceIds.contains(evidenceId)) {
@@ -415,6 +427,16 @@ class CandidateExperienceCatalog {
         .toSet();
     for (final topic in debateTopics) {
       for (final message in topic.messages) {
+        for (final evidenceId in message.referencedEvidenceIds) {
+          if (!availableEvidenceIds.contains(evidenceId)) {
+            errors.add('Missing debate evidence: $evidenceId');
+          }
+        }
+        for (final evidenceId in message.contradictedByIds) {
+          if (!availableEvidenceIds.contains(evidenceId)) {
+            errors.add('Missing debate contradiction: $evidenceId');
+          }
+        }
         for (final promiseId in message.relatedPromiseIds) {
           if (!promiseIds.contains(promiseId)) {
             errors.add('Missing debate promise: $promiseId');
@@ -434,6 +456,21 @@ class CandidateExperienceCatalog {
         if (comparisonId != null && !comparisonIds.contains(comparisonId)) {
           errors.add('Missing debate comparison: $comparisonId');
         }
+      }
+    }
+    final informationNodeIds = <String>{
+      ...availableEvidenceIds,
+      ...promiseIds,
+      ...comparisonIds,
+      ...allHistoryIds,
+      ...messageIds,
+    };
+    for (final relation in informationRelations) {
+      if (!informationNodeIds.contains(relation.from.id)) {
+        errors.add('Missing information relation source: ${relation.from.id}');
+      }
+      if (!informationNodeIds.contains(relation.to.id)) {
+        errors.add('Missing information relation target: ${relation.to.id}');
       }
     }
     return errors;

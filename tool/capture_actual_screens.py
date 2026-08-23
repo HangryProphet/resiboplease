@@ -48,6 +48,7 @@ class DevToolsSocket:
         if f"sec-websocket-accept: {accept}".lower() not in response.lower():
             raise RuntimeError("Chrome returned an invalid WebSocket accept key")
         self._next_id = 1
+        self.events: list[dict] = []
 
     def _receive_http_headers(self) -> str:
         data = bytearray()
@@ -114,6 +115,7 @@ class DevToolsSocket:
                 if "error" in decoded:
                     raise RuntimeError(f"CDP {method} failed: {decoded['error']}")
                 return decoded.get("result", {})
+            self.events.append(decoded)
 
     def close(self) -> None:
         try:

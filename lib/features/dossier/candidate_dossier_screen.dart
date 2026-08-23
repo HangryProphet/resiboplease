@@ -493,7 +493,7 @@ class _PaperCounter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    constraints: const BoxConstraints(minHeight: 36),
+    constraints: const BoxConstraints(minHeight: 36, maxWidth: 280),
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
     decoration: BoxDecoration(
       color: color.withValues(alpha: .10),

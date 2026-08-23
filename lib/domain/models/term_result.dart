@@ -1,6 +1,7 @@
 import 'candidate.dart';
 import 'city_indicator.dart';
 import 'city_indicator_set.dart';
+import 'living_city_simulation.dart';
 
 enum TermEventKind {
   policyLaunch,
@@ -61,6 +62,7 @@ class TermResult {
     required this.after,
     required this.phases,
     required this.summary,
+    required this.livingCity,
   });
 
   final int seed;
@@ -69,6 +71,7 @@ class TermResult {
   final CityIndicatorSet after;
   final List<TermPhase> phases;
   final String summary;
+  final LivingTermSimulation livingCity;
 
   Map<CityIndicator, int> get totalChanges => {
     for (final indicator in CityIndicator.values)

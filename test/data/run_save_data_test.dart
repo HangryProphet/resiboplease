@@ -140,4 +140,16 @@ void main() {
     expect(restored.chronicleVoiceIds, isEmpty);
     expect(restored.usedChronicleTemplateIds, isEmpty);
   });
+
+  test('schema five saves migrate with the authored-election fallback', () {
+    final raw = GameSaveData(activeSlotIndex: 0, slots: [sampleRun()]).toJson()
+      ..['schema_version'] = 5;
+    final slot = (raw['slots']! as List).single! as Map<String, Object?>;
+    slot.remove('procedural_election');
+
+    final restored = GameSaveData.fromJson(raw).slots.single!;
+
+    expect(restored.proceduralElection, isNull);
+    expect(restored.selectedCandidateId, 'maya_vargas');
+  });
 }

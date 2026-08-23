@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/resibo_theme.dart';
 import '../../core/state/game_controller.dart';
 import '../../domain/models/pre_election_city_brief.dart';
+import '../../domain/models/living_city_simulation.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'widgets/city_brief_ui.dart';
 import 'widgets/pre_election_navigation_bar.dart';
@@ -66,6 +67,45 @@ class CityChronicleScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 25),
+                            if (controller.termResult case final result?) ...[
+                              CitySectionTitle(
+                                title: 'Administration History',
+                                icon: Icons.history_rounded,
+                              ),
+                              const SizedBox(height: 5),
+                              const Text(
+                                'The same saved events appear on the term map, in coverage, and in the final report.',
+                                style: TextStyle(
+                                  color: Color(0xFFB9C7CF),
+                                  fontSize: 11,
+                                  height: 1.35,
+                                ),
+                              ),
+                              const SizedBox(height: 11),
+                              for (final event
+                                  in result.livingCity.phases
+                                      .take(controller.revealedTermPhases)
+                                      .expand((phase) => phase.events))
+                                _AdministrationChronicleCard(
+                                  event: event,
+                                  onCoverage: event.newsEligible
+                                      ? () => context.push(
+                                          '/news/event/${event.id}',
+                                        )
+                                      : null,
+                                  onTv:
+                                      _broadcastForEvent(
+                                            controller,
+                                            event.id,
+                                          ) ==
+                                          null
+                                      ? null
+                                      : () => context.go(
+                                          '/tv/${_broadcastForEvent(controller, event.id)}',
+                                        ),
+                                ),
+                              const SizedBox(height: 25),
+                            ],
                             CitySectionTitle(
                               title: context.l10n.cityNews,
                               icon: Icons.newspaper_rounded,
@@ -144,6 +184,78 @@ class CityChronicleScreen extends StatelessWidget {
   );
 }
 
+class _AdministrationChronicleCard extends StatelessWidget {
+  const _AdministrationChronicleCard({
+    required this.event,
+    required this.onCoverage,
+    required this.onTv,
+  });
+
+  final CityEvent event;
+  final VoidCallback? onCoverage;
+  final VoidCallback? onTv;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: CityPaperPanel(
+      padding: const EdgeInsets.all(11),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${event.fictionalDate} · ${event.category.name.toUpperCase()}',
+            style: const TextStyle(
+              color: ResiboColors.mutedRed,
+              fontWeight: FontWeight.w900,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            event.title.toUpperCase(),
+            style: const TextStyle(
+              color: cityBriefInk,
+              fontFamily: 'LilitaOne',
+              fontSize: 17,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            event.factualSummary,
+            style: const TextStyle(
+              color: cityBriefInk,
+              height: 1.35,
+              fontSize: 12,
+            ),
+          ),
+          if (onCoverage != null || onTv != null) ...[
+            const SizedBox(height: 9),
+            Wrap(
+              spacing: 7,
+              runSpacing: 7,
+              children: [
+                if (onCoverage != null)
+                  OutlinedButton.icon(
+                    onPressed: onCoverage,
+                    icon: const Icon(Icons.newspaper_rounded, size: 17),
+                    label: const Text('READ COVERAGE'),
+                  ),
+                if (onTv != null)
+                  OutlinedButton.icon(
+                    onPressed: onTv,
+                    icon: const Icon(Icons.tv_rounded, size: 17),
+                    label: const Text('WATCH REPORT'),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
 String? _coverageEventId(GameController controller, String chronicleId) =>
     controller.informationEcosystem.news.eventForChronicle(chronicleId)?.id;
 
@@ -160,6 +272,9 @@ String? _broadcastId(GameController controller, String chronicleId) {
       ? null
       : controller.informationEcosystem.tvBroadcasts.forEvent(eventId)?.id;
 }
+
+String? _broadcastForEvent(GameController controller, String eventId) =>
+    controller.informationEcosystem.tvBroadcasts.forEvent(eventId)?.id;
 
 class _CommunityIllustration extends StatelessWidget {
   const _CommunityIllustration({required this.cityName});

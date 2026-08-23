@@ -9,14 +9,26 @@ import '../models/tv_broadcast.dart';
 class TvBroadcastEngine {
   const TvBroadcastEngine();
 
-  TvBroadcastCatalog build(NewsCatalog news) {
+  TvBroadcastCatalog build(
+    NewsCatalog news, {
+    Iterable<String> preferredEventIds = const [],
+  }) {
     final ranked = [...news.events]
       ..sort((first, second) {
         final priority = _priority(second).compareTo(_priority(first));
         return priority != 0 ? priority : first.id.compareTo(second.id);
       });
-    final selected = ranked.where(_eligible).take(3).toList(growable: false);
-    final events = selected.length >= 2
+    final preferred = <UnderlyingNewsEvent>[
+      for (final id in preferredEventIds) ?news.eventById(id),
+    ];
+    final preferredIds = preferred.map((event) => event.id).toSet();
+    final selected = ranked
+        .where((event) => _eligible(event) && !preferredIds.contains(event.id))
+        .take(preferred.isEmpty ? 3 : (5 - preferred.length).clamp(0, 3))
+        .toList(growable: false);
+    final events = preferred.isNotEmpty
+        ? [...preferred.take(5), ...selected].take(5).toList(growable: false)
+        : selected.length >= 2
         ? selected
         : ranked.take(3).toList(growable: false);
     return TvBroadcastCatalog(

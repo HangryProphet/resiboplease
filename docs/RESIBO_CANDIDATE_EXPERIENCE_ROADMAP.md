@@ -1,5 +1,13 @@
 # Resibo, Please — Candidate Experience Redesign Roadmap
 
+> **August 2026 implementation update:** The candidate-facing screens described
+> here are implemented and now consume a version-1 procedural five-candidate
+> election in normal Create City runs. The original Maya/Julian/Victor catalog
+> remains as a reference fixture. The later procedural-generation task also
+> superseded this roadmap's temporary no-final-art restriction: the portrait
+> pool now contains exactly seven approved reusable identities. See
+> `PROCEDURAL_GENERATION.md` and `CURRENT_SYSTEM_REPORT.md` for current behavior.
+>
 > **Document scope:** Candidate-facing gameplay only  
 > **Primary focus:** How players discover, judge, compare, and emotionally react to candidates  
 > **Out of scope:** Term simulation, city-map interactions, multiplayer cities, and long-term administration systems  

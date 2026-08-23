@@ -39,6 +39,35 @@ void main() {
     return router;
   }
 
+  testWidgets('a normal city exposes all five generated candidate files', (
+    tester,
+  ) async {
+    usePhoneViewport(tester);
+    final controller = GameController();
+    controller.createCity(
+      slotIndex: 0,
+      configuration: CityRunConfiguration.defaults(cityName: 'Fivefold City'),
+      worldSeed: 6042026,
+    );
+    await pumpRoute(tester, controller: controller, location: '/candidates');
+
+    expect(controller.scenario.candidates, hasLength(5));
+    for (final candidate in controller.scenario.candidates) {
+      expect(find.byKey(Key('candidate_${candidate.id}')), findsOneWidget);
+    }
+
+    final lastCandidate = controller.scenario.candidates.last;
+    final lastCard = find.byKey(Key('candidate_${lastCandidate.id}'));
+    await tester.ensureVisible(lastCard);
+    await tester.tap(lastCard);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text(lastCandidate.name.toUpperCase()), findsWidgets);
+    expect(find.byKey(const Key('candidate_hub_bio')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('roster and dossier form a responsive investigation flow', (
     tester,
   ) async {
@@ -89,6 +118,7 @@ void main() {
     await tester.ensureVisible(evidenceTab);
     await tester.tap(evidenceTab);
     await tester.pump(const Duration(milliseconds: 220));
+    expect(tester.takeException(), isNull);
     final profileFile = find.byKey(const Key('evidence_maya_profile'));
     await tester.ensureVisible(profileFile);
     await tester.tap(profileFile);
@@ -124,30 +154,52 @@ void main() {
         cityName: 'Point Limit City',
       ).copyWith(investigationTime: InvestigationTime.limited),
     );
-    const spentIds = [
-      'julian_controversy',
-      'julian_publicRecord',
-      'julian_debateAnswer',
-      'julian_factCheck',
-      'julian_budgetDocument',
-      'victor_publicRecord',
-    ];
+    final spentIds = <String>[];
+    var plannedSpend = 0;
+    for (final candidate in controller.scenario.candidates) {
+      for (final evidence in candidate.evidence) {
+        final cost = controller.evidenceInvestigationCost(evidence.id);
+        if (cost <= 0 || plannedSpend + cost > 7) continue;
+        spentIds.add(evidence.id);
+        plannedSpend += cost;
+        if (plannedSpend == 7) break;
+      }
+      if (plannedSpend == 7) break;
+    }
+    expect(plannedSpend, 7);
     for (final id in spentIds) {
       expect(controller.markEvidenceViewed(id), isTrue);
     }
     expect(controller.remainingInvestigationPoints, 0);
 
+    final blockedCandidate = controller.scenario.candidates.firstWhere(
+      (candidate) => candidate.evidence.any(
+        (item) =>
+            !spentIds.contains(item.id) &&
+            controller.evidenceInvestigationCost(item.id) > 0,
+      ),
+    );
+    final blockedEvidence = blockedCandidate.evidence.firstWhere(
+      (item) =>
+          !spentIds.contains(item.id) &&
+          controller.evidenceInvestigationCost(item.id) > 0,
+    );
+    final profileEvidence = blockedCandidate.evidence.firstWhere(
+      (item) => item.type.name == 'profile',
+    );
+
     await pumpRoute(
       tester,
       controller: controller,
-      location: '/candidates/maya_vargas/dossier',
+      location: '/candidates/${blockedCandidate.id}/dossier',
     );
     final evidenceTab = find.byKey(const Key('dossier_tab_evidence'));
     await tester.ensureVisible(evidenceTab);
     await tester.tap(evidenceTab);
     await tester.pump(const Duration(milliseconds: 220));
+    expect(tester.takeException(), isNull);
 
-    final blockedFile = find.byKey(const Key('evidence_maya_controversy'));
+    final blockedFile = find.byKey(Key('evidence_${blockedEvidence.id}'));
     await tester.ensureVisible(blockedFile);
     await tester.tap(blockedFile);
     await tester.pump(const Duration(milliseconds: 250));
@@ -155,16 +207,18 @@ void main() {
       find.byKey(const Key('no_investigation_points_dialog')),
       findsOneWidget,
     );
-    expect(controller.isEvidenceViewed('maya_controversy'), isFalse);
+    expect(controller.isEvidenceViewed(blockedEvidence.id), isFalse);
+    expect(tester.takeException(), isNull);
 
     await tester.tap(find.byKey(const Key('dismiss_no_points')));
     await tester.pump(const Duration(milliseconds: 250));
-    final profileFile = find.byKey(const Key('evidence_maya_profile'));
+    expect(tester.takeException(), isNull);
+    final profileFile = find.byKey(Key('evidence_${profileEvidence.id}'));
     await tester.ensureVisible(profileFile);
     await tester.tap(profileFile);
     await tester.pump(const Duration(milliseconds: 300));
     expect(
-      find.byKey(const Key('evidence_reader_maya_profile')),
+      find.byKey(Key('evidence_reader_${profileEvidence.id}')),
       findsOneWidget,
     );
     expect(controller.remainingInvestigationPoints, 0);

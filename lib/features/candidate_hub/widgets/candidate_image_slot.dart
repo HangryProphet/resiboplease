@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../domain/models/candidate_portrait.dart';
+
 enum CandidateFallbackStyle { silhouette, initials }
 
 class CandidateImageSlot extends StatelessWidget {
@@ -53,7 +55,8 @@ class CandidateImageSlot extends StatelessWidget {
   );
 
   Widget _assetOrFallback() {
-    final path = _currentAssets[assetKey];
+    final path =
+        _currentAssets[assetKey] ?? candidatePortraitById(assetKey)?.assetPath;
     if (path == null) return _fallback();
     return Image.asset(
       path,
