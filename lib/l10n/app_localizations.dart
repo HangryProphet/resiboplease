@@ -188,6 +188,54 @@ abstract class AppLocalizations {
   /// **'Strengthen text, border, and surface contrast for easier reading.'**
   String get highContrastDescription;
 
+  /// No description provided for @audio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get audio;
+
+  /// No description provided for @audioDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Control interface sounds, dialogue blips, and future background music.'**
+  String get audioDescription;
+
+  /// No description provided for @soundEffects.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound effects'**
+  String get soundEffects;
+
+  /// No description provided for @soundEffectsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Play subtle sounds for buttons, evidence, voting, and city developments.'**
+  String get soundEffectsDescription;
+
+  /// No description provided for @music.
+  ///
+  /// In en, this message translates to:
+  /// **'Background music'**
+  String get music;
+
+  /// No description provided for @musicDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Play the soundtrack when licensed music files are installed.'**
+  String get musicDescription;
+
+  /// No description provided for @sfxVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound-effect volume'**
+  String get sfxVolume;
+
+  /// No description provided for @musicVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Music volume'**
+  String get musicVolume;
+
   /// No description provided for @deviceTextSize.
   ///
   /// In en, this message translates to:
@@ -287,7 +335,7 @@ abstract class AppLocalizations {
   /// No description provided for @resetSettingsConfirmation.
   ///
   /// In en, this message translates to:
-  /// **'Language and accessibility preferences will return to their defaults. City files will stay untouched.'**
+  /// **'Language, accessibility, and audio preferences will return to their defaults. City files will stay untouched.'**
   String get resetSettingsConfirmation;
 
   /// No description provided for @settingsResetNotice.

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/resibo_theme.dart';
 import '../../core/state/game_controller.dart';
+import '../../core/audio/game_audio_service.dart';
 import '../../domain/models/candidate.dart';
 import '../../domain/models/city_problem.dart';
 import '../../l10n/game_content_localizations.dart';
@@ -10,6 +11,7 @@ import '../../l10n/l10n_extensions.dart';
 import '../dossier/widgets/dossier_ui.dart';
 import '../candidate_hub/widgets/candidate_image_slot.dart';
 import 'widgets/winner_reveal.dart';
+import '../information/widgets/information_actions.dart';
 
 class ElectionScreen extends StatefulWidget {
   const ElectionScreen({required this.controller, super.key});
@@ -103,8 +105,12 @@ class _ElectionScreenState extends State<ElectionScreen> {
                               candidate: candidate,
                               cityName: scenario.city.name,
                               selected: _candidateId == candidate.id,
-                              onSelected: () =>
-                                  setState(() => _candidateId = candidate.id),
+                              onSelected: () {
+                                GameAudioScope.maybeOf(
+                                  context,
+                                )?.play(GameSound.voteSelect);
+                                setState(() => _candidateId = candidate.id);
+                              },
                               onDossier: () =>
                                   context.go('/candidates/${candidate.id}'),
                             ),
@@ -316,9 +322,16 @@ class _ElectionScreenState extends State<ElectionScreen> {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialogContext, false),
-                      child: Text(context.l10n.keepReviewing),
+                    SizedBox(
+                      width: 170,
+                      child: ChunkyActionButton(
+                        label: context.l10n.keepReviewing,
+                        icon: Icons.arrow_back_rounded,
+                        compact: true,
+                        color: ResiboColors.navy,
+                        sound: GameSound.uiBack,
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                      ),
                     ),
                     SizedBox(
                       width: 190,
@@ -328,6 +341,7 @@ class _ElectionScreenState extends State<ElectionScreen> {
                         icon: Icons.lock_rounded,
                         compact: true,
                         color: ResiboColors.mutedRed,
+                        sound: GameSound.ballotDrop,
                         onPressed: () => Navigator.pop(dialogContext, true),
                       ),
                     ),
@@ -552,13 +566,10 @@ class _BallotCandidateCard extends StatelessWidget {
                               )
                             else
                               const Spacer(),
-                            TextButton(
+                            InformationActionButton(
                               onPressed: onDossier,
-                              style: TextButton.styleFrom(
-                                foregroundColor: dossierInk,
-                                visualDensity: VisualDensity.compact,
-                              ),
-                              child: Text(context.l10n.viewDossier),
+                              icon: Icons.folder_open_rounded,
+                              label: context.l10n.viewDossier,
                             ),
                           ],
                         ),

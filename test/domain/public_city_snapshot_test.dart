@@ -37,7 +37,9 @@ void main() {
     expect(json, isNot(contains('capabilities')));
     expect(json, isNot(contains('investigation_history')));
     expect(json, isNot(contains('configuration')));
-    expect(json.keys, hasLength(11));
+    expect(json.keys, hasLength(12));
+    expect(json['is_public'], isTrue);
+    expect(json, isNot(contains('owner_id')));
   });
 
   test('snapshot JSON round-trips the public API fields', () {
@@ -45,6 +47,7 @@ void main() {
     final restored = PublicCitySnapshot.fromJson(source.toJson());
 
     expect(restored.id, 'snapshot-1');
+    expect(restored.ownerDisplayName, 'Kazuma');
     expect(restored.cityName, 'Harborlight');
     expect(restored.majorIssues, ['Water access', 'Transport']);
     expect(restored.createdAt, DateTime.utc(2026, 8, 18));
@@ -54,6 +57,8 @@ void main() {
 PublicCitySnapshot sampleSnapshot({String? id = 'snapshot-1'}) =>
     PublicCitySnapshot(
       id: id,
+      ownerId: '00000000-0000-4000-8000-000000000001',
+      ownerDisplayName: 'Kazuma',
       cityName: 'Harborlight',
       termNumber: 1,
       startingPressure: 'strained',

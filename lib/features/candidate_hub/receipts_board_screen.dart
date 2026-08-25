@@ -8,6 +8,7 @@ import '../../domain/models/evidence_item.dart';
 import '../../l10n/candidate_experience_localizations.dart';
 import '../dossier/widgets/dossier_ui.dart';
 import '../dossier/widgets/evidence_reader.dart';
+import '../information/widgets/information_actions.dart';
 import 'widgets/candidate_comparison_sheet.dart';
 
 class ReceiptsBoardScreen extends StatefulWidget {
@@ -302,16 +303,18 @@ class _ReceiptCard extends StatelessWidget {
           spacing: 7,
           runSpacing: 7,
           children: [
-            OutlinedButton.icon(
+            InformationActionButton(
               onPressed: () => _editNote(context),
-              icon: const Icon(Icons.edit_note_rounded),
-              label: Text(context.candidateStrings.privateNote),
+              icon: Icons.edit_note_rounded,
+              color: const Color(0xFF5E6470),
+              label: context.candidateStrings.privateNote,
             ),
             if (item.onOpen != null)
-              FilledButton.icon(
+              InformationActionButton(
                 onPressed: item.onOpen,
-                icon: const Icon(Icons.open_in_new_rounded),
-                label: Text(context.candidateStrings.openDetails),
+                icon: Icons.open_in_new_rounded,
+                color: ResiboColors.teal,
+                label: context.candidateStrings.openDetails,
               ),
           ],
         ),
@@ -325,28 +328,56 @@ class _ReceiptCard extends StatelessWidget {
     );
     final save = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.candidateStrings.privateNote),
-        content: TextField(
-          key: const Key('receipt_note_field'),
-          controller: textController,
-          maxLength: 180,
-          maxLines: 4,
-          decoration: InputDecoration(
-            hintText: context.candidateStrings.addNote,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 460),
+          child: PaperPanel(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SectionLabel(
+                  label: context.candidateStrings.privateNote,
+                  icon: Icons.edit_note_rounded,
+                  color: ResiboColors.teal,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const Key('receipt_note_field'),
+                  controller: textController,
+                  maxLength: 180,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: context.candidateStrings.addNote,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChunkyActionButton(
+                        label: context.candidateStrings.cancel,
+                        compact: true,
+                        color: const Color(0xFF5E6470),
+                        onPressed: () => Navigator.pop(context, false),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ChunkyActionButton(
+                        key: const Key('save_receipt_note'),
+                        label: context.candidateStrings.saveNote,
+                        compact: true,
+                        onPressed: () => Navigator.pop(context, true),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            key: const Key('save_receipt_note'),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(context.candidateStrings.saveNote),
-          ),
-        ],
       ),
     );
     if (save == true) controller.setReceiptNote(item.id, textController.text);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/resibo_theme.dart';
 import '../../../core/state/game_controller.dart';
+import '../../../core/audio/game_audio_service.dart';
 import '../../../domain/models/candidate.dart';
 import '../../../domain/models/evidence_item.dart';
 import '../../../l10n/game_content_localizations.dart';
@@ -16,11 +17,19 @@ Future<bool> openEvidenceReader(
   required Candidate candidate,
   required EvidenceItem item,
 }) async {
+  final wasViewed = controller.isEvidenceViewed(item.id);
+  final investigationCost = controller.evidenceInvestigationCost(item.id);
   final canOpen = controller.markEvidenceViewed(item.id);
   if (!canOpen) {
+    GameAudioScope.maybeOf(context)?.play(GameSound.uiError);
     await _showNoPointsDialog(context);
     return false;
   }
+  GameAudioScope.maybeOf(context)?.play(
+    !wasViewed && investigationCost > 0
+        ? GameSound.receiptFound
+        : GameSound.documentOpen,
+  );
 
   final reader = _EvidenceReader(
     controller: controller,
@@ -398,6 +407,7 @@ class _EvidenceReaderState extends State<_EvidenceReader> {
                               ? Icons.bookmark_remove_rounded
                               : Icons.bookmark_add_rounded,
                           color: ResiboColors.gold,
+                          sound: GameSound.bookmark,
                           compact: true,
                           onPressed: () {
                             controller.toggleBookmark(item.id);
@@ -409,6 +419,7 @@ class _EvidenceReaderState extends State<_EvidenceReader> {
                           label: context.l10n.close,
                           icon: Icons.check_rounded,
                           color: ResiboColors.teal,
+                          sound: GameSound.uiConfirm,
                           compact: true,
                           onPressed: () => Navigator.pop(context),
                         ),

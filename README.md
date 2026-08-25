@@ -4,7 +4,7 @@
 
 All candidates, parties, media outlets, events, and city records are fictional. The project does not compare real politicians or provide advice about real elections.
 
-The post-election MVP now includes a deterministic **Living City Simulation**: four player-paced term phases with multiple civic events, promise/project milestones, an inspectable city map, shared Chronicle/News/TV/CityBook records, and a complete term report. See [`docs/LIVING_CITY_SIMULATION.md`](docs/LIVING_CITY_SIMULATION.md) for its architecture and extension rules.
+The post-election MVP now includes a deterministic **365-day Living Procedural City Simulation**: automatic time, Pause/Day/Week/Month/Year controls, state-weighted civic events and causal follow-ups, promise projects, an interactive city map, shared Chronicle/News/TV/CityBook records, and a complete year report. See [`docs/CITY_SIMULATION_ARCHITECTURE.md`](docs/CITY_SIMULATION_ARCHITECTURE.md) for its architecture and extension rules.
 
 ## Current vertical slice
 
@@ -25,9 +25,10 @@ The prototype currently supports:
 - two to three deterministic R-8 TV reports for major underlying news events,
   with localized player-paced dialogue, reduced-motion behavior, optional
   dialogue sounds, and direct Chronicle/article links;
-- a Supabase REST Public City Gallery using explicit HTTP GET/POST and JSON
-  processing, sanitized Term Report publishing, newest-first Visit Cities
-  cards/details, safe failure states, Retry, and a lightweight offline cache;
+- a Supabase REST city gallery using hidden Anonymous Auth ownership, one
+  display name, explicit GET/POST/PATCH/DELETE and JSON processing, Public or
+  Private publishing, Explore, My Cities, player search, safe failure states,
+  and separate lightweight offline caches;
 - exactly five seed-generated mayoral candidates in every normally created
   city, selected without duplication from a reusable pool of seven
   gender-tagged portrait identities;
@@ -64,16 +65,31 @@ The prototype currently supports:
   Reader and concise evidence cards;
 - a game-styled ballot with candidate portraits, issue-priority and confidence
   reflection, confirmation, and an animated winner reveal;
-- a deterministic four-phase term timeline drawing two illustrated major
-  events from five authored event families plus lightweight text updates;
+- a deterministic 365-day post-election year that automatically processes
+  state-weighted issue, indicator, administration, external, positive,
+  political, everyday-life, and rare events instead of following one fixed plot;
+- Pause, Day, Week, Month, and Year speeds, persisted calendar progress, and
+  configurable auto-pause for important/critical developments;
+- an expanded 90-degree overhead city map that opens on a partial central view
+  with meaningful room to explore using drag, pinch/mouse zoom, and custom zoom
+  controls; 27 stable semantic locations, 19 tappable persistent landmarks,
+  compact de-cluttered event markers with full mobile tap targets, marker
+  acknowledgement, and a filtered chronological Event History;
+- promise-derived administration projects with four seeded quarter reviews,
+  multi-stage progress, candidate-ability influence, budget/trust effects, and
+  map/history visibility;
 - an illustrated explanatory term report with gains, setbacks, event history,
   decision context, and same-seed replay;
 - five versioned local city slots that survive refreshes and app restarts;
 - automatic persistence for evidence costs and unlocks, receipt collections,
-  notes, candidate-name history, Chronicle selections, votes, and term progress,
-  with save migration;
+  notes, candidate-name history, Chronicle selections, votes, simulation date,
+  speed, pause state, inspected markers, and the generated year history, with
+  save migration;
 - English and Filipino game text with persistent reduced-motion,
-  high-contrast, and dialogue-sound settings;
+  high-contrast, dialogue-sound, UI-sound, music, SFX-volume, music-volume, and
+  simulation auto-pause settings;
+- a centralized, cached UI sound system using a cohesive CC0 Kenney pack, plus
+  graceful optional music contexts for menu, investigation, and simulation;
 - a lightweight Flame atmosphere on the main menu and compressed raster city
   scenes for information-heavy gameplay screens;
 - unit tests for procedural determinism, unique portrait/name/ID assignments,
@@ -84,9 +100,9 @@ The prototype currently supports:
   pre-election City Brief, Chronicle, candidate investigation, and the complete
   ballot-to-term-report loop.
 
-Firebase authentication/cloud saves, AI generation, richer social city-visit
-features, and multiple-election history remain deferred. The small sanitized
-Supabase REST gallery is the only current networked game feature.
+Email/password accounts, cloud saves, AI generation, richer social features,
+and multiple-election history remain deferred. Anonymous Supabase ownership is
+used only for the small sanitized gallery, the only current networked feature.
 
 ## Run locally
 
@@ -98,7 +114,8 @@ flutter run -d chrome --web-port 7357
 ```
 
 To connect the Public City Gallery, first apply
-[`docs/SUPABASE_CITY_GALLERY.sql`](docs/SUPABASE_CITY_GALLERY.sql), then add
+[`docs/SUPABASE_CITY_GALLERY_V2.sql`](docs/SUPABASE_CITY_GALLERY_V2.sql), enable
+Anonymous Sign-Ins in Supabase Authentication, then add
 `--dart-define=SUPABASE_URL=...` and
 `--dart-define=SUPABASE_ANON_KEY=...` to the run command. See
 [`API_INTEGRATION.md`](API_INTEGRATION.md) for the API contract and security
@@ -113,6 +130,27 @@ flutter analyze
 flutter test
 flutter build web
 ```
+
+### Audio
+
+UI sound effects are included and can be controlled from Settings. Music files
+at the expected paths currently have unrecorded provenance and must be treated
+as classroom placeholders until their redistribution licenses are confirmed.
+See [`AUDIO_ASSET_SOURCES.md`](AUDIO_ASSET_SOURCES.md). The game remains fully
+usable if those optional music files are removed.
+
+### Android classroom build
+
+With Android Studio/SDK and an accepted Android SDK license installed:
+
+```sh
+flutter doctor -v
+flutter build apk --release
+```
+
+The expected artifact is `build/app/outputs/flutter-apk/app-release.apk`.
+The current Gradle configuration uses debug signing for a classroom/demo APK;
+configure a private release keystore before any app-store or public release.
 
 ## Architecture
 

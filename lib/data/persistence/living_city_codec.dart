@@ -29,6 +29,9 @@ abstract final class LivingCityCodec {
     'citybook_threads': value.cityBookCommentThreads.map(
       (id, thread) => MapEntry(id, _encodeThread(thread)),
     ),
+    'world_conditions': value.worldConditions
+        .map(_encodeWorldCondition)
+        .toList(growable: false),
     'summary': value.summary,
   };
 
@@ -79,9 +82,36 @@ abstract final class LivingCityCodec {
         json['citybook_threads'],
         'citybook_threads',
       ).map((id, item) => MapEntry(id, _decodeThread(_map(item, 'thread')))),
+      worldConditions: json['world_conditions'] == null
+          ? const []
+          : _list(json['world_conditions'], 'world_conditions')
+                .map(
+                  (item) =>
+                      _decodeWorldCondition(_map(item, 'world condition')),
+                )
+                .toList(growable: false),
       summary: _string(json['summary'], 'summary'),
     );
   }
+
+  static Map<String, Object?> _encodeWorldCondition(WorldCondition value) => {
+    'id': value.id,
+    'type': value.type.name,
+    'source': value.source.name,
+    'start_day': value.startDay,
+    'duration_days': value.durationDays,
+    'intensity': value.intensity,
+  };
+
+  static WorldCondition _decodeWorldCondition(Map<String, Object?> json) =>
+      WorldCondition(
+        id: _string(json['id'], 'id'),
+        type: _enum(WorldConditionType.values, json['type'], 'type'),
+        source: _enum(WorldConditionSource.values, json['source'], 'source'),
+        startDay: _int(json['start_day'], 'start_day'),
+        durationDays: _int(json['duration_days'], 'duration_days'),
+        intensity: _int(json['intensity'], 'intensity'),
+      );
 
   static Map<String, Object?> _encodeIssueMap(
     Map<String, CityIssueState> values,
@@ -111,30 +141,44 @@ abstract final class LivingCityCodec {
   static Map<String, Object?> _encodeMilestone(ProjectMilestone value) => {
     'id': value.id,
     'project_id': value.projectId,
+    'day': value.day,
     'phase': value.phase,
     'from_state': value.fromState.name,
     'to_state': value.toState.name,
     'progress_delta': value.progressDelta,
     'summary': value.summary,
+    'indicator_effects': _indicatorMap(value.indicatorEffects),
+    'issue_effects': value.issueSeverityEffects,
   };
-  static ProjectMilestone _decodeMilestone(Map<String, Object?> json) =>
-      ProjectMilestone(
-        id: _string(json['id'], 'id'),
-        projectId: _string(json['project_id'], 'project_id'),
-        phase: _int(json['phase'], 'phase'),
-        fromState: _enum(
-          AdministrationProjectState.values,
-          json['from_state'],
-          'from_state',
-        ),
-        toState: _enum(
-          AdministrationProjectState.values,
-          json['to_state'],
-          'to_state',
-        ),
-        progressDelta: _int(json['progress_delta'], 'progress_delta'),
-        summary: _string(json['summary'], 'summary'),
-      );
+  static ProjectMilestone _decodeMilestone(Map<String, Object?> json) {
+    final phase = _int(json['phase'], 'phase');
+    return ProjectMilestone(
+      id: _string(json['id'], 'id'),
+      projectId: _string(json['project_id'], 'project_id'),
+      day: _optionalInt(json['day']) ?? const [70, 160, 250, 340][phase - 1],
+      phase: phase,
+      fromState: _enum(
+        AdministrationProjectState.values,
+        json['from_state'],
+        'from_state',
+      ),
+      toState: _enum(
+        AdministrationProjectState.values,
+        json['to_state'],
+        'to_state',
+      ),
+      progressDelta: _int(json['progress_delta'], 'progress_delta'),
+      summary: _string(json['summary'], 'summary'),
+      indicatorEffects: json['indicator_effects'] == null
+          ? const {}
+          : _decodeIndicatorMap(
+              _map(json['indicator_effects'], 'indicator_effects'),
+            ),
+      issueSeverityEffects: json['issue_effects'] == null
+          ? const {}
+          : _intMap(_map(json['issue_effects'], 'issue_effects')),
+    );
+  }
 
   static Map<String, Object?> _encodeProject(AdministrationProject value) => {
     'id': value.id,
@@ -203,6 +247,8 @@ abstract final class LivingCityCodec {
     'chain_family': value.chainFamily,
     'category': value.category.name,
     'severity': value.severity.name,
+    'importance': value.importance.name,
+    'day': value.day,
     'phase': value.phase,
     'step': value.step,
     'title': value.title,
@@ -210,6 +256,7 @@ abstract final class LivingCityCodec {
     'explanation': value.explanation,
     'fictional_date': value.fictionalDate,
     'district': value.district.name,
+    'location_id': value.locationId,
     'issue_ids': value.relatedIssueIds,
     'project_ids': value.relatedProjectIds,
     'candidate_ids': value.relatedCandidateIds,
@@ -224,47 +271,93 @@ abstract final class LivingCityCodec {
     'marker_type': value.markerType.name,
     'marker_x': value.markerX,
     'marker_y': value.markerY,
+    'marker_lifetime_days': value.markerLifetimeDays,
+    'parent_event_id': value.parentEventId,
     'visual_asset_key': value.visualAssetKey,
   };
-  static CityEvent _decodeEvent(Map<String, Object?> json) => CityEvent(
-    id: _string(json['id'], 'id'),
-    templateId: _string(json['template_id'], 'template_id'),
-    chainFamily: _string(json['chain_family'], 'chain_family'),
-    category: _enum(CityEventCategory.values, json['category'], 'category'),
-    severity: _enum(CityEventSeverity.values, json['severity'], 'severity'),
-    phase: _int(json['phase'], 'phase'),
-    step: _int(json['step'], 'step'),
-    title: _string(json['title'], 'title'),
-    factualSummary: _string(json['factual_summary'], 'factual_summary'),
-    explanation: _string(json['explanation'], 'explanation'),
-    fictionalDate: _string(json['fictional_date'], 'fictional_date'),
-    district: _enum(
+  static CityEvent _decodeEvent(Map<String, Object?> json) {
+    final severity = _enum(
+      CityEventSeverity.values,
+      json['severity'],
+      'severity',
+    );
+    final phase = _int(json['phase'], 'phase');
+    final step = _int(json['step'], 'step');
+    final district = _enum(
       CitySimulationDistrict.values,
       json['district'],
       'district',
-    ),
-    relatedIssueIds: _strings(json['issue_ids'], 'issue_ids'),
-    relatedProjectIds: _strings(json['project_ids'], 'project_ids'),
-    relatedCandidateIds: _strings(json['candidate_ids'], 'candidate_ids'),
-    indicatorEffects: _decodeIndicatorMap(
-      _map(json['indicator_effects'], 'indicator_effects'),
-    ),
-    issueSeverityEffects: _intMap(_map(json['issue_effects'], 'issue_effects')),
-    requiredHooks: _strings(json['required_hooks'], 'required_hooks'),
-    followUpHooks: _strings(json['follow_up_hooks'], 'follow_up_hooks'),
-    chronicleEligible: _bool(json['chronicle_eligible'], 'chronicle_eligible'),
-    newsEligible: _bool(json['news_eligible'], 'news_eligible'),
-    tvEligible: _bool(json['tv_eligible'], 'tv_eligible'),
-    cityBookEligible: _bool(json['citybook_eligible'], 'citybook_eligible'),
-    markerType: _enum(
-      CityMapMarkerType.values,
-      json['marker_type'],
-      'marker_type',
-    ),
-    markerX: _double(json['marker_x'], 'marker_x'),
-    markerY: _double(json['marker_y'], 'marker_y'),
-    visualAssetKey: json['visual_asset_key'] as String?,
-  );
+    );
+    final fallbackAnchor = cityMapAnchors.firstWhere(
+      (anchor) => anchor.district == district,
+      orElse: () => cityMapAnchors.first,
+    );
+    final importance = json['importance'] == null
+        ? switch (severity) {
+            CityEventSeverity.ambient => CityEventImportance.ambient,
+            CityEventSeverity.minor => CityEventImportance.minor,
+            CityEventSeverity.moderate ||
+            CityEventSeverity.major => CityEventImportance.important,
+            CityEventSeverity.critical => CityEventImportance.critical,
+            CityEventSeverity.rare => CityEventImportance.rare,
+          }
+        : _enum(CityEventImportance.values, json['importance'], 'importance');
+    return CityEvent(
+      id: _string(json['id'], 'id'),
+      templateId: _string(json['template_id'], 'template_id'),
+      chainFamily: _string(json['chain_family'], 'chain_family'),
+      category: _enum(CityEventCategory.values, json['category'], 'category'),
+      severity: severity,
+      importance: importance,
+      day:
+          _optionalInt(json['day']) ??
+          const [1, 92, 183, 274][phase - 1] + step * 4,
+      phase: phase,
+      step: step,
+      title: _string(json['title'], 'title'),
+      factualSummary: _string(json['factual_summary'], 'factual_summary'),
+      explanation: _string(json['explanation'], 'explanation'),
+      fictionalDate: _string(json['fictional_date'], 'fictional_date'),
+      district: district,
+      locationId: _optionalString(json['location_id']) ?? fallbackAnchor.id,
+      relatedIssueIds: _strings(json['issue_ids'], 'issue_ids'),
+      relatedProjectIds: _strings(json['project_ids'], 'project_ids'),
+      relatedCandidateIds: _strings(json['candidate_ids'], 'candidate_ids'),
+      indicatorEffects: _decodeIndicatorMap(
+        _map(json['indicator_effects'], 'indicator_effects'),
+      ),
+      issueSeverityEffects: _intMap(
+        _map(json['issue_effects'], 'issue_effects'),
+      ),
+      requiredHooks: _strings(json['required_hooks'], 'required_hooks'),
+      followUpHooks: _strings(json['follow_up_hooks'], 'follow_up_hooks'),
+      chronicleEligible: _bool(
+        json['chronicle_eligible'],
+        'chronicle_eligible',
+      ),
+      newsEligible: _bool(json['news_eligible'], 'news_eligible'),
+      tvEligible: _bool(json['tv_eligible'], 'tv_eligible'),
+      cityBookEligible: _bool(json['citybook_eligible'], 'citybook_eligible'),
+      markerType: _enum(
+        CityMapMarkerType.values,
+        json['marker_type'],
+        'marker_type',
+      ),
+      markerX: _double(json['marker_x'], 'marker_x'),
+      markerY: _double(json['marker_y'], 'marker_y'),
+      markerLifetimeDays:
+          _optionalInt(json['marker_lifetime_days']) ??
+          switch (importance) {
+            CityEventImportance.ambient => 0,
+            CityEventImportance.minor => 9,
+            CityEventImportance.important => 24,
+            CityEventImportance.critical => 50,
+            CityEventImportance.rare => 36,
+          },
+      parentEventId: _optionalString(json['parent_event_id']),
+      visualAssetKey: json['visual_asset_key'] as String?,
+    );
+  }
 
   static Map<String, Object?> _encodePhase(LivingCityPhase value) => {
     'number': value.number,
@@ -424,6 +517,10 @@ abstract final class LivingCityCodec {
             'archetype': comment.archetype.name,
             'text': comment.text,
             'reaction_count': comment.reactionCount,
+            'reaction_distribution': {
+              for (final entry in comment.reactions.counts.entries)
+                entry.key.name: entry.value,
+            },
             'account_clues': comment.accountClues,
           },
         )
@@ -445,12 +542,32 @@ abstract final class LivingCityCodec {
                   'archetype',
                 ),
                 text: _string(value['text'], 'text'),
-                reactionCount: _int(value['reaction_count'], 'reaction_count'),
+                reactions: _decodeCommentReactions(value),
                 accountClues: _strings(value['account_clues'], 'account_clues'),
               );
             })
             .toList(growable: false),
       );
+
+  static CityBookReactionDistribution _decodeCommentReactions(
+    Map<String, Object?> json,
+  ) {
+    final saved = json['reaction_distribution'];
+    if (saved is Map) {
+      return CityBookReactionDistribution(
+        _map(saved, 'reaction_distribution').map(
+          (name, count) => MapEntry(
+            _enum(CityBookReaction.values, name, 'comment reaction'),
+            _int(count, 'comment reaction count'),
+          ),
+        ),
+      );
+    }
+    final legacy = json['reaction_count'];
+    return CityBookReactionDistribution({
+      if (legacy is num && legacy > 0) CityBookReaction.like: legacy.toInt(),
+    });
+  }
 
   static Map<String, int> _indicatorMap(Map<CityIndicator, int> values) =>
       values.map((key, value) => MapEntry(key.name, value));
@@ -491,6 +608,12 @@ abstract final class LivingCityCodec {
     if (value is! num) throw FormatException('Invalid $field number.');
     return value.toInt();
   }
+
+  static int? _optionalInt(Object? value) =>
+      value is num ? value.toInt() : null;
+
+  static String? _optionalString(Object? value) =>
+      value is String && value.isNotEmpty ? value : null;
 
   static double _double(Object? value, String field) {
     if (value is! num) throw FormatException('Invalid $field number.');

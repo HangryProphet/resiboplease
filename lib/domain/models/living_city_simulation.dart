@@ -1,3 +1,6 @@
+export 'bayhaven_map_anchors.dart';
+
+import 'bayhaven_map_anchors.dart';
 import 'candidate.dart';
 import 'candidate_generation.dart';
 import 'city_indicator.dart';
@@ -19,6 +22,45 @@ enum CityEventCategory {
 
 enum CityEventSeverity { ambient, minor, moderate, major, critical, rare }
 
+enum CityEventImportance { ambient, minor, important, critical, rare }
+
+enum SimulationSpeed {
+  day(daysPerPulse: 1),
+  week(daysPerPulse: 7),
+  month(daysPerPulse: 30),
+  year(daysPerPulse: 90);
+
+  const SimulationSpeed({required this.daysPerPulse});
+
+  final int daysPerPulse;
+}
+
+enum WorldConditionType {
+  sunnyStretch,
+  heavyRain,
+  severeThunderstorms,
+  heatWave,
+  strongTyphoon,
+  monsoonPeriod,
+  oilPriceCrisis,
+  fuelPriceDrop,
+  supplyShortage,
+  regionalEconomicSlowdown,
+  businessExpansion,
+  constructionMaterialIncrease,
+  regionalPowerInstability,
+  waterSupplyPressure,
+  telecommunicationsOutage,
+  logisticsDisruption,
+  festivalWeek,
+  schoolOpening,
+  holidayRush,
+  fluDengueSeason,
+  graduationPeriod,
+}
+
+enum WorldConditionSource { natural, sandbox }
+
 enum CityMapMarkerType {
   flood,
   clinic,
@@ -39,6 +81,131 @@ enum CityMapMarkerType {
   power,
   weather,
   news,
+}
+
+class WorldCondition {
+  const WorldCondition({
+    required this.id,
+    required this.type,
+    required this.source,
+    required this.startDay,
+    required this.durationDays,
+    required this.intensity,
+  });
+
+  final String id;
+  final WorldConditionType type;
+  final WorldConditionSource source;
+  final int startDay;
+  final int durationDays;
+  final int intensity;
+
+  int get endDay => (startDay + durationDays - 1).clamp(1, 365);
+
+  bool isActiveOn(int day) => day >= startDay && day <= endDay;
+
+  int daysRemainingOn(int day) => isActiveOn(day) ? endDay - day + 1 : 0;
+
+  double eventWeightMultiplier(
+    CityMapMarkerType markerType,
+    CityEventCategory category,
+  ) {
+    final strength = .72 + intensity.clamp(1, 100) / 180;
+    final base = switch (type) {
+      WorldConditionType.sunnyStretch => switch (markerType) {
+        CityMapMarkerType.flood || CityMapMarkerType.water => .48,
+        CityMapMarkerType.festival || CityMapMarkerType.community => 1.45,
+        CityMapMarkerType.weather => 1.18,
+        _ => 1.0,
+      },
+      WorldConditionType.heavyRain ||
+      WorldConditionType.monsoonPeriod => switch (markerType) {
+        CityMapMarkerType.flood => 1.9,
+        CityMapMarkerType.water || CityMapMarkerType.transport => 1.45,
+        CityMapMarkerType.power || CityMapMarkerType.weather => 1.35,
+        _ => 1.0,
+      },
+      WorldConditionType.severeThunderstorms ||
+      WorldConditionType.strongTyphoon => switch (markerType) {
+        CityMapMarkerType.flood || CityMapMarkerType.weather => 2.35,
+        CityMapMarkerType.power || CityMapMarkerType.transport => 1.8,
+        CityMapMarkerType.water || CityMapMarkerType.clinic => 1.55,
+        _ => 1.0,
+      },
+      WorldConditionType.heatWave => switch (markerType) {
+        CityMapMarkerType.clinic || CityMapMarkerType.power => 1.7,
+        CityMapMarkerType.water || CityMapMarkerType.weather => 1.5,
+        _ => 1.0,
+      },
+      WorldConditionType.oilPriceCrisis ||
+      WorldConditionType.supplyShortage => switch (markerType) {
+        CityMapMarkerType.transport || CityMapMarkerType.market => 1.75,
+        CityMapMarkerType.jobs || CityMapMarkerType.power => 1.35,
+        _ => 1.0,
+      },
+      WorldConditionType.fuelPriceDrop ||
+      WorldConditionType.businessExpansion => switch (markerType) {
+        CityMapMarkerType.jobs || CityMapMarkerType.opportunity => 1.65,
+        CityMapMarkerType.transport || CityMapMarkerType.market => 1.25,
+        _ => category == CityEventCategory.positiveOpportunity ? 1.35 : 1.0,
+      },
+      WorldConditionType.regionalEconomicSlowdown ||
+      WorldConditionType.constructionMaterialIncrease => switch (markerType) {
+        CityMapMarkerType.jobs || CityMapMarkerType.roadworks => 1.6,
+        CityMapMarkerType.market || CityMapMarkerType.transport => 1.3,
+        _ => 1.0,
+      },
+      WorldConditionType.regionalPowerInstability =>
+        markerType == CityMapMarkerType.power ? 2.4 : 1.0,
+      WorldConditionType.waterSupplyPressure => switch (markerType) {
+        CityMapMarkerType.water => 2.25,
+        CityMapMarkerType.clinic || CityMapMarkerType.market => 1.3,
+        _ => 1.0,
+      },
+      WorldConditionType.telecommunicationsOutage =>
+        markerType == CityMapMarkerType.news ? 1.9 : 1.0,
+      WorldConditionType.logisticsDisruption => switch (markerType) {
+        CityMapMarkerType.transport || CityMapMarkerType.market => 1.75,
+        CityMapMarkerType.jobs => 1.35,
+        _ => 1.0,
+      },
+      WorldConditionType.festivalWeek ||
+      WorldConditionType.holidayRush => switch (markerType) {
+        CityMapMarkerType.festival || CityMapMarkerType.community => 1.9,
+        CityMapMarkerType.transport || CityMapMarkerType.market => 1.35,
+        _ => 1.0,
+      },
+      WorldConditionType.schoolOpening ||
+      WorldConditionType.graduationPeriod => switch (markerType) {
+        CityMapMarkerType.school => 1.85,
+        CityMapMarkerType.transport || CityMapMarkerType.community => 1.25,
+        _ => 1.0,
+      },
+      WorldConditionType.fluDengueSeason => switch (markerType) {
+        CityMapMarkerType.clinic => 2.05,
+        CityMapMarkerType.water => 1.25,
+        _ => 1.0,
+      },
+    };
+    if (base == 1) return 1;
+    return base > 1 ? 1 + (base - 1) * strength : 1 - (1 - base) * strength;
+  }
+
+  int get projectProgressModifier => switch (type) {
+    WorldConditionType.sunnyStretch ||
+    WorldConditionType.businessExpansion ||
+    WorldConditionType.fuelPriceDrop => 2,
+    WorldConditionType.strongTyphoon => -5,
+    WorldConditionType.heavyRain ||
+    WorldConditionType.severeThunderstorms ||
+    WorldConditionType.monsoonPeriod ||
+    WorldConditionType.constructionMaterialIncrease ||
+    WorldConditionType.logisticsDisruption => -3,
+    WorldConditionType.oilPriceCrisis ||
+    WorldConditionType.supplyShortage ||
+    WorldConditionType.regionalPowerInstability => -2,
+    _ => 0,
+  };
 }
 
 enum AdministrationProjectState {
@@ -76,17 +243,6 @@ enum OverallCityCondition {
   crisis,
 }
 
-enum CitySimulationDistrict {
-  civicCenter,
-  riverside,
-  oldMarket,
-  northWard,
-  southPoint,
-  harborDistrict,
-  hillview,
-  industrialBelt,
-}
-
 class CityIssueState {
   const CityIssueState({
     required this.problemId,
@@ -122,20 +278,26 @@ class ProjectMilestone {
   const ProjectMilestone({
     required this.id,
     required this.projectId,
+    required this.day,
     required this.phase,
     required this.fromState,
     required this.toState,
     required this.progressDelta,
     required this.summary,
+    this.indicatorEffects = const {},
+    this.issueSeverityEffects = const {},
   });
 
   final String id;
   final String projectId;
+  final int day;
   final int phase;
   final AdministrationProjectState fromState;
   final AdministrationProjectState toState;
   final int progressDelta;
   final String summary;
+  final Map<CityIndicator, int> indicatorEffects;
+  final Map<String, int> issueSeverityEffects;
 }
 
 class AdministrationProject {
@@ -213,6 +375,8 @@ class CityEvent {
     required this.chainFamily,
     required this.category,
     required this.severity,
+    required this.importance,
+    required this.day,
     required this.phase,
     required this.step,
     required this.title,
@@ -220,6 +384,7 @@ class CityEvent {
     required this.explanation,
     required this.fictionalDate,
     required this.district,
+    required this.locationId,
     required this.relatedIssueIds,
     required this.relatedProjectIds,
     required this.relatedCandidateIds,
@@ -234,6 +399,8 @@ class CityEvent {
     required this.markerType,
     required this.markerX,
     required this.markerY,
+    required this.markerLifetimeDays,
+    this.parentEventId,
     this.visualAssetKey,
   });
 
@@ -242,6 +409,8 @@ class CityEvent {
   final String chainFamily;
   final CityEventCategory category;
   final CityEventSeverity severity;
+  final CityEventImportance importance;
+  final int day;
   final int phase;
   final int step;
   final String title;
@@ -249,6 +418,7 @@ class CityEvent {
   final String explanation;
   final String fictionalDate;
   final CitySimulationDistrict district;
+  final String locationId;
   final List<String> relatedIssueIds;
   final List<String> relatedProjectIds;
   final List<String> relatedCandidateIds;
@@ -263,6 +433,8 @@ class CityEvent {
   final CityMapMarkerType markerType;
   final double markerX;
   final double markerY;
+  final int markerLifetimeDays;
+  final String? parentEventId;
   final String? visualAssetKey;
 
   int get budgetEffect => indicatorEffects[CityIndicator.budgetHealth] ?? 0;
@@ -271,6 +443,9 @@ class CityEvent {
       severity == CityEventSeverity.major ||
       severity == CityEventSeverity.critical ||
       severity == CityEventSeverity.rare;
+
+  bool isMarkerActiveOn(int simulatedDay) =>
+      day <= simulatedDay && day + markerLifetimeDays >= simulatedDay;
 }
 
 class LivingChronicleEntry {
@@ -335,6 +510,7 @@ class LivingTermSimulation {
     required this.cityBookPosts,
     required this.cityBookCommentThreads,
     required this.summary,
+    this.worldConditions = const [],
   });
 
   final int generationVersion;
@@ -354,11 +530,106 @@ class LivingTermSimulation {
   final List<CityBookPost> cityBookPosts;
   final Map<String, CityBookCommentThread> cityBookCommentThreads;
   final String summary;
+  final List<WorldCondition> worldConditions;
 
   OverallCityCondition get initialCondition =>
       overallCityCondition(initialIndicators);
   OverallCityCondition get finalCondition =>
       overallCityCondition(finalIndicators);
+
+  int get totalDays => 365;
+
+  CityIndicatorSet indicatorsThroughDay(int day) {
+    var current = initialIndicators;
+    final boundedDay = day.clamp(0, totalDays);
+    final developments = <({int day, Map<CityIndicator, int> effects})>[
+      for (final event in eventHistory)
+        if (event.day <= boundedDay)
+          (day: event.day, effects: event.indicatorEffects),
+      for (final milestone in projects.expand((project) => project.milestones))
+        if (milestone.day <= boundedDay)
+          (day: milestone.day, effects: milestone.indicatorEffects),
+    ]..sort((left, right) => left.day.compareTo(right.day));
+    for (final development in developments) {
+      current = current.apply(development.effects);
+    }
+    return current;
+  }
+
+  Map<String, CityIssueState> issuesThroughDay(int day) {
+    var current = Map<String, CityIssueState>.of(initialIssueStates);
+    final boundedDay = day.clamp(0, totalDays);
+    final developments = <({int day, Map<String, int> effects})>[
+      for (final event in eventHistory)
+        if (event.day <= boundedDay)
+          (day: event.day, effects: event.issueSeverityEffects),
+      for (final milestone in projects.expand((project) => project.milestones))
+        if (milestone.day <= boundedDay)
+          (day: milestone.day, effects: milestone.issueSeverityEffects),
+    ]..sort((left, right) => left.day.compareTo(right.day));
+    for (final development in developments) {
+      current = {
+        for (final entry in current.entries)
+          entry.key: entry.value.apply(development.effects[entry.key] ?? 0),
+      };
+    }
+    return Map.unmodifiable(current);
+  }
+
+  List<CityEvent> eventsThroughDay(int day) =>
+      eventHistory.where((event) => event.day <= day).toList(growable: false);
+
+  List<CityEvent> activeMarkersOnDay(int day) => eventHistory
+      .where(
+        (event) =>
+            event.importance != CityEventImportance.ambient &&
+            event.isMarkerActiveOn(day),
+      )
+      .toList(growable: false);
+
+  List<WorldCondition> worldConditionsOnDay(int day) => worldConditions
+      .where((condition) => condition.isActiveOn(day))
+      .toList(growable: false);
+
+  LivingTermSimulation visibleThroughDay(int day) {
+    final visibleIds = eventsThroughDay(day).map((event) => event.id).toSet();
+    return LivingTermSimulation(
+      generationVersion: generationVersion,
+      seed: seed,
+      termNumber: termNumber,
+      candidateId: candidateId,
+      initialIndicators: initialIndicators,
+      finalIndicators: indicatorsThroughDay(day),
+      initialIssueStates: initialIssueStates,
+      finalIssueStates: issuesThroughDay(day),
+      projects: projects,
+      phases: phases,
+      eventHistory: eventHistory
+          .where((event) => visibleIds.contains(event.id))
+          .toList(growable: false),
+      chronicleEntries: chronicleEntries
+          .where((entry) => visibleIds.contains(entry.eventId))
+          .toList(growable: false),
+      newsCoverages: newsCoverages
+          .where((coverage) => visibleIds.contains(coverage.eventId))
+          .toList(growable: false),
+      tvReportEventIds: tvReportEventIds
+          .where(visibleIds.contains)
+          .toList(growable: false),
+      cityBookPosts: cityBookPosts
+          .where((post) => post.relatedNewsEventIds.any(visibleIds.contains))
+          .toList(growable: false),
+      cityBookCommentThreads: {
+        for (final post in cityBookPosts)
+          if (post.relatedNewsEventIds.any(visibleIds.contains))
+            if (cityBookCommentThreads.containsKey(post.commentThreadId))
+              post.commentThreadId:
+                  cityBookCommentThreads[post.commentThreadId]!,
+      },
+      summary: summary,
+      worldConditions: worldConditions,
+    );
+  }
 
   List<String> validate({
     required Iterable<String> candidateIds,
@@ -395,6 +666,16 @@ class LivingTermSimulation {
       if (event.phase < 1 || event.phase > 4 || event.step < 1) {
         errors.add('Event ${event.id} has an invalid timeline position.');
       }
+      if (event.day < 1 || event.day > totalDays) {
+        errors.add('Event ${event.id} has an invalid simulated day.');
+      }
+      if (!cityMapAnchors.any((anchor) => anchor.id == event.locationId)) {
+        errors.add('Event ${event.id} has an invalid map location.');
+      }
+      if (event.parentEventId != null &&
+          !eventIds.contains(event.parentEventId)) {
+        errors.add('Event ${event.id} has an orphaned parent event.');
+      }
       if (event.markerX < 0 ||
           event.markerX > 1 ||
           event.markerY < 0 ||
@@ -423,6 +704,9 @@ class LivingTermSimulation {
       for (final milestone in project.milestones) {
         if (milestone.projectId != project.id) {
           errors.add('Milestone ${milestone.id} has an orphaned project.');
+        }
+        if (milestone.day < 1 || milestone.day > totalDays) {
+          errors.add('Milestone ${milestone.id} has an invalid simulated day.');
         }
       }
     }

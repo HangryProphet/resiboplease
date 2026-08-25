@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resiboplease/data/persistence/living_city_codec.dart';
 import 'package:resiboplease/data/seed_content/bayhaven_candidate_experience.dart';
 import 'package:resiboplease/data/seed_content/bayhaven_scenario.dart';
+import 'package:resiboplease/data/seed_content/living_city_event_library.dart';
 import 'package:resiboplease/domain/models/city_indicator.dart';
 import 'package:resiboplease/domain/models/living_city_simulation.dart';
 import 'package:resiboplease/domain/simulation/living_city_engine.dart';
 import 'package:resiboplease/core/state/game_controller.dart';
+import 'package:resiboplease/core/settings/app_settings_controller.dart';
 
 void main() {
   const engine = LivingCityEngine();
@@ -42,20 +44,209 @@ void main() {
     );
   });
 
+  test('world conditions are deterministic, bounded, and naturally tagged', () {
+    final scenario = buildBayhavenScenario(seed: 5839201);
+    final first = engine.generateWorldConditions(scenario);
+    final second = engine.generateWorldConditions(scenario);
+
+    expect(first, hasLength(8));
+    expect(
+      first.map(
+        (condition) => (
+          condition.id,
+          condition.type,
+          condition.startDay,
+          condition.durationDays,
+          condition.intensity,
+        ),
+      ),
+      orderedEquals(
+        second.map(
+          (condition) => (
+            condition.id,
+            condition.type,
+            condition.startDay,
+            condition.durationDays,
+            condition.intensity,
+          ),
+        ),
+      ),
+    );
+    for (final condition in first) {
+      expect(condition.source, WorldConditionSource.natural);
+      expect(condition.startDay, inInclusiveRange(1, 365));
+      expect(condition.endDay, inInclusiveRange(1, 365));
+      expect(condition.intensity, inInclusiveRange(1, 100));
+    }
+  });
+
+  test('active conditions expose remaining days and semantic weights', () {
+    const rain = WorldCondition(
+      id: 'test_rain',
+      type: WorldConditionType.heavyRain,
+      source: WorldConditionSource.sandbox,
+      startDay: 40,
+      durationDays: 7,
+      intensity: 80,
+    );
+
+    expect(rain.isActiveOn(39), isFalse);
+    expect(rain.isActiveOn(40), isTrue);
+    expect(rain.daysRemainingOn(42), 5);
+    expect(rain.isActiveOn(47), isFalse);
+    expect(
+      rain.eventWeightMultiplier(
+        CityMapMarkerType.flood,
+        CityEventCategory.externalShock,
+      ),
+      greaterThan(1),
+    );
+    expect(
+      rain.eventWeightMultiplier(
+        CityMapMarkerType.festival,
+        CityEventCategory.cityLife,
+      ),
+      1,
+    );
+  });
+
+  test('sandbox-injected conditions remain tagged through persistence', () {
+    final scenario = buildBayhavenScenario(seed: 771122);
+    final injected = engine.sandboxCondition(
+      id: 'sandbox_typhoon',
+      type: WorldConditionType.strongTyphoon,
+      startDay: 120,
+      durationDays: 5,
+      intensity: 91,
+    );
+    final simulation = engine.simulate(
+      scenario: scenario,
+      candidate: scenario.candidates.first,
+      promises: bayhavenCandidateExperience.promisesFor(
+        scenario.candidates.first.id,
+      ),
+      injectedWorldConditions: [injected],
+    );
+    final restored = LivingCityCodec.decode(LivingCityCodec.encode(simulation));
+    final sandbox = restored.worldConditions.firstWhere(
+      (condition) => condition.id == injected.id,
+    );
+
+    expect(sandbox.source, WorldConditionSource.sandbox);
+    expect(sandbox.type, WorldConditionType.strongTyphoon);
+    expect(restored.worldConditionsOnDay(122), contains(sandbox));
+    expect(restored.worldConditionsOnDay(126), isNot(contains(sandbox)));
+  });
+
+  test('Bayhaven map anchors describe unique normalized geography', () {
+    expect(cityMapAnchors, hasLength(27));
+    expect(
+      cityMapAnchors.map((anchor) => anchor.id).toSet(),
+      hasLength(cityMapAnchors.length),
+    );
+    expect(
+      cityMapAnchors.map((anchor) => anchor.id),
+      containsAll(const [
+        'city_hall',
+        'riverside',
+        'hospital',
+        'school_district',
+        'public_market',
+        'transport_terminal',
+        'industrial_zone',
+        'news_headquarters',
+        'waste_segregation_center',
+        'subdivision_area',
+        'shopping_mall',
+        'police_hq',
+        'fire_disaster_center',
+        'water_facility',
+        'government_services_center',
+        'riverside_community',
+        'university',
+        'warehouse_logistics',
+      ]),
+    );
+    for (final anchor in cityMapAnchors) {
+      expect(anchor.labelKey, isNotEmpty);
+      expect(anchor.x, inInclusiveRange(0.0, 1.0));
+      expect(anchor.y, inInclusiveRange(0.0, 1.0));
+    }
+    expect(BayhavenMapAnchors.persistentLandmarks, hasLength(19));
+    expect(
+      BayhavenMapAnchors.persistentLandmarks
+          .map((anchor) => anchor.x)
+          .reduce((left, right) => left < right ? left : right),
+      lessThan(.10),
+    );
+    expect(
+      BayhavenMapAnchors.persistentLandmarks
+          .map((anchor) => anchor.x)
+          .reduce((left, right) => left > right ? left : right),
+      greaterThan(.90),
+    );
+  });
+
+  test('procedural histories use distributed semantic city locations', () {
+    final used = <String>{};
+    for (var seed = 16000; seed < 16030; seed++) {
+      used.addAll(run(seed).eventHistory.map((event) => event.locationId));
+    }
+    expect(
+      used,
+      containsAll(const [
+        'riverside_community',
+        'water_facility',
+        'government_services_center',
+        'shopping_mall',
+        'industrial_zone',
+        'university',
+      ]),
+    );
+    expect(used.length, greaterThanOrEqualTo(16));
+  });
+
+  test('location-sensitive templates target matching map landmarks', () {
+    List<String> locationsFor(String id) => livingCityEventLibrary
+        .firstWhere((template) => template.id == id)
+        .preferredLocationIds;
+
+    expect(locationsFor('clinic_surge'), ['hospital']);
+    expect(locationsFor('school_repairs'), ['school_district']);
+    expect(locationsFor('market_prices_rise'), ['public_market']);
+    expect(locationsFor('factory_closure'), ['industrial_zone']);
+    expect(locationsFor('protest_at_city_hall'), ['city_hall', 'city_plaza']);
+    expect(locationsFor('drainage_overflow'), [
+      'riverside',
+      'west_residential',
+    ]);
+  });
+
   test('events obey prerequisites, cooldowns, and bounded state', () {
     for (var seed = 9000; seed < 9040; seed++) {
       final simulation = run(seed);
       final hooks = <String>{};
-      final lastPhase = <String, int>{};
+      final lastDay = <String, int>{};
       for (final event in simulation.eventHistory) {
         expect(hooks, containsAll(event.requiredHooks));
-        final previous = lastPhase[event.templateId];
+        final previous = lastDay[event.templateId];
         if (previous != null) {
-          expect(event.phase - previous, greaterThan(1));
+          expect(event.day - previous, greaterThanOrEqualTo(18));
         }
         hooks.addAll(event.followUpHooks);
         hooks.removeAll(event.requiredHooks);
-        lastPhase[event.templateId] = event.phase;
+        lastDay[event.templateId] = event.day;
+        expect(
+          cityMapAnchors.map((anchor) => anchor.id),
+          contains(event.locationId),
+        );
+        expect(event.day, inInclusiveRange(1, 365));
+        if (event.parentEventId != null) {
+          final parent = simulation.eventHistory.firstWhere(
+            (item) => item.id == event.parentEventId,
+          );
+          expect(parent.day, lessThan(event.day));
+        }
       }
       for (final indicator in CityIndicator.values) {
         expect(
@@ -94,6 +285,73 @@ void main() {
     }
   });
 
+  test(
+    'multiple worlds produce positive, neutral, and chained city stories',
+    () {
+      final categories = <CityEventCategory>{};
+      var chained = false;
+      for (var seed = 12000; seed < 12040; seed++) {
+        final simulation = run(seed);
+        categories.addAll(
+          simulation.eventHistory.map((event) => event.category),
+        );
+        chained |= simulation.eventHistory.any(
+          (event) => event.parentEventId != null,
+        );
+      }
+
+      expect(categories, contains(CityEventCategory.positiveOpportunity));
+      expect(categories, contains(CityEventCategory.cityLife));
+      expect(chained, isTrue);
+    },
+  );
+
+  test(
+    'candidate abilities change project delivery without changing the seed',
+    () {
+      final scenario = buildBayhavenScenario(seed: 727272);
+      final base = scenario.candidates.first;
+      final promises = bayhavenCandidateExperience.promisesFor(base.id);
+      final strong = base.copyWith(
+        capabilities: base.capabilities.copyWith(
+          implementationSkill: 92,
+          coalitionSkill: 88,
+          budgetDiscipline: 90,
+          corruptionRisk: 12,
+        ),
+      );
+      final weak = base.copyWith(
+        capabilities: base.capabilities.copyWith(
+          implementationSkill: 28,
+          coalitionSkill: 31,
+          budgetDiscipline: 27,
+          corruptionRisk: 86,
+        ),
+      );
+
+      final strongRun = engine.simulate(
+        scenario: scenario,
+        candidate: strong,
+        promises: promises,
+      );
+      final weakRun = engine.simulate(
+        scenario: scenario,
+        candidate: weak,
+        promises: promises,
+      );
+      final strongProgress = strongRun.projects.fold<int>(
+        0,
+        (sum, project) => sum + project.progress,
+      );
+      final weakProgress = weakRun.projects.fold<int>(
+        0,
+        (sum, project) => sum + project.progress,
+      );
+
+      expect(strongProgress, greaterThan(weakProgress));
+    },
+  );
+
   test('living snapshot survives a JSON-safe persistence round trip', () {
     final original = run(41717);
     final json =
@@ -126,6 +384,10 @@ void main() {
       confidence: .7,
     );
     final living = controller.termResult!.livingCity;
+    controller.advanceSimulationDays(
+      365,
+      interruptionPreference: CriticalEventInterruption.neverInterrupt,
+    );
     final ecosystem = controller.informationEcosystem;
     final eventId = living.tvReportEventIds.first;
 

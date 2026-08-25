@@ -12,7 +12,7 @@ class GameSaveData {
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now().toUtc();
 
-  static const currentSchemaVersion = 7;
+  static const currentSchemaVersion = 8;
 
   final int? activeSlotIndex;
   final List<RunSaveData?> slots;
@@ -74,6 +74,10 @@ class RunSaveData {
     this.usedChronicleTemplateIds = const {},
     this.proceduralElection,
     this.livingCity,
+    this.simulationDay = 0,
+    this.simulationSpeed = SimulationSpeed.day,
+    this.simulationPaused = true,
+    this.inspectedCityEventIds = const {},
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now().toUtc(),
@@ -106,6 +110,10 @@ class RunSaveData {
   final Set<String> usedChronicleTemplateIds;
   final ProceduralElection? proceduralElection;
   final LivingTermSimulation? livingCity;
+  final int simulationDay;
+  final SimulationSpeed simulationSpeed;
+  final bool simulationPaused;
+  final Set<String> inspectedCityEventIds;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -143,6 +151,10 @@ class RunSaveData {
     'living_city': livingCity == null
         ? null
         : LivingCityCodec.encode(livingCity!),
+    'simulation_day': simulationDay,
+    'simulation_speed': simulationSpeed.name,
+    'simulation_paused': simulationPaused,
+    'inspected_city_event_ids': inspectedCityEventIds.toList()..sort(),
     'created_at': createdAt.toIso8601String(),
     'updated_at': updatedAt.toIso8601String(),
   };
@@ -235,6 +247,17 @@ class RunSaveData {
         : LivingCityCodec.decode(
             _stringMap(json['living_city'], 'living_city'),
           ),
+    simulationDay: _requiredInt(json['simulation_day'], 'simulation_day'),
+    simulationSpeed: _enumValue(
+      SimulationSpeed.values,
+      json['simulation_speed'],
+      'simulation_speed',
+    ),
+    simulationPaused: json['simulation_paused'] == true,
+    inspectedCityEventIds: _stringSet(
+      json['inspected_city_event_ids'],
+      'inspected_city_event_ids',
+    ),
     createdAt: _dateTime(json['created_at'], 'created_at'),
     updatedAt: _dateTime(json['updated_at'], 'updated_at'),
   );
@@ -259,6 +282,7 @@ abstract final class RunSaveMigrator {
         4 => _migrateV4ToV5(json),
         5 => _migrateV5ToV6(json),
         6 => _migrateV6ToV7(json),
+        7 => _migrateV7ToV8(json),
         _ => throw UnsupportedError('No migration exists for schema $version.'),
       };
       version = _requiredInt(json['schema_version'], 'schema_version');
@@ -404,6 +428,39 @@ abstract final class RunSaveMigrator {
                 (key, value) => MapEntry(key.toString(), value),
               );
               return {...migrated, 'living_city': null};
+            })
+            .toList(growable: false),
+    };
+  }
+
+  static Map<String, Object?> _migrateV7ToV8(Map<String, Object?> source) {
+    final slots = source['slots'];
+    return {
+      ...source,
+      'schema_version': 8,
+      if (slots is List)
+        'slots': slots
+            .map((slot) {
+              if (slot is! Map) return slot;
+              final migrated = slot.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+              final revealed =
+                  _optionalInt(migrated['revealed_term_phases']) ?? 0;
+              final day = switch (revealed.clamp(0, 4)) {
+                0 => 0,
+                1 => 91,
+                2 => 182,
+                3 => 273,
+                _ => 365,
+              };
+              return {
+                ...migrated,
+                'simulation_day': day,
+                'simulation_speed': SimulationSpeed.day.name,
+                'simulation_paused': true,
+                'inspected_city_event_ids': <String>[],
+              };
             })
             .toList(growable: false),
     };

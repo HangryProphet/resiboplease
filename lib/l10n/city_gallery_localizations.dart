@@ -13,6 +13,8 @@ class CityGalleryStrings {
 
   final bool filipino;
 
+  String get visitCities =>
+      filipino ? 'Bisitahin ang mga Lungsod' : 'Visit Cities';
   String get title => filipino ? 'Mga Pampublikong Lungsod' : 'Public Cities';
   String get subtitle => filipino
       ? 'Ligtas at kathang-isip na mga resulta'

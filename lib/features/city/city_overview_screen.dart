@@ -9,6 +9,7 @@ import '../../domain/models/pre_election_city_brief.dart';
 import '../../l10n/city_brief_localizations.dart';
 import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../information/widgets/information_actions.dart';
 import 'widgets/city_brief_ui.dart';
 import 'widgets/pre_election_navigation_bar.dart';
 
@@ -230,9 +231,9 @@ class _CityMap extends StatelessWidget {
                 top: 11,
                 child: Container(
                   constraints: BoxConstraints(
-                    maxWidth: constraints.maxWidth * .63,
+                    maxWidth: constraints.maxWidth * .78,
                   ),
-                  padding: const EdgeInsets.fromLTRB(10, 7, 10, 6),
+                  padding: const EdgeInsets.fromLTRB(13, 9, 13, 7),
                   decoration: BoxDecoration(
                     color: const Color(0xEAF4E7C7),
                     borderRadius: BorderRadius.circular(6),
@@ -241,34 +242,22 @@ class _CityMap extends StatelessWidget {
                       BoxShadow(color: Colors.black87, offset: Offset(2, 3)),
                     ],
                   ),
-                  child: Text(
-                    cityName.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: cityBriefInk,
-                      fontFamily: 'LuckiestGuy',
-                      fontSize: 17,
-                      height: 1,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 11,
-                right: 11,
-                bottom: 8,
-                child: IgnorePointer(
-                  child: Text(
-                    context.l10n.cityMapHint,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFFFFE8B7),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 26),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        cityName.toUpperCase(),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: cityBriefInk,
+                          fontFamily: 'LuckiestGuy',
+                          fontSize: 27,
+                          height: 1,
+                          letterSpacing: .4,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -588,14 +577,10 @@ class _ConcernCard extends StatelessWidget {
                 const SizedBox(height: 11),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton.icon(
+                  child: InformationActionButton(
                     onPressed: onTap,
-                    icon: const Icon(Icons.folder_open_rounded, size: 18),
-                    label: Text(context.l10n.openCaseFile),
-                    style: TextButton.styleFrom(
-                      foregroundColor: cityBriefInk,
-                      textStyle: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
+                    icon: Icons.folder_open_rounded,
+                    label: context.l10n.openCaseFile,
                   ),
                 ),
               ],

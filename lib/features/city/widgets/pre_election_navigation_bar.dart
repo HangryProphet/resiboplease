@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/resibo_theme.dart';
+import '../../../core/audio/game_audio_service.dart';
 import '../../../l10n/l10n_extensions.dart';
 
 enum PreElectionDestination { city, dossiers, chronicle }
@@ -89,7 +90,12 @@ class _NavItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: selected ? null : onTap,
+          onTap: selected
+              ? null
+              : () {
+                  GameAudioScope.maybeOf(context)?.play(GameSound.uiTab);
+                  onTap();
+                },
           child: Container(
             constraints: const BoxConstraints(minHeight: 56),
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),

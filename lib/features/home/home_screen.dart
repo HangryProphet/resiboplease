@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/resibo_theme.dart';
 import '../../core/settings/app_settings_controller.dart';
+import '../../core/audio/game_audio_service.dart';
 import '../../core/state/game_controller.dart';
 import '../../game/main_menu_atmosphere_game.dart';
 import '../../l10n/l10n_extensions.dart';
@@ -503,7 +504,10 @@ class _SettingsButton extends StatelessWidget {
           ),
           child: InkWell(
             key: const Key('settings_button'),
-            onTap: onPressed,
+            onTap: () {
+              GameAudioScope.maybeOf(context)?.play(GameSound.uiTap);
+              onPressed();
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               child: Row(

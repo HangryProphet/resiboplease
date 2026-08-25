@@ -29,6 +29,15 @@ void main() {
     expect(settings.language, AppLanguage.filipino);
     expect(find.text(filipino.language.toUpperCase()), findsOneWidget);
     expect(find.text(filipino.reduceMotion), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('sound_effects_setting')),
+      260,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.byKey(const Key('dialogue_sounds_setting')), findsOneWidget);
+    expect(find.byKey(const Key('sound_effects_setting')), findsOneWidget);
+    expect(find.byKey(const Key('music_setting')), findsOneWidget);
+    expect(find.byKey(const Key('sfx_volume_setting')), findsOneWidget);
+    expect(find.byKey(const Key('music_volume_setting')), findsOneWidget);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/resibo_theme.dart';
+import '../../../core/audio/game_audio_service.dart';
 
 const dossierInk = Color(0xFF172332);
 const dossierPaper = Color(0xFFF5E8C9);
@@ -88,6 +89,7 @@ class InvestigationHeader extends StatelessWidget {
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           icon: Icons.arrow_back_rounded,
           onPressed: onBack,
+          sound: GameSound.uiBack,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -158,6 +160,7 @@ class GameIconButton extends StatelessWidget {
     required this.onPressed,
     required this.tooltip,
     this.color = const Color(0xFF304A61),
+    this.sound = GameSound.uiTap,
     super.key,
   });
 
@@ -165,6 +168,7 @@ class GameIconButton extends StatelessWidget {
   final VoidCallback onPressed;
   final String tooltip;
   final Color color;
+  final GameSound sound;
 
   @override
   Widget build(BuildContext context) => Tooltip(
@@ -188,7 +192,10 @@ class GameIconButton extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: onPressed,
+          onTap: () {
+            GameAudioScope.maybeOf(context)?.play(sound);
+            onPressed();
+          },
           child: Icon(icon, color: const Color(0xFFFFEFCB)),
         ),
       ),
@@ -326,6 +333,7 @@ class ChunkyActionButton extends StatelessWidget {
     this.color = ResiboColors.teal,
     this.compact = false,
     this.buttonKey,
+    this.sound = GameSound.uiTap,
     super.key,
   });
 
@@ -335,6 +343,7 @@ class ChunkyActionButton extends StatelessWidget {
   final Color color;
   final bool compact;
   final Key? buttonKey;
+  final GameSound sound;
 
   @override
   Widget build(BuildContext context) {
@@ -371,7 +380,12 @@ class ChunkyActionButton extends StatelessWidget {
           ),
           child: InkWell(
             key: buttonKey,
-            onTap: onPressed,
+            onTap: onPressed == null
+                ? null
+                : () {
+                    GameAudioScope.maybeOf(context)?.play(sound);
+                    onPressed!();
+                  },
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: compact ? 43 : 53),
               child: Padding(

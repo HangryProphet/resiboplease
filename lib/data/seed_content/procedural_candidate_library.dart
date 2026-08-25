@@ -1,5 +1,6 @@
 import '../../domain/models/candidate_biography.dart';
 import '../../domain/models/candidate_experience.dart';
+import '../../domain/models/candidate_generation.dart';
 import '../../domain/models/city_indicator.dart';
 import '../../domain/models/city_problem.dart';
 
@@ -27,6 +28,18 @@ class CandidateBackgroundTemplate {
   final List<CandidateRhetoricalStyle> rhetoricalStyles;
   final int baseExperience;
   final int weight;
+
+  CandidateCareerOrigin get careerOrigin => switch (id) {
+    'council_member' => CandidateCareerOrigin.careerPolitician,
+    'public_administrator' => CandidateCareerOrigin.publicAdministrator,
+    'business_executive' ||
+    'small_business_owner' => CandidateCareerOrigin.business,
+    'media_personality' || 'actor' => CandidateCareerOrigin.celebrityMedia,
+    'community_organizer' => CandidateCareerOrigin.community,
+    'labor_advocate' || 'nonprofit_leader' => CandidateCareerOrigin.advocacy,
+    'public_safety_official' => CandidateCareerOrigin.publicSafety,
+    _ => CandidateCareerOrigin.professional,
+  };
 }
 
 const proceduralCandidateBackgrounds = <CandidateBackgroundTemplate>[
@@ -347,6 +360,48 @@ const proceduralCandidateBackgrounds = <CandidateBackgroundTemplate>[
     ],
     baseExperience: 45,
     weight: 7,
+  ),
+  CandidateBackgroundTemplate(
+    id: 'actor',
+    occupation: 'Actor and charity ambassador',
+    education: ['BA Communication Arts'],
+    publicIdentity:
+        'Fictional screen actor turning a large public following into a first campaign',
+    archetype: 'Celebrity political outsider',
+    currentPosition: 'Film and television performer',
+    primaryIndicators: [
+      CityIndicator.publicTrust,
+      CityIndicator.employmentQuality,
+      CityIndicator.educationQuality,
+    ],
+    rhetoricalStyles: [
+      CandidateRhetoricalStyle.charismatic,
+      CandidateRhetoricalStyle.storyDriven,
+      CandidateRhetoricalStyle.emotional,
+    ],
+    baseExperience: 14,
+    weight: 4,
+  ),
+  CandidateBackgroundTemplate(
+    id: 'athlete',
+    occupation: 'Retired professional athlete',
+    education: ['BS Sports Management'],
+    publicIdentity:
+        'Sports figure and youth-program founder seeking a first public office',
+    archetype: 'Community-minded sports outsider',
+    currentPosition: 'Youth sports foundation director',
+    primaryIndicators: [
+      CityIndicator.publicHealth,
+      CityIndicator.educationQuality,
+      CityIndicator.publicTrust,
+    ],
+    rhetoricalStyles: [
+      CandidateRhetoricalStyle.charismatic,
+      CandidateRhetoricalStyle.storyDriven,
+      CandidateRhetoricalStyle.calm,
+    ],
+    baseExperience: 20,
+    weight: 4,
   ),
 ];
 

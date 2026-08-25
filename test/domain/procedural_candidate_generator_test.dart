@@ -5,6 +5,7 @@ import 'package:resiboplease/data/configuration/configured_scenario.dart';
 import 'package:resiboplease/data/persistence/procedural_election_codec.dart';
 import 'package:resiboplease/data/seed_content/bayhaven_scenario.dart';
 import 'package:resiboplease/domain/models/candidate_portrait.dart';
+import 'package:resiboplease/domain/models/candidate_generation.dart';
 import 'package:resiboplease/domain/models/city_run_configuration.dart';
 import 'package:resiboplease/domain/models/procedural_election.dart';
 import 'package:resiboplease/domain/simulation/procedural_candidate_generator.dart';
@@ -217,6 +218,70 @@ void main() {
     expect(
       jsonEncode(ProceduralElectionCodec.encode(restored)),
       jsonEncode(ProceduralElectionCodec.encode(initial)),
+    );
+  });
+
+  test('career origins vary by seed and are not assigned to fixed slots', () {
+    final allOrigins = <CandidateCareerOrigin>{};
+    final originsBySlot = <int, Set<CandidateCareerOrigin>>{};
+    var rosterWithoutCelebrity = false;
+    for (var seed = 61000; seed < 61060; seed++) {
+      final election = generate(seed);
+      final origins = election.candidates
+          .map(
+            (candidate) => election.truthProfiles[candidate.id]!.careerOrigin,
+          )
+          .toList();
+      allOrigins.addAll(origins);
+      rosterWithoutCelebrity |= !origins.contains(
+        CandidateCareerOrigin.celebrityMedia,
+      );
+      for (var index = 0; index < origins.length; index++) {
+        originsBySlot.putIfAbsent(index, () => {}).add(origins[index]);
+      }
+    }
+
+    expect(allOrigins, contains(CandidateCareerOrigin.careerPolitician));
+    expect(allOrigins, contains(CandidateCareerOrigin.professional));
+    expect(allOrigins, contains(CandidateCareerOrigin.business));
+    expect(allOrigins, contains(CandidateCareerOrigin.celebrityMedia));
+    expect(allOrigins, contains(CandidateCareerOrigin.community));
+    expect(rosterWithoutCelebrity, isTrue);
+    expect(originsBySlot.values.every((origins) => origins.length > 2), isTrue);
+  });
+
+  test('origin changes the evidence footprint but does not define quality', () {
+    final qualityByOrigin = <CandidateCareerOrigin, Set<Object>>{};
+    ProceduralElection? withCelebrity;
+    for (var seed = 72000; seed < 72080; seed++) {
+      final election = generate(seed);
+      for (final truth in election.truthProfiles.values) {
+        qualityByOrigin
+            .putIfAbsent(truth.careerOrigin, () => {})
+            .add(truth.qualityBand);
+        if (truth.careerOrigin == CandidateCareerOrigin.celebrityMedia) {
+          withCelebrity ??= election;
+        }
+      }
+    }
+
+    expect(
+      qualityByOrigin.values.any((qualities) => qualities.length > 1),
+      isTrue,
+    );
+    final celebrity = withCelebrity!;
+    final celebrityId = celebrity.truthProfiles.entries
+        .firstWhere(
+          (entry) =>
+              entry.value.careerOrigin == CandidateCareerOrigin.celebrityMedia,
+        )
+        .key;
+    final celebrityCandidate = celebrity.candidates.firstWhere(
+      (candidate) => candidate.id == celebrityId,
+    );
+    expect(
+      celebrityCandidate.evidence.map((item) => item.source),
+      contains('Fictional Broadcast and Charity Archive'),
     );
   });
 }

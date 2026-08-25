@@ -44,6 +44,20 @@ void main() {
     await pumpRoute(tester, controller, '/citybook/maya_vargas');
 
     expect(find.byKey(const Key('citybook_profile_header')), findsOneWidget);
+    final avatar = find.byKey(const Key('candidate_avatar_maya_vargas'));
+    expect(avatar, findsWidgets);
+    expect(
+      find.descendant(of: avatar.first, matching: find.byType(Image)),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Image>(
+            find.descendant(of: avatar.first, matching: find.byType(Image)),
+          )
+          .fit,
+      BoxFit.cover,
+    );
     expect(find.byKey(const Key('citybook_feed')), findsOneWidget);
     expect(
       find.byKey(const Key('citybook_post_cb_maya_clinics')),
@@ -62,6 +76,13 @@ void main() {
     expect(
       find.byKey(const Key('citybook_comment_thread_cb_maya_clinics_0')),
       findsOneWidget,
+    );
+    expect(find.text('Recently created'), findsNothing);
+    expect(find.text('Repeated slogan pattern'), findsNothing);
+    expect(find.text('High posting frequency'), findsNothing);
+    expect(
+      find.byKey(const Key('citybook_comment_reaction_summary')),
+      findsWidgets,
     );
     Navigator.of(
       tester.element(find.byKey(const Key('citybook_comments_sheet'))),

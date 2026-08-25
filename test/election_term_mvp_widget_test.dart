@@ -75,14 +75,15 @@ void main() {
       await tester.tap(find.byKey(const Key('begin_term')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 550));
-      expect(find.byKey(const Key('term_timeline_scroll')), findsOneWidget);
+      expect(find.byKey(const Key('simulation_pause')), findsOneWidget);
+      expect(find.byKey(const Key('simulation_speed_day')), findsOneWidget);
+      expect(find.byKey(const Key('simulation_speed_week')), findsOneWidget);
+      expect(find.byKey(const Key('simulation_speed_month')), findsOneWidget);
+      expect(find.byKey(const Key('simulation_speed_year')), findsOneWidget);
 
       for (var phase = 1; phase <= 4; phase++) {
-        final advance = find.byKey(const Key('advance_term'));
-        await tester.ensureVisible(advance);
-        await tester.tap(advance);
+        controller.advanceTerm();
         await tester.pump(const Duration(milliseconds: 350));
-        expect(find.byKey(Key('term_phase_$phase')), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
 
@@ -90,15 +91,7 @@ void main() {
           .where((phase) => phase.eventKind.hasArtwork)
           .toList(growable: false);
       expect(illustrated, hasLength(2));
-      for (final phase in illustrated) {
-        expect(
-          find.byKey(Key('term_event_art_${phase.eventKind.name}')),
-          findsOneWidget,
-        );
-      }
-
-      final report = find.byKey(const Key('advance_term'));
-      await tester.ensureVisible(report);
+      final report = find.byKey(const Key('open_term_report'));
       await tester.tap(report);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 550));
@@ -131,7 +124,7 @@ void main() {
     router.go('/simulation');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
-    expect(find.text('KASALUKUYANG TERMINO'), findsOneWidget);
+    expect(find.text('BUHAY NA LUNGSOD'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     for (var phase = 0; phase < 4; phase++) {

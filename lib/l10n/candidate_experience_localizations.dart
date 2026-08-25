@@ -36,6 +36,7 @@ class CandidateExperienceStrings {
       : 'A quick read of promises, news, defenses, and contradictions.';
   String get openDetails => isFilipino ? 'Suriin' : 'Inspect';
   String get closeDetails => isFilipino ? 'Isara' : 'Close';
+  String get cancel => isFilipino ? 'Kanselahin' : 'Cancel';
   String get deepDive => isFilipino ? 'Malalim na Suri' : 'Deep Dive';
   String get relatedReceipts =>
       isFilipino ? 'Kaugnay na Resibo' : 'Related Receipts';

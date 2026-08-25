@@ -20,12 +20,33 @@ import '../../domain/models/procedural_election.dart';
 import '../../domain/models/scenario.dart';
 import '../../domain/models/term_result.dart';
 import '../../domain/models/living_city_simulation.dart';
+import '../settings/app_settings_controller.dart';
 import '../../domain/simulation/pre_election_brief_engine.dart';
 import '../../domain/simulation/information_ecosystem_engine.dart';
 import '../../domain/simulation/procedural_candidate_generator.dart';
 import '../../domain/simulation/term_engine.dart';
 
 enum CityRunProgress { electionBrief, termInProgress, termReportReady }
+
+class SimulationAdvanceResult {
+  const SimulationAdvanceResult({
+    required this.fromDay,
+    required this.toDay,
+    required this.paused,
+    required this.yearCompletedNow,
+    this.criticalEvent,
+    this.shouldOpenEvent = false,
+    this.shouldNotify = false,
+  });
+
+  final int fromDay;
+  final int toDay;
+  final bool paused;
+  final bool yearCompletedNow;
+  final CityEvent? criticalEvent;
+  final bool shouldOpenEvent;
+  final bool shouldNotify;
+}
 
 class CitySaveSlot {
   const CitySaveSlot({
@@ -105,7 +126,9 @@ class GameController extends ChangeNotifier {
         _activeRun?.candidateNewsEvents ?? const <UnderlyingNewsEvent>[],
     candidateNewsCoverages:
         _activeRun?.candidateNewsCoverages ?? const <NewsCoverage>[],
-    livingCity: _activeRun?.termResult?.livingCity,
+    livingCity: _activeRun?.termResult?.livingCity.visibleThroughDay(
+      _activeRun?.simulationDay ?? 0,
+    ),
   );
   Candidate? get selectedCandidate => _activeRun?.selectedCandidate;
   TermResult? get termResult => _activeRun?.termResult;
@@ -127,9 +150,27 @@ class GameController extends ChangeNotifier {
       activeConfiguration?.assistanceMode ?? AssistanceMode.guided;
   bool get isPreElection => selectedCandidate == null;
   int get revealedTermPhases => _activeRun?.revealedTermPhases ?? 0;
+  int get simulationDay => _activeRun?.simulationDay ?? 0;
+  SimulationSpeed get simulationSpeed =>
+      _activeRun?.simulationSpeed ?? SimulationSpeed.day;
+  bool get simulationPaused => _activeRun?.simulationPaused ?? true;
+  Set<String> get inspectedCityEventIds =>
+      Set.unmodifiable(_activeRun?.inspectedCityEventIds ?? const <String>{});
+  int get unreadCityEventCount {
+    final living = termResult?.livingCity;
+    if (living == null) return 0;
+    return living
+        .eventsThroughDay(simulationDay)
+        .where(
+          (event) =>
+              event.importance != CityEventImportance.ambient &&
+              !inspectedCityEventIds.contains(event.id),
+        )
+        .length;
+  }
+
   bool get isTermReportReady {
-    final result = termResult;
-    return result != null && revealedTermPhases >= result.phases.length;
+    return termResult != null && simulationDay >= 365;
   }
 
   PreElectionCityBrief get preElectionBrief =>
@@ -554,6 +595,137 @@ class GameController extends ChangeNotifier {
           : truthSnapshotFromProfile(generatedTruth, activeCandidate),
     );
     run.revealedTermPhases = 0;
+    run.simulationDay = 0;
+    run.simulationSpeed = SimulationSpeed.day;
+    run.simulationPaused = false;
+    run.inspectedCityEventIds.clear();
+    run.touch();
+    _commit();
+  }
+
+  void setSimulationSpeed(SimulationSpeed speed) {
+    final run = _ensureActiveRun();
+    if (run.termResult == null || run.simulationDay >= 365) return;
+    run.simulationSpeed = speed;
+    run.simulationPaused = false;
+    run.touch();
+    _commit();
+  }
+
+  void pauseSimulation() {
+    final run = _ensureActiveRun();
+    if (run.termResult == null || run.simulationPaused) return;
+    run.simulationPaused = true;
+    run.touch();
+    _commit();
+  }
+
+  SimulationAdvanceResult? advanceSimulationDays(
+    int requestedDays, {
+    required CriticalEventInterruption interruptionPreference,
+  }) {
+    final run = _ensureActiveRun();
+    final result = run.termResult;
+    if (result == null ||
+        run.simulationPaused ||
+        requestedDays <= 0 ||
+        run.simulationDay >= 365) {
+      return null;
+    }
+    final fromDay = run.simulationDay;
+    final target = (fromDay + requestedDays).clamp(0, 365);
+    CityEvent? criticalEvent;
+    if (interruptionPreference != CriticalEventInterruption.neverInterrupt) {
+      criticalEvent = result.livingCity.eventHistory
+          .where(
+            (event) =>
+                event.day > fromDay &&
+                event.day <= target &&
+                _isInterruptingCriticalEvent(event),
+          )
+          .firstOrNull;
+    }
+    final pausesForEvent =
+        criticalEvent != null && interruptionPreference.pausesSimulation;
+    run.simulationDay = pausesForEvent ? criticalEvent.day : target;
+    run.revealedTermPhases = switch (run.simulationDay) {
+      >= 365 => 4,
+      >= 273 => 3,
+      >= 182 => 2,
+      >= 91 => 1,
+      _ => 0,
+    };
+    if (pausesForEvent || run.simulationDay >= 365) {
+      run.simulationPaused = true;
+    }
+    run.touch();
+    _commit();
+    return SimulationAdvanceResult(
+      fromDay: fromDay,
+      toDay: run.simulationDay,
+      paused: run.simulationPaused,
+      yearCompletedNow: fromDay < 365 && run.simulationDay >= 365,
+      criticalEvent: criticalEvent,
+      shouldOpenEvent:
+          criticalEvent != null && interruptionPreference.opensEvent,
+      shouldNotify:
+          criticalEvent != null &&
+          interruptionPreference.showsNotification &&
+          !interruptionPreference.opensEvent,
+    );
+  }
+
+  /// Treats YEAR as a bounded command to reveal the remaining deterministic
+  /// simulation, stopping only when the configured critical-event preference
+  /// requires it. Every batch uses [advanceSimulationDays], so boundaries do
+  /// not rerun or duplicate events.
+  SimulationAdvanceResult? fastForwardToYearEnd({
+    required CriticalEventInterruption interruptionPreference,
+    int batchSize = 30,
+  }) {
+    final run = _ensureActiveRun();
+    if (run.termResult == null || run.simulationDay >= 365 || batchSize < 1) {
+      return null;
+    }
+    final fromDay = run.simulationDay;
+    run.simulationSpeed = SimulationSpeed.year;
+    run.simulationPaused = false;
+    CityEvent? firstCriticalEvent;
+    var shouldOpen = false;
+    var shouldNotify = false;
+    while (!run.simulationPaused && run.simulationDay < 365) {
+      final step = (365 - run.simulationDay).clamp(1, batchSize);
+      final result = advanceSimulationDays(
+        step,
+        interruptionPreference: interruptionPreference,
+      );
+      if (result == null) break;
+      firstCriticalEvent ??= result.criticalEvent;
+      shouldOpen = shouldOpen || result.shouldOpenEvent;
+      shouldNotify = shouldNotify || result.shouldNotify;
+      if (result.paused) break;
+    }
+    return SimulationAdvanceResult(
+      fromDay: fromDay,
+      toDay: run.simulationDay,
+      paused: run.simulationPaused,
+      yearCompletedNow: fromDay < 365 && run.simulationDay >= 365,
+      criticalEvent: firstCriticalEvent,
+      shouldOpenEvent: shouldOpen,
+      shouldNotify: shouldNotify,
+    );
+  }
+
+  void markCityEventInspected(String eventId) {
+    final run = _ensureActiveRun();
+    final result = run.termResult;
+    if (result == null ||
+        !result.livingCity.eventHistory.any(
+          (event) => event.id == eventId && event.day <= run.simulationDay,
+        ) ||
+        !run.inspectedCityEventIds.add(eventId)) {
+      return;
+    }
     run.touch();
     _commit();
   }
@@ -564,8 +736,16 @@ class GameController extends ChangeNotifier {
     if (result == null || run.selectedCandidate == null) {
       throw StateError('A confirmed election is required to advance the term.');
     }
-    if (run.revealedTermPhases >= result.phases.length) return;
-    run.revealedTermPhases++;
+    if (run.simulationDay >= 365) return;
+    final target = const [
+      91,
+      182,
+      273,
+      365,
+    ][run.revealedTermPhases.clamp(0, 3)];
+    run.simulationDay = target;
+    run.revealedTermPhases = (run.revealedTermPhases + 1).clamp(0, 4);
+    run.simulationPaused = true;
     run.touch();
     _commit();
   }
@@ -717,9 +897,29 @@ class GameController extends ChangeNotifier {
               saved.livingCity,
             )
           : null
+      ..simulationDay = candidate == null
+          ? 0
+          : saved.simulationDay.clamp(0, 365)
+      ..simulationSpeed = saved.simulationSpeed
+      ..simulationPaused = candidate == null ? true : saved.simulationPaused
+      ..inspectedCityEventIds.addAll(
+        saved.inspectedCityEventIds.where(
+          (id) =>
+              saved.livingCity?.eventHistory.any(
+                (event) => event.id == id && event.day <= saved.simulationDay,
+              ) ??
+              false,
+        ),
+      )
       ..revealedTermPhases = candidate == null
           ? 0
-          : saved.revealedTermPhases.clamp(0, 4)
+          : switch (saved.simulationDay) {
+              >= 365 => 4,
+              >= 273 => 3,
+              >= 182 => 2,
+              >= 91 => 1,
+              _ => 0,
+            }
       ..topIssue = saved.topIssue
       ..confidence = saved.confidence.clamp(0, 1);
   }
@@ -935,6 +1135,10 @@ class _RunSession {
   String? topIssue;
   double confidence = 0.5;
   int revealedTermPhases = 0;
+  int simulationDay = 0;
+  SimulationSpeed simulationSpeed = SimulationSpeed.day;
+  bool simulationPaused = true;
+  final Set<String> inspectedCityEventIds = {};
   final DateTime createdAt;
   DateTime updatedAt;
 
@@ -964,6 +1168,10 @@ class _RunSession {
     topIssue = null;
     confidence = 0.5;
     revealedTermPhases = 0;
+    simulationDay = 0;
+    simulationSpeed = SimulationSpeed.day;
+    simulationPaused = true;
+    inspectedCityEventIds.clear();
     bookmarkedEvidenceIds.clear();
     viewedEvidenceIds.clear();
     chargedEvidenceIds.clear();
@@ -1012,8 +1220,16 @@ class _RunSession {
     updatedAt: updatedAt,
     proceduralElection: proceduralElection,
     livingCity: termResult?.livingCity,
+    simulationDay: simulationDay,
+    simulationSpeed: simulationSpeed,
+    simulationPaused: simulationPaused,
+    inspectedCityEventIds: inspectedCityEventIds,
   );
 }
+
+bool _isInterruptingCriticalEvent(CityEvent event) =>
+    event.importance == CityEventImportance.critical ||
+    event.importance == CityEventImportance.rare;
 
 TermResult _restoreTermResult(
   TermResult generated,

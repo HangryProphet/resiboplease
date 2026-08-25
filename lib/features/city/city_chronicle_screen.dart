@@ -6,6 +6,9 @@ import '../../core/state/game_controller.dart';
 import '../../domain/models/pre_election_city_brief.dart';
 import '../../domain/models/living_city_simulation.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../../l10n/information_ecosystem_localizations.dart';
+import '../../l10n/tv_broadcast_localizations.dart';
+import '../information/widgets/information_actions.dart';
 import 'widgets/city_brief_ui.dart';
 import 'widgets/pre_election_navigation_bar.dart';
 
@@ -83,9 +86,9 @@ class CityChronicleScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 11),
                               for (final event
-                                  in result.livingCity.phases
-                                      .take(controller.revealedTermPhases)
-                                      .expand((phase) => phase.events))
+                                  in result.livingCity.eventsThroughDay(
+                                    controller.simulationDay,
+                                  ))
                                 _AdministrationChronicleCard(
                                   event: event,
                                   onCoverage: event.newsEligible
@@ -236,16 +239,16 @@ class _AdministrationChronicleCard extends StatelessWidget {
               runSpacing: 7,
               children: [
                 if (onCoverage != null)
-                  OutlinedButton.icon(
+                  InformationActionButton(
                     onPressed: onCoverage,
-                    icon: const Icon(Icons.newspaper_rounded, size: 17),
-                    label: const Text('READ COVERAGE'),
+                    icon: Icons.newspaper_rounded,
+                    label: context.informationStrings.readCoverage,
                   ),
                 if (onTv != null)
-                  OutlinedButton.icon(
+                  InformationActionButton(
                     onPressed: onTv,
-                    icon: const Icon(Icons.tv_rounded, size: 17),
-                    label: const Text('WATCH REPORT'),
+                    icon: Icons.tv_rounded,
+                    label: context.tvStrings.watchReport,
                   ),
               ],
             ),

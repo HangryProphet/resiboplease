@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/resibo_theme.dart';
 import '../../core/assets/visual_asset_catalog.dart';
+import '../../core/audio/game_audio_service.dart';
 import '../../core/settings/app_settings_controller.dart';
 import '../../core/state/game_controller.dart';
 import '../../domain/models/tv_broadcast.dart';
@@ -39,6 +40,7 @@ class _TvBroadcastScreenState extends State<TvBroadcastScreen> {
   DialogueBlipPlayer? _blipPlayer;
   String? _languageCode;
   bool _webAudioUnlocked = !kIsWeb;
+  GameAudioService? _gameAudio;
 
   TvBroadcast? get _broadcast => widget
       .controller
@@ -49,6 +51,12 @@ class _TvBroadcastScreenState extends State<TvBroadcastScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final nextAudio = GameAudioScope.maybeOf(context);
+    if (!identical(nextAudio, _gameAudio)) {
+      _gameAudio?.setMusicDucked(false);
+      _gameAudio = nextAudio;
+      _gameAudio?.setMusicDucked(true);
+    }
     final languageCode = Localizations.localeOf(context).languageCode;
     if (_dialogueController != null && _languageCode == languageCode) return;
     _languageCode = languageCode;
@@ -89,6 +97,7 @@ class _TvBroadcastScreenState extends State<TvBroadcastScreen> {
     _dialogueController?.dispose();
     _blipPlayer?.stop();
     if (widget.blipPlayer == null) _blipPlayer?.dispose();
+    _gameAudio?.setMusicDucked(false);
     super.dispose();
   }
 
@@ -135,9 +144,12 @@ class _TvBroadcastScreenState extends State<TvBroadcastScreen> {
                       soundEnabled: widget.settingsController.dialogueSounds,
                       soundTooltip: strings.dialogueSounds,
                       onSoundPressed: _toggleDialogueSounds,
-                      onBack: () => context.canPop()
-                          ? context.pop()
-                          : context.go('/city/chronicle'),
+                      onBack: () {
+                        _gameAudio?.play(GameSound.uiBack);
+                        context.canPop()
+                            ? context.pop()
+                            : context.go('/city/chronicle');
+                      },
                     ),
                     _BroadcastStage(
                       broadcast: broadcast,

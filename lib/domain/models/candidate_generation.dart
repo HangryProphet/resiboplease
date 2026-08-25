@@ -24,6 +24,17 @@ enum CandidateRelationshipType {
   advocacyGroup,
 }
 
+enum CandidateCareerOrigin {
+  careerPolitician,
+  publicAdministrator,
+  professional,
+  business,
+  celebrityMedia,
+  community,
+  advocacy,
+  publicSafety,
+}
+
 class CandidateControversyTruth {
   const CandidateControversyTruth({
     required this.id,
@@ -77,6 +88,7 @@ class CandidateTruthProfile {
     this.populism = 50,
     this.ambition = 50,
     this.informationFootprint = CandidateInformationFootprint.normal,
+    this.careerOrigin = CandidateCareerOrigin.careerPolitician,
     this.personalityTags = const [],
     this.controversies = const [],
     this.relationships = const [],
@@ -99,6 +111,7 @@ class CandidateTruthProfile {
   final int populism;
   final int ambition;
   final CandidateInformationFootprint informationFootprint;
+  final CandidateCareerOrigin careerOrigin;
   final List<String> personalityTags;
   final List<CandidateControversyTruth> controversies;
   final List<CandidateRelationshipTruth> relationships;

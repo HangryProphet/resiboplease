@@ -15,6 +15,7 @@ import '../models/news_media.dart';
 import '../models/procedural_election.dart';
 import 'seed_derivation.dart';
 import 'seeded_random.dart';
+import 'citybook_comment_reaction_engine.dart';
 
 class ProceduralCandidateGenerator {
   const ProceduralCandidateGenerator();
@@ -47,6 +48,7 @@ class ProceduralCandidateGenerator {
     final usedParties = <String>{};
     final usedSlogans = <String>{};
     final usedBackgrounds = <String>{};
+    final usedOrigins = <CandidateCareerOrigin, int>{};
     final builds = <_CandidateBuild>[];
 
     for (var index = 0; index < candidateCount; index++) {
@@ -62,6 +64,7 @@ class ProceduralCandidateGenerator {
           usedParties: usedParties,
           usedSlogans: usedSlogans,
           usedBackgrounds: usedBackgrounds,
+          usedOrigins: usedOrigins,
         ),
       );
     }
@@ -144,6 +147,7 @@ class ProceduralCandidateGenerator {
     required Set<String> usedParties,
     required Set<String> usedSlogans,
     required Set<String> usedBackgrounds,
+    required Map<CandidateCareerOrigin, int> usedOrigins,
   }) {
     final identityRandom = _random(worldSeed, 'candidate:$index:identity');
     final truthRandom = _random(worldSeed, 'candidate:$index:truth');
@@ -163,6 +167,7 @@ class ProceduralCandidateGenerator {
       random: identityRandom,
       city: city,
       usedBackgrounds: usedBackgrounds,
+      usedOrigins: usedOrigins,
       index: index,
     );
     final party = _takeUnique(
@@ -327,6 +332,7 @@ class ProceduralCandidateGenerator {
     required SeededRandom random,
     required City city,
     required Set<String> usedBackgrounds,
+    required Map<CandidateCareerOrigin, int> usedOrigins,
     required int index,
   }) {
     final available = proceduralCandidateBackgrounds
@@ -340,10 +346,22 @@ class ProceduralCandidateGenerator {
           weight += index < 3 ? 7 : 3;
         }
       }
+      final sameOriginCount = usedOrigins[background.careerOrigin] ?? 0;
+      if (sameOriginCount >= 2) {
+        // A third similar origin remains possible, but should be unusual.
+        weight = 1;
+      } else if (sameOriginCount == 1) {
+        weight = (weight * .55).round().clamp(1, weight);
+      }
       weighted.addAll(List.filled(weight, background));
     }
     final selected = weighted[random.nextInt(weighted.length)];
     usedBackgrounds.add(selected.id);
+    usedOrigins.update(
+      selected.careerOrigin,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
     return selected;
   }
 
@@ -443,6 +461,7 @@ class ProceduralCandidateGenerator {
         },
       ]),
       informationFootprint: footprint,
+      careerOrigin: background.careerOrigin,
       personalityTags: List.unmodifiable([
         background
             .rhetoricalStyles[random.nextInt(
@@ -530,10 +549,19 @@ class ProceduralCandidateGenerator {
     int experience,
     SeededRandom random,
   ) {
-    if (background.id == 'media_personality') {
+    if (background.careerOrigin == CandidateCareerOrigin.celebrityMedia) {
       return CandidateInformationFootprint.overexposed;
     }
-    final score = experience + random.nextInt(31) - 15;
+    final originOffset = switch (background.careerOrigin) {
+      CandidateCareerOrigin.careerPolitician => 14,
+      CandidateCareerOrigin.publicAdministrator => 8,
+      CandidateCareerOrigin.business => 3,
+      CandidateCareerOrigin.community || CandidateCareerOrigin.advocacy => -8,
+      CandidateCareerOrigin.professional ||
+      CandidateCareerOrigin.publicSafety => 0,
+      CandidateCareerOrigin.celebrityMedia => 25,
+    };
+    final score = experience + originOffset + random.nextInt(31) - 15;
     return switch (score) {
       < 25 => CandidateInformationFootprint.minimal,
       < 43 => CandidateInformationFootprint.limited,
@@ -578,7 +606,7 @@ class ProceduralCandidateGenerator {
         type: CandidateHistoryEventType.employment,
         title: 'Entered ${background.occupation.toLowerCase()} work',
         summary:
-            '$name began building a public record as a ${background.occupation.toLowerCase()}.',
+            '$name began building a documented career as a ${background.occupation.toLowerCase()}.',
         details:
             'The role explains the candidate\'s strongest policy familiarity but does not prove executive ability.',
         publicVisibility: CandidatePublicVisibility.citywide,
@@ -763,6 +791,8 @@ class ProceduralCandidateGenerator {
     final accomplishment = history[2];
     final failure = history[3];
     final truthStatus = _evidenceStatus(controversy.status);
+    final recordSource = _recordSource(background.careerOrigin, city.name);
+    final recordTitle = _recordTitle(background.careerOrigin);
     return List.unmodifiable([
       EvidenceItem(
         id: evidenceIds.profile,
@@ -802,11 +832,11 @@ class ProceduralCandidateGenerator {
       EvidenceItem(
         id: evidenceIds.publicRecord,
         type: EvidenceType.publicRecord,
-        title: 'Project and performance record',
-        source: '${city.name} Transparency Portal',
+        title: recordTitle,
+        source: recordSource,
         summary: '${accomplishment.summary} ${failure.summary}',
         details:
-            'The record confirms both the documented result and the documented limit. Accomplishment and failure can coexist in one project history.',
+            'The relevant archive confirms both the documented result and the documented limit. This is a career record, not proof of mayoral ability or personal integrity.',
         truthStatus: TruthStatus.verifiedTrue,
         reliability: 92,
       ),
@@ -911,7 +941,7 @@ class ProceduralCandidateGenerator {
       ),
       CandidateBiographySection(
         id: '${candidate.id}_bio_record',
-        title: 'Public Service Record',
+        title: _recordSectionTitle(background.careerOrigin),
         statements: [
           CandidateBiographyStatement(
             id: '${candidate.id}_bio_record_0',
@@ -1266,7 +1296,10 @@ class ProceduralCandidateGenerator {
       handle: handle,
       shortBio: background.publicIdentity,
       affiliation: candidate.party,
-      publicAttention: truth.communication * 1180 + random.nextInt(18000),
+      publicAttention:
+          ((truth.communication * 1180 + random.nextInt(18000)) *
+                  _attentionMultiplier(background.careerOrigin))
+              .round(),
       profileAssetKey: portrait.id,
       bannerAssetKey: 'news_${leadProblem.visualKey}',
     );
@@ -1409,6 +1442,7 @@ class ProceduralCandidateGenerator {
     required CityProblem leadProblem,
     required SeededRandom random,
   }) {
+    const reactionEngine = CityBookCommentReactionEngine();
     final comments = <CityBookComment>[];
     for (var index = 0; index < 10; index++) {
       final archetype =
@@ -1430,7 +1464,12 @@ class ProceduralCandidateGenerator {
             leadProblem.title,
             post.type,
           ),
-          reactionCount: random.nextInt(180),
+          reactions: reactionEngine.generate(
+            parentReactions: post.reactions,
+            archetype: archetype,
+            seed: cityBookReactionSeed('${post.id}:comment:$index:reactions'),
+            commentIndex: index,
+          ),
           accountClues: archetype == CityBookCommentArchetype.suspiciousAccount
               ? const ['New account', 'Repeated campaign wording']
               : const [],
@@ -1766,7 +1805,60 @@ class ProceduralCandidateGenerator {
     CandidateTruthProfile truth,
     List<CandidateLifeEvent> history,
   ) =>
-      '$name, $age, is a ${background.occupation.toLowerCase()} and ${background.currentPosition.toLowerCase()}. ${history[2].summary} ${history[3].summary} The public record also contains ${truth.controversies.first.kind} questions that require context.';
+      '$name, $age, is a ${background.occupation.toLowerCase()} and ${background.currentPosition.toLowerCase()}. ${history[2].summary} ${history[3].summary} The available record also contains ${truth.controversies.first.kind} questions that require context.';
+
+  String _recordSectionTitle(CandidateCareerOrigin origin) => switch (origin) {
+    CandidateCareerOrigin.careerPolitician ||
+    CandidateCareerOrigin.publicAdministrator => 'Public Service Record',
+    CandidateCareerOrigin.business => 'Business and Management Record',
+    CandidateCareerOrigin.celebrityMedia => 'Media and Public Work',
+    CandidateCareerOrigin.community ||
+    CandidateCareerOrigin.advocacy => 'Community and Advocacy Record',
+    CandidateCareerOrigin.publicSafety => 'Public Safety Record',
+    CandidateCareerOrigin.professional => 'Professional Record',
+  };
+
+  String _recordTitle(CandidateCareerOrigin origin) => switch (origin) {
+    CandidateCareerOrigin.careerPolitician ||
+    CandidateCareerOrigin.publicAdministrator =>
+      'Projects and public-service record',
+    CandidateCareerOrigin.business =>
+      'Company, employment, and management record',
+    CandidateCareerOrigin.celebrityMedia =>
+      'Broadcast, endorsement, and charity archive',
+    CandidateCareerOrigin.community || CandidateCareerOrigin.advocacy =>
+      'Community programs and organization record',
+    CandidateCareerOrigin.publicSafety =>
+      'Service, training, and response record',
+    CandidateCareerOrigin.professional =>
+      'Professional license and project record',
+  };
+
+  String _recordSource(CandidateCareerOrigin origin, String cityName) =>
+      switch (origin) {
+        CandidateCareerOrigin.careerPolitician ||
+        CandidateCareerOrigin.publicAdministrator =>
+          '$cityName Transparency Portal',
+        CandidateCareerOrigin.business =>
+          '$cityName Corporate Registry and Labor Desk',
+        CandidateCareerOrigin.celebrityMedia =>
+          'Fictional Broadcast and Charity Archive',
+        CandidateCareerOrigin.community || CandidateCareerOrigin.advocacy =>
+          '$cityName Civic Organization Archive',
+        CandidateCareerOrigin.publicSafety =>
+          '$cityName Service and Training Archive',
+        CandidateCareerOrigin.professional => '$cityName Professional Registry',
+      };
+
+  double _attentionMultiplier(CandidateCareerOrigin origin) => switch (origin) {
+    CandidateCareerOrigin.celebrityMedia => 3.2,
+    CandidateCareerOrigin.careerPolitician => 1.25,
+    CandidateCareerOrigin.business => 1.15,
+    CandidateCareerOrigin.publicAdministrator ||
+    CandidateCareerOrigin.publicSafety => .9,
+    CandidateCareerOrigin.community || CandidateCareerOrigin.advocacy => .78,
+    CandidateCareerOrigin.professional => .85,
+  };
 
   List<String> _visibleStrengths(
     CandidateBackgroundTemplate background,

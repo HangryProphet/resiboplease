@@ -1,6 +1,6 @@
 # Resibo, Please - Current System Report
 
-> August 2026 update: the post-election MVP is now a deterministic living-city simulation. Each of four term phases contains several events and project milestones. Revealed events appear on an inspectable map and share stable IDs with Chronicle, News, TV, CityBook, schema-7 persistence, and the final report. See [LIVING_CITY_SIMULATION.md](LIVING_CITY_SIMULATION.md).
+> August 2026 update: the post-election MVP is now a deterministic 365-day living procedural city simulation. Time advances automatically at selectable speeds; current state drives event timing, chains, project progress, and consequences. Dated events appear on an interactive map and share stable IDs with Chronicle, News, TV, CityBook, schema-8 persistence, and the final report. See [CITY_SIMULATION_ARCHITECTURE.md](CITY_SIMULATION_ARCHITECTURE.md).
 
 ## 1. Current System Overview
 
@@ -18,7 +18,7 @@ The current version supports one complete local gameplay loop:
 4. Collect important findings on a personal Receipts Board.
 5. Vote for one candidate.
 6. Reveal the winning candidate.
-7. Advance through a four-phase term.
+7. Observe or fast-forward a deterministic 365-day living term.
 8. Read the final term report.
 
 All candidates, political parties, media outlets, records, and events are
@@ -50,7 +50,7 @@ name-pool tag, age group, and visual-archetype hint. The same portrait may have
 a different fictional identity in another world, but it cannot appear twice in
 one election.
 
-The world seed and `generationVersion: 1` are passed through a stable derived
+The world seed and the current candidate generation version are passed through a stable derived
 sub-seed function. Independent paths exist for portrait selection and each
 candidate's identity, truth, history, platform, Biography, Campaign Trail,
 CityBook, debate, news, and evidence. This prevents an extra random draw in one
@@ -71,9 +71,12 @@ portrait + compatible fictional name
 The hidden truth includes competence and implementation tradeoffs, integrity,
 corruption risk, coalition skill, communication, budget discipline, crisis
 response, adaptability, experience, populism, ambition, policy strengths,
-personality tags, information footprint, controversies with non-binary truth
-statuses, and political/social relationships. The quality band and raw values
-are simulation-only. They are never shown as a voter score.
+personality tags, information footprint, career origin, controversies with
+non-binary truth statuses, and political/social relationships. Career origin
+can be political, administrative, professional, business, celebrity/media,
+community, advocacy, or public safety. It controls plausible record categories
+and public footprint, not candidate morality or quality. The quality band and
+raw values are simulation-only. They are never shown as a voter score.
 
 The generated presentation volume per candidate is currently:
 
@@ -91,6 +94,12 @@ Candidate field experience affects generated experience. Campaign noise affects
 the amount of public Campaign Trail/CityBook material, but does not reroll
 identity or hidden truth. City problems bias backgrounds and promises without
 forcing every candidate to be a perfect match.
+
+Career origins are weighted and de-duplicated procedurally. An election may
+have no celebrity/outsider, commonly has one broader-background candidate, and
+can occasionally have more; no ballot index is reserved for an actor or other
+outsider. Non-officeholders receive professional, company, media, service, or
+civic-organization records instead of fabricated government procurement files.
 
 The complete generated election is serialized in the current local save schema 7 (introduced in schema 6). It
 includes candidate objects, portrait assignments, truth profiles, histories,
@@ -674,6 +683,16 @@ Every normal generated candidate has a CityBook profile with:
 - a stable thread of ten post-specific fictional comments per post; and
 - optional links to a receipt, debate context, city issue, or related news.
 
+Candidate portraits now use one reusable circular avatar crop with
+`BoxFit.cover`, so the dossier's rectangular portrait frame cannot leak into
+CityBook. Each comment also stores a deterministic reaction distribution based
+on its tone/archetype and the parent post's actual engagement. The comment UI
+shows up to three dominant icons plus the total, keeps counts below parent-post
+reach, and naturally permits zero-reaction comments. Internal account-archetype
+metadata is retained for procedural wording, but labels such as "Recently
+created" or "Repeated slogan pattern" are no longer rendered as answers for the
+player.
+
 The preserved authored fixture still provides Maya, Julian, and Victor for
 stable UI/reference tests. For example, Maya's clinic-expansion post appears as
 `cb_maya_clinics`. It makes a candidate-owned public claim, shows a mixed
@@ -838,20 +857,105 @@ reveal.
 
 ### Term Simulation
 
-After the election, the chosen candidate becomes the city's leader. The player
-advances through four explainable phases. Candidate abilities, city problems,
-implementation limits, and seeded events determine how city indicators change.
+After the election, the chosen candidate becomes the city's leader and the
+post-election screen opens on a living illustrated map. The player remains an
+observer/voter. The game automatically progresses from Day 0 through Day 365
+and displays a fictional date derived from that canonical day. The available
+controls are Pause, Day (one day per second), Week (seven days per pulse), Month
+(thirty days per pulse), and YEAR. YEAR is a bounded finish-year command rather
+than a repeating ninety-day speed: it processes remaining days through the
+same engine in logical batches, stops exactly at Day 365, and can resume after
+an event pause without skipping or duplicating history.
 
-Each term draws two major illustrated events from the current event families:
+The old four phases are retained internally as quarters: days 1-91, 92-182,
+183-273, and 274-365. They organize project reviews and the final report; they
+are no longer manually advanced. Settings persist four Critical Event
+Interruption modes. **Auto Open** pauses and opens critical/rare events.
+**Pause & Notify**, the default, pauses and shows a notice that the player may
+open. **Notify Only** continues while showing the notice. **Never Interrupt**
+neither opens nor pauses automatically. Every mode still records the event and
+its marker/media consequences.
 
-- typhoon response;
-- clinic outbreak;
-- water emergency;
-- employment shock; and
-- transport disruption.
+Each ordinary term also contains eight deterministic fictional World
+Conditions distributed through the year. Weather, economic, utility,
+logistics, health, school, holiday, and festival conditions have saved start
+days, durations, intensities, and a `natural` source. While active they modify
+event-template weights and project progress; they do not directly schedule a
+flood, crisis, or success. The simulation header shows the strongest current
+condition and its remaining days. A developer-level injector can add a
+condition tagged `sandbox`, and that source survives persistence. There is not
+yet a public Sandbox controls screen.
 
-The same city seed and candidate produce the same result, making the simulation
-consistent and testable rather than completely random.
+The map is the primary simulation UI. It uses a dedicated 90-degree overhead
+Bayhaven illustration rather than the older waterfront skyline. Its expanded
+city footprint extends the river, roads, neighborhoods, commercial blocks,
+parks, institutional areas, government services, and industrial outskirts
+around the central civic area, so the initial camera shows only part of the city
+and meaningful panning is required to explore it. Roads, bridges, districts,
+roofs, and landmark geography remain readable like a fictional navigation map.
+Touch/mouse pan, pinch/wheel zoom, and custom game-styled zoom controls operate
+on one square raster.
+
+Twenty-seven centralized normalized anchors cover civic, health, education,
+market, transport, media, sanitation, residential, commercial, public-safety,
+emergency, utility, park, industrial, logistics, road, and recreation uses.
+Nineteen of these are localized permanent tap targets distributed across the
+whole city, including City Hall, hospital, university, schools, market, mall,
+police headquarters, fire/disaster center, water works, waste center, news
+headquarters, terminal, Riverside, sports area, industry, and logistics.
+Labels stay compact and mostly appear only at closer zoom levels.
+
+Temporary event markers use deterministic weighted placement: their issue,
+event category, and authored preferred locations direct them toward sensible
+facilities before a district fallback is used. A stable radial spread keeps
+multiple pins from sitting directly on each other or hiding permanent
+landmarks. Pins remain attached to the map during pan and zoom, counter-scale to
+stay visually small, and retain a 48-by-48 mobile tap target. Marker lifetime
+still depends on event importance. Ambient stories usually receive no marker,
+while critical markers remain longer. Opening a temporary pin marks it as
+inspected and removes it from the map, but never deletes the event: the full
+record remains available in Event History, Chronicle, and related media views.
+Reduced Motion disables marker pulsing without removing information.
+
+City Hall is permanently tappable. Its overlay shows the elected mayor, broad
+public trust and budget health, overall city condition, and every promise-based
+project's progress and current stage. Projects receive one independently seeded
+review in each quarter. Policy knowledge, implementation, coalition ability,
+budget discipline, experience, project difficulty, fiscal room, corruption
+risk, and random variation influence progress. The player does not allocate
+money or control the mayor directly.
+
+The event engine processes lightweight daily state. A day roll filters and
+weights templates using active issues, severity/trend, indicator thresholds,
+current projects, budget, trust, corruption pressure, candidate attributes,
+quarter, recent event categories, issue/location/template cooldowns, pending
+follow-up hooks, and isolated derived seeds. It covers issue-driven,
+indicator-driven, administration, external, positive, political, everyday city
+life, and genuinely rare events. Positive conditions can create good events;
+neutral stories such as the City Hall cat or a viral tricycle can enter history
+without moving any statistic.
+
+Causal hooks create delayed event chains. Implemented examples include heavy
+rain leading to flooding and possible water/health consequences, roadworks
+leading to congestion and business complaints, and the existing flood cleanup,
+water repair, clinic recovery, employment recovery, road response, and audit
+follow-ups. Every follow-up stores its source event ID. Cooldowns prevent the
+same issue, template, chain, or location from dominating the feed.
+
+The full chronological Event History is opened from a separate button instead
+of occupying map space. It supports All, Major, Projects, and Community filters.
+Opening a marker shows location, date, factual summary, explanation, effects,
+chain context, reusable artwork where available, and only the Chronicle, News,
+TV, or Project actions that actually exist.
+
+The complete generated year is saved once. The current day gates what the
+player can see, so future events do not leak into Chronicle, News, TV, or
+CityBook. All later presentations use the same event ID and factual source.
+Reloading restores the date, selected speed, pause state, inspected markers,
+projects, indicators, issues, event chains, media links, and full generated
+history without rerolling past events. The same initial world, elected
+candidate, and generation version reproduce the same year; different seeds
+produce different timing and histories.
 
 ### Term Report
 
@@ -862,39 +966,72 @@ morally right or wrong.
 
 ### Public City Gallery API
 
-A completed Term Report now exposes **Publish City Snapshot**. Confirmation
-explains that only fictional public results are shared. A dedicated builder
-copies the city name, term, starting pressure, top issue, elected candidate and
-party, final condition, short summary, major issues, major events, and creation
-date into `PublicCitySnapshot`. It cannot serialize the world seed, save file,
-hidden candidate capabilities, investigation history, or private notes.
+Community identity is deliberately separate from normal play. Creating cities,
+investigating, voting, simulating, and saving locally never asks for a name. On
+the first Visit Cities open or publish attempt, a parchment game dialog asks
+only what other players should call the user. The validated 3–24 character name
+is stored in `player_profiles`; `supabase_flutter` silently creates and persists
+the anonymous Auth session that supplies the stable owner ID. No UUID, email,
+password, phone, avatar, biography, presence, or social graph appears in UI.
 
-The implementation calls the Supabase REST `city_snapshots` resource directly
-through Flutter's `http` package:
+A completed Term Report can publish its sanitized `PublicCitySnapshot` as
+Public or Private. The builder copies only city, term, starting pressure, top
+issue, elected candidate/party, final condition, short summary, major issues,
+major events, creation date, and privacy. It cannot serialize the world seed,
+save file, hidden candidate capabilities, investigation history, or private
+notes. The database assigns ownership from `auth.uid()` rather than accepting
+an owner field in the city POST body.
 
-- `POST /rest/v1/city_snapshots` publishes the sanitized completed term;
-- `GET /rest/v1/city_snapshots` retrieves up to 50 rows newest-first; and
-- `jsonEncode` and `jsonDecode` handle the request and response payloads in a
-  dedicated, screenshot-friendly API service.
+Database access remains explicit and screenshot-friendly in Flutter's `http`
+service: GET retrieves public cities, owned cities, profiles, search results,
+and one player's public cities; POST creates profiles and snapshots; PATCH
+changes only privacy; DELETE removes only an owned uploaded snapshot. JSON is
+encoded/decoded directly. Every request carries the authenticated user token so
+RLS can enforce ownership.
 
-The Term Report prevents duplicate taps while publishing and displays
-Publishing, Published, and Failed/Retry states. The main menu's Visit Cities
-button now opens a responsive gallery with loading, successful, empty,
-configuration, no-internet, invalid-response, server-failure, and Retry
-treatments. Cards show city, term, elected candidate, top issue, final
-condition, and summary; each card opens a public detail page.
+Visit Cities now contains a debounced server-side player search plus **Explore**
+and **My Cities**. Explore explicitly requests `is_public=eq.true` and cards show
+the owner's display name. Selecting a player opens only that player's public
+cities. My Cities returns both privacy states and provides View, Make Public /
+Make Private, and confirmed Delete Snapshot actions. Deleting remotely never
+deletes the local city save.
 
-The most recent successful GET response is cached through shared preferences.
-If a later request fails because the network is unavailable, cached city cards
-remain visible beneath an **Offline — showing saved results** notice. API
-configuration uses `SUPABASE_URL` and `SUPABASE_ANON_KEY` compile-time values.
-Only the normal client publishable/anon key is supported; no service-role key or
-database password belongs in the app.
+The last successful public and owned lists are cached separately; cached owned
+rows are accepted only when their owner matches the current authenticated
+session. Offline reads may remain visible, but publish/privacy/delete never
+pretend to succeed without a connection. Duplicate names, auth/RLS denial,
+deleted rows, timeouts, malformed JSON, unavailable configuration, and server
+failure map to short safe UI states. Configuration still uses client-safe
+`SUPABASE_URL` and `SUPABASE_ANON_KEY` values; service-role credentials and
+database passwords are rejected and do not belong in the app.
 
 ### Settings and Accessibility
 
 The app currently supports English and Filipino. It also includes persistent
-settings for reduced motion, high-contrast presentation, and dialogue sounds.
+settings for reduced motion, high-contrast presentation, dialogue sounds, UI
+sound effects, SFX volume, optional background music, music volume, and the four
+Critical Event Interruption behaviors described above.
+
+### Shared Audio System
+
+All short interface effects now pass through a centralized `GameAudioService`
+rather than creating a player for each widget. A small pool of low-latency
+players preloads and safely overlaps the cohesive CC0 effect vocabulary while a
+short throttle prevents rapid duplicate taps from creating excessive playback.
+Mappings cover general navigation, documents and receipts, bookmarks, social
+threads, ballot selection/submission, and normal, positive, negative, or
+critical simulation developments. Disabling Sound Effects immediately silences
+this layer; the separate Dialogue Sounds switch continues to control the R-8
+typewriter blip.
+
+The same service has three route-aware music contexts: menu, investigation, and
+simulation. It supports looping, fade transitions, persistent enable/volume
+settings, app lifecycle pause/resume, and temporary volume ducking during TV
+reports. Local music files are currently present at the three expected paths,
+but their redistribution licenses are not recorded and must be confirmed or
+replaced before a public release. Asset probing still makes missing optional
+tracks a safe no-op, and moving among Candidate Hub tabs or related
+investigation pages does not restart one context repeatedly.
 
 ## 4. Current Scope and Limitations
 

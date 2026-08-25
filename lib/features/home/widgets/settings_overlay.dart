@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/resibo_theme.dart';
 import '../../../core/settings/app_settings_controller.dart';
+import '../../../core/audio/game_audio_service.dart';
 import '../../../l10n/l10n_extensions.dart';
 import '../../../l10n/tv_broadcast_localizations.dart';
+import '../../../l10n/living_city_localizations.dart';
 import 'game_overlay_shell.dart';
 
 Future<void> showSettingsOverlay({
@@ -81,6 +83,41 @@ class _SettingsSheet extends StatelessWidget {
                       unawaited(controller.setHighContrast(value)),
                 ),
                 const SizedBox(height: 9),
+                _InformationTile(
+                  icon: Icons.text_fields_rounded,
+                  title: l10n.deviceTextSize,
+                  subtitle: l10n.deviceTextSizeDescription,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 13),
+          _SettingsSection(
+            icon: Icons.volume_up_rounded,
+            title: l10n.audio,
+            subtitle: l10n.audioDescription,
+            child: Column(
+              children: [
+                _SettingsSwitch(
+                  switchKey: const Key('sound_effects_setting'),
+                  icon: Icons.touch_app_rounded,
+                  title: l10n.soundEffects,
+                  subtitle: l10n.soundEffectsDescription,
+                  value: controller.soundEffects,
+                  onChanged: (value) =>
+                      unawaited(controller.setSoundEffects(value)),
+                ),
+                const SizedBox(height: 9),
+                _VolumeSlider(
+                  sliderKey: const Key('sfx_volume_setting'),
+                  icon: Icons.volume_down_rounded,
+                  label: l10n.sfxVolume,
+                  value: controller.sfxVolume,
+                  enabled: controller.soundEffects,
+                  onChanged: (value) =>
+                      unawaited(controller.setSfxVolume(value)),
+                ),
+                const SizedBox(height: 9),
                 _SettingsSwitch(
                   switchKey: const Key('dialogue_sounds_setting'),
                   icon: Icons.graphic_eq_rounded,
@@ -91,11 +128,45 @@ class _SettingsSheet extends StatelessWidget {
                       unawaited(controller.setDialogueSounds(value)),
                 ),
                 const SizedBox(height: 9),
-                _InformationTile(
-                  icon: Icons.text_fields_rounded,
-                  title: l10n.deviceTextSize,
-                  subtitle: l10n.deviceTextSizeDescription,
+                _SettingsSwitch(
+                  switchKey: const Key('music_setting'),
+                  icon: Icons.music_note_rounded,
+                  title: l10n.music,
+                  subtitle: l10n.musicDescription,
+                  value: controller.music,
+                  onChanged: (value) => unawaited(controller.setMusic(value)),
                 ),
+                const SizedBox(height: 9),
+                _VolumeSlider(
+                  sliderKey: const Key('music_volume_setting'),
+                  icon: Icons.library_music_rounded,
+                  label: l10n.musicVolume,
+                  value: controller.musicVolume,
+                  enabled: controller.music,
+                  onChanged: (value) =>
+                      unawaited(controller.setMusicVolume(value)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 13),
+          _SettingsSection(
+            icon: Icons.notification_important_rounded,
+            title: context.criticalInterruption,
+            subtitle: context.criticalInterruptionDescription,
+            child: Column(
+              children: [
+                for (final mode in CriticalEventInterruption.values) ...[
+                  _CriticalInterruptionChoice(
+                    mode: mode,
+                    selected: controller.criticalEventInterruption == mode,
+                    onPressed: () => unawaited(
+                      controller.setCriticalEventInterruption(mode),
+                    ),
+                  ),
+                  if (mode != CriticalEventInterruption.values.last)
+                    const SizedBox(height: 8),
+                ],
               ],
             ),
           ),
@@ -179,21 +250,15 @@ class _SettingsSheet extends StatelessWidget {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.settings_backup_restore_rounded),
-        title: Text(l10n.resetSettingsQuestion),
-        content: Text(l10n.resetSettingsConfirmation),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            key: const Key('confirm_reset_settings'),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.reset),
-          ),
-        ],
+      builder: (dialogContext) => _SettingsDialog(
+        icon: Icons.settings_backup_restore_rounded,
+        title: l10n.resetSettingsQuestion,
+        body: l10n.resetSettingsConfirmation,
+        secondaryLabel: l10n.cancel,
+        onSecondary: () => Navigator.pop(dialogContext, false),
+        primaryKey: const Key('confirm_reset_settings'),
+        primaryLabel: l10n.reset,
+        onPrimary: () => Navigator.pop(dialogContext, true),
       ),
     );
     if (confirmed != true || !context.mounted) return;
@@ -210,18 +275,112 @@ class _SettingsSheet extends StatelessWidget {
     required String body,
   }) => showDialog<void>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: Text(title),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: Text(body),
-      ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: Text(context.l10n.close),
+    builder: (dialogContext) => _SettingsDialog(
+      icon: Icons.info_outline_rounded,
+      title: title,
+      body: body,
+      primaryLabel: context.l10n.close,
+      onPrimary: () => Navigator.pop(dialogContext),
+    ),
+  );
+}
+
+class _SettingsDialog extends StatelessWidget {
+  const _SettingsDialog({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.primaryLabel,
+    required this.onPrimary,
+    this.primaryKey,
+    this.secondaryLabel,
+    this.onSecondary,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+  final String primaryLabel;
+  final VoidCallback onPrimary;
+  final Key? primaryKey;
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    backgroundColor: Colors.transparent,
+    insetPadding: const EdgeInsets.all(20),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 480),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFF4D5), Color(0xFFE8C989)],
+          ),
+          border: Border.all(color: const Color(0xFF101820), width: 4),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: const [
+            BoxShadow(color: Colors.black87, offset: Offset(5, 7)),
+          ],
         ),
-      ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: ResiboColors.mutedRed, size: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title.toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF172332),
+                      fontFamily: 'LilitaOne',
+                      fontSize: 22,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              body,
+              style: const TextStyle(
+                color: Color(0xFF172332),
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 9,
+              runSpacing: 9,
+              children: [
+                if (secondaryLabel != null && onSecondary != null)
+                  ChunkyPaperButton(
+                    label: secondaryLabel!,
+                    icon: Icons.arrow_back_rounded,
+                    expand: false,
+                    sound: GameSound.uiBack,
+                    onPressed: onSecondary,
+                  ),
+                ChunkyPaperButton(
+                  buttonKey: primaryKey,
+                  label: primaryLabel,
+                  icon: Icons.check_rounded,
+                  expand: false,
+                  color: ResiboColors.mutedRed,
+                  sound: GameSound.uiConfirm,
+                  onPressed: onPrimary,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }
@@ -311,7 +470,10 @@ class _LanguageChoice extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         key: Key('language_${language.name}'),
-        onTap: onPressed,
+        onTap: () {
+          GameAudioScope.maybeOf(context)?.play(GameSound.uiTab);
+          onPressed();
+        },
         borderRadius: BorderRadius.circular(4),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
@@ -386,7 +548,138 @@ class _SettingsSwitch extends StatelessWidget {
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
       subtitle: Text(subtitle),
       value: value,
-      onChanged: onChanged,
+      onChanged: (value) {
+        GameAudioScope.maybeOf(context)?.play(GameSound.uiConfirm);
+        onChanged(value);
+      },
+    ),
+  );
+}
+
+class _VolumeSlider extends StatelessWidget {
+  const _VolumeSlider({
+    required this.sliderKey,
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final Key sliderKey;
+  final IconData icon;
+  final String label;
+  final double value;
+  final bool enabled;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.fromLTRB(12, 8, 10, 5),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFFCF1),
+      border: Border.all(color: const Color(0xFF9B805B), width: 2),
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, color: enabled ? ResiboColors.navy : Colors.grey),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$label · ${(value * 100).round()}%',
+                style: const TextStyle(
+                  color: ResiboColors.navy,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: ResiboColors.teal,
+                  inactiveTrackColor: const Color(0xFFD7C7A7),
+                  thumbColor: const Color(0xFFF0B64F),
+                  overlayColor: ResiboColors.teal.withValues(alpha: .15),
+                  trackHeight: 6,
+                ),
+                child: Slider(
+                  key: sliderKey,
+                  value: value,
+                  divisions: 10,
+                  onChanged: enabled ? onChanged : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CriticalInterruptionChoice extends StatelessWidget {
+  const _CriticalInterruptionChoice({
+    required this.mode,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final CriticalEventInterruption mode;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      key: Key('critical_interruption_${mode.name}'),
+      onTap: () {
+        GameAudioScope.maybeOf(context)?.play(GameSound.uiTab);
+        onPressed();
+      },
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFDCE9D4) : const Color(0xFFFFFCF1),
+          border: Border.all(
+            color: selected ? ResiboColors.teal : const Color(0xFF9B805B),
+            width: selected ? 3 : 2,
+          ),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected
+                  ? Icons.notification_important_rounded
+                  : Icons.notifications_none_rounded,
+              color: selected ? ResiboColors.teal : ResiboColors.navy,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.criticalInterruptionLabel(mode),
+                    style: const TextStyle(
+                      color: ResiboColors.navy,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    context.criticalInterruptionDetails(mode),
+                    style: const TextStyle(fontSize: 12, height: 1.25),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }

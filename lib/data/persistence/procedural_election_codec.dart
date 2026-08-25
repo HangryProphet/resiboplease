@@ -163,6 +163,7 @@ abstract final class ProceduralElectionCodec {
     'motivations': truth.motivations,
     'hidden_risks': truth.hiddenRisks,
     'information_footprint': truth.informationFootprint.name,
+    'career_origin': truth.careerOrigin.name,
     'personality_tags': truth.personalityTags,
     'controversies': truth.controversies
         .map(
@@ -214,6 +215,11 @@ abstract final class ProceduralElectionCodec {
           CandidateInformationFootprint.values,
           json['information_footprint'],
           'information_footprint',
+        ),
+        careerOrigin: _optionalEnum(
+          CandidateCareerOrigin.values,
+          json['career_origin'],
+          CandidateCareerOrigin.careerPolitician,
         ),
         personalityTags: _strings(json, 'personality_tags'),
         controversies: _maps(json, 'controversies')
@@ -828,6 +834,10 @@ abstract final class ProceduralElectionCodec {
             'archetype': comment.archetype.name,
             'text': comment.text,
             'reaction_count': comment.reactionCount,
+            'reaction_distribution': {
+              for (final entry in comment.reactions.counts.entries)
+                entry.key.name: entry.value,
+            },
             'account_clues': comment.accountClues,
           },
         )
@@ -850,12 +860,34 @@ abstract final class ProceduralElectionCodec {
               'archetype',
             ),
             text: _text(comment, 'text'),
-            reactionCount: _int(comment, 'reaction_count'),
+            reactions: _commentReactionsFromJson(comment),
             accountClues: _strings(comment, 'account_clues'),
           ),
         )
         .toList(),
   );
+
+  static CityBookReactionDistribution _commentReactionsFromJson(
+    Map<String, Object?> json,
+  ) {
+    final saved = json['reaction_distribution'];
+    if (saved is Map) {
+      return CityBookReactionDistribution(
+        _map(saved, 'reaction_distribution').map(
+          (name, count) => MapEntry(
+            _enum(CityBookReaction.values, name, 'comment reaction'),
+            _number(count, 'comment reaction count').toInt(),
+          ),
+        ),
+      );
+    }
+    final legacyTotal = json['reaction_count'] is num
+        ? (json['reaction_count'] as num).toInt()
+        : 0;
+    return CityBookReactionDistribution({
+      if (legacyTotal > 0) CityBookReaction.like: legacyTotal,
+    });
+  }
 
   static Map<String, Object?> _newsEventToJson(UnderlyingNewsEvent event) => {
     'id': event.id,
@@ -988,6 +1020,18 @@ abstract final class ProceduralElectionCodec {
       if (item.name == value) return item;
     }
     throw FormatException('Unknown $field value: $value.');
+  }
+
+  static T _optionalEnum<T extends Enum>(
+    List<T> values,
+    Object? value,
+    T fallback,
+  ) {
+    if (value is! String) return fallback;
+    return values.firstWhere(
+      (item) => item.name == value,
+      orElse: () => fallback,
+    );
   }
 
   static List<T> _enumList<T extends Enum>(

@@ -14,6 +14,11 @@ class InformationEcosystemStrings {
   bool get isFilipino => languageCode == 'fil';
 
   String get cityBook => 'CityBook';
+  String get returnToCandidates =>
+      isFilipino ? 'Bumalik sa mga kandidato' : 'Return to candidates';
+  String get affiliation => isFilipino ? 'Kaugnayan' : 'Affiliation';
+  String get openCivicArchive =>
+      isFilipino ? 'Buksan ang Civic Archive' : 'Open Civic Archive';
   String get posts => isFilipino ? 'Mga Post' : 'Posts';
   String get about => isFilipino ? 'Tungkol' : 'About';
   String get media => isFilipino ? 'Media' : 'Media';

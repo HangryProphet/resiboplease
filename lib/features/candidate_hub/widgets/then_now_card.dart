@@ -4,6 +4,7 @@ import '../../../app/theme/resibo_theme.dart';
 import '../../../domain/models/candidate_biography.dart';
 import '../../../l10n/candidate_experience_localizations.dart';
 import '../../dossier/widgets/dossier_ui.dart';
+import '../../information/widgets/information_actions.dart';
 
 class ThenNowCard extends StatefulWidget {
   const ThenNowCard({required this.comparison, this.onOpenEvidence, super.key});
@@ -72,15 +73,13 @@ class _ThenNowCardState extends State<ThenNowCard> {
           },
         ),
         const SizedBox(height: 9),
-        TextButton.icon(
+        _ContextToggle(
           key: Key('toggle_context_${widget.comparison.id}'),
           onPressed: () => setState(() => _showContext = !_showContext),
-          icon: Icon(_showContext ? Icons.expand_less : Icons.expand_more),
-          label: Text(
-            _showContext
-                ? context.candidateStrings.hideContext
-                : context.candidateStrings.viewContext,
-          ),
+          expanded: _showContext,
+          label: _showContext
+              ? context.candidateStrings.hideContext
+              : context.candidateStrings.viewContext,
         ),
         if (_showContext) ...[
           Container(
@@ -111,13 +110,11 @@ class _ThenNowCardState extends State<ThenNowCard> {
                     spacing: 6,
                     children: [
                       for (final evidenceId in widget.comparison.evidenceIds)
-                        ActionChip(
-                          key: Key('then_now_evidence_$evidenceId'),
-                          avatar: const Icon(
-                            Icons.receipt_long_rounded,
-                            size: 15,
-                          ),
-                          label: Text(context.candidateStrings.openEvidence),
+                        InformationActionButton(
+                          buttonKey: Key('then_now_evidence_$evidenceId'),
+                          icon: Icons.receipt_long_rounded,
+                          color: ResiboColors.teal,
+                          label: context.candidateStrings.openEvidence,
                           onPressed: () => widget.onOpenEvidence!(evidenceId),
                         ),
                     ],
@@ -128,6 +125,65 @@ class _ThenNowCardState extends State<ThenNowCard> {
           ),
         ],
       ],
+    ),
+  );
+}
+
+class _ContextToggle extends StatelessWidget {
+  const _ContextToggle({
+    required this.label,
+    required this.expanded,
+    required this.onPressed,
+    super.key,
+  });
+
+  final String label;
+  final bool expanded;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.centerLeft,
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(6),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFFFF5D9), Color(0xFFE7D4A9)],
+            ),
+            border: Border.all(color: dossierInk, width: 2),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: const [
+              BoxShadow(color: Colors.black38, offset: Offset(0, 2)),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                expanded ? Icons.expand_less : Icons.menu_book_rounded,
+                size: 17,
+                color: dossierInk,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  color: dossierInk,
+                  fontFamily: 'LilitaOne',
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     ),
   );
 }

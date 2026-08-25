@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme/resibo_theme.dart';
 import '../../../core/assets/visual_asset_catalog.dart';
+import '../../../core/audio/game_audio_service.dart';
 import '../../../domain/models/pre_election_city_brief.dart';
 import '../../../domain/models/city_problem.dart';
 import '../../../l10n/city_brief_localizations.dart';
@@ -47,6 +48,7 @@ class CityBriefHeader extends StatelessWidget {
           buttonKey: const Key('city_brief_home'),
           tooltip: context.l10n.returnHome,
           icon: Icons.home_rounded,
+          sound: GameSound.uiBack,
           onPressed: () => context.go('/'),
         ),
         const SizedBox(width: 9),
@@ -84,7 +86,8 @@ class CityBriefHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF675946),
-                    fontSize: 11,
+                    fontFamily: 'LilitaOne',
+                    fontSize: 14,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -99,6 +102,7 @@ class CityBriefHeader extends StatelessWidget {
             tooltip: context.l10n.reviewBallot,
             icon: Icons.how_to_vote_rounded,
             color: ResiboColors.mutedRed,
+            sound: GameSound.voteSelect,
             onPressed: () => context.go('/vote'),
           )
         else
@@ -115,6 +119,7 @@ class _HeaderIconButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.color = const Color(0xFF304A61),
+    this.sound = GameSound.uiTap,
   });
 
   final Key buttonKey;
@@ -122,6 +127,7 @@ class _HeaderIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
   final Color color;
+  final GameSound sound;
 
   @override
   Widget build(BuildContext context) => Tooltip(
@@ -135,7 +141,10 @@ class _HeaderIconButton extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         key: buttonKey,
-        onTap: onPressed,
+        onTap: () {
+          GameAudioScope.maybeOf(context)?.play(sound);
+          onPressed();
+        },
         child: SizedBox(
           width: 43,
           height: 43,
@@ -312,7 +321,10 @@ class CityActionButton extends StatelessWidget {
         ),
         child: InkWell(
           key: buttonKey,
-          onTap: onPressed,
+          onTap: () {
+            GameAudioScope.maybeOf(context)?.play(GameSound.uiTap);
+            onPressed();
+          },
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 50),
             child: Padding(

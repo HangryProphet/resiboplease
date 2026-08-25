@@ -1,4 +1,6 @@
--- Resibo, Please — Public City Gallery (MVP)
+-- Resibo, Please — Public City Gallery V1 (SUPERSEDED)
+-- Do not run this after V2. New setups and migrations must use
+-- SUPABASE_CITY_GALLERY_V2.sql, which adds authenticated ownership and privacy.
 -- Run this in the Supabase SQL editor for the project used by the app.
 
 create extension if not exists pgcrypto;
@@ -25,9 +27,21 @@ create table if not exists public.city_snapshots (
   ),
   major_issues jsonb not null default '[]'::jsonb check (
     jsonb_typeof(major_issues) = 'array'
+    and jsonb_array_length(major_issues) <= 8
+    and pg_column_size(major_issues) <= 2048
+    and not jsonb_path_exists(
+      major_issues,
+      '$[*] ? (@.type() != "string")'
+    )
   ),
   major_events jsonb not null default '[]'::jsonb check (
     jsonb_typeof(major_events) = 'array'
+    and jsonb_array_length(major_events) <= 8
+    and pg_column_size(major_events) <= 2048
+    and not jsonb_path_exists(
+      major_events,
+      '$[*] ? (@.type() != "string")'
+    )
   ),
   created_at timestamptz not null default now()
 );
@@ -54,6 +68,8 @@ create policy "Sanitized city snapshots are publishable"
     and term_number between 1 and 100
     and jsonb_array_length(major_issues) <= 8
     and jsonb_array_length(major_events) <= 8
+    and pg_column_size(major_issues) <= 2048
+    and pg_column_size(major_events) <= 2048
   );
 
 grant select, insert on table public.city_snapshots to anon, authenticated;

@@ -36,6 +36,9 @@ class CandidateImageSlot extends StatelessWidget {
         'assets/images/candidates/victor_chen/victor_chen_portrait.png',
   };
 
+  static String? assetPathFor(String assetKey) =>
+      _currentAssets[assetKey] ?? candidatePortraitById(assetKey)?.assetPath;
+
   @override
   Widget build(BuildContext context) => Semantics(
     image: true,
@@ -55,8 +58,7 @@ class CandidateImageSlot extends StatelessWidget {
   );
 
   Widget _assetOrFallback() {
-    final path =
-        _currentAssets[assetKey] ?? candidatePortraitById(assetKey)?.assetPath;
+    final path = assetPathFor(assetKey);
     if (path == null) return _fallback();
     return Image.asset(
       path,
@@ -120,4 +122,79 @@ class CandidateImageSlot extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Circular candidate portrait without the rectangular frame used by dossier
+/// art slots. This prevents square corners or a baked card surface from
+/// showing inside CityBook avatars.
+class CandidateAvatar extends StatelessWidget {
+  const CandidateAvatar({
+    required this.candidateId,
+    required this.assetKey,
+    required this.semanticLabel,
+    required this.color,
+    this.size = 48,
+    this.alignment = Alignment.topCenter,
+    super.key,
+  });
+
+  final String candidateId;
+  final String assetKey;
+  final String semanticLabel;
+  final Color color;
+  final double size;
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final path = CandidateImageSlot.assetPathFor(assetKey);
+    return Semantics(
+      image: true,
+      label: semanticLabel,
+      child: Container(
+        width: size,
+        height: size,
+        padding: const EdgeInsets.all(3),
+        decoration: const BoxDecoration(
+          color: Color(0xFFFFF3D2),
+          shape: BoxShape.circle,
+          boxShadow: [BoxShadow(color: Colors.black45, offset: Offset(0, 2))],
+        ),
+        child: ClipOval(
+          key: Key('candidate_avatar_$candidateId'),
+          child: path == null
+              ? _AvatarFallback(candidateId: candidateId, color: color)
+              : Image.asset(
+                  path,
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                  alignment: alignment,
+                  excludeFromSemantics: true,
+                  errorBuilder: (_, _, _) =>
+                      _AvatarFallback(candidateId: candidateId, color: color),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarFallback extends StatelessWidget {
+  const _AvatarFallback({required this.candidateId, required this.color});
+
+  final String candidateId;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color.lerp(color, Colors.white, .28)!, color],
+      ),
+    ),
+    child: Icon(Icons.person_rounded, color: Colors.white70, size: 30),
+  );
 }

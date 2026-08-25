@@ -138,17 +138,15 @@ class CampaignFeedCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                OutlinedButton.icon(
+                ChunkyActionButton(
                   key: Key('inspect_content_${item.id}'),
                   onPressed: onToggleExpanded,
-                  icon: Icon(
-                    expanded
-                        ? Icons.expand_less_rounded
-                        : Icons.expand_more_rounded,
-                  ),
-                  label: Text(
-                    expanded ? strings.closeDetails : strings.openDetails,
-                  ),
+                  compact: true,
+                  color: ResiboColors.navy,
+                  icon: expanded
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded,
+                  label: expanded ? strings.closeDetails : strings.openDetails,
                 ),
                 AnimatedCrossFade(
                   duration: const Duration(milliseconds: 220),

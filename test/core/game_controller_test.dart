@@ -2,11 +2,264 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resiboplease/core/state/game_controller.dart';
+import 'package:resiboplease/core/settings/app_settings_controller.dart';
 import 'package:resiboplease/data/persistence/run_repository.dart';
 import 'package:resiboplease/data/persistence/run_save_data.dart';
 import 'package:resiboplease/domain/models/city_run_configuration.dart';
+import 'package:resiboplease/domain/models/living_city_simulation.dart';
 
 void main() {
+  test(
+    'simulation speeds process logical day batches and pause blocks ticks',
+    () {
+      final controller = GameController(activeRun: true);
+      addTearDown(controller.dispose);
+      controller.castVote(
+        candidate: controller.scenario.candidates.first,
+        topIssue: controller.scenario.city.problems.first.id,
+        confidence: .7,
+      );
+
+      expect(controller.simulationDay, 0);
+      controller.advanceSimulationDays(
+        SimulationSpeed.day.daysPerPulse,
+        interruptionPreference: CriticalEventInterruption.neverInterrupt,
+      );
+      expect(controller.simulationDay, 1);
+
+      controller.setSimulationSpeed(SimulationSpeed.week);
+      controller.advanceSimulationDays(
+        controller.simulationSpeed.daysPerPulse,
+        interruptionPreference: CriticalEventInterruption.neverInterrupt,
+      );
+      expect(controller.simulationDay, 8);
+
+      controller.pauseSimulation();
+      controller.advanceSimulationDays(
+        30,
+        interruptionPreference: CriticalEventInterruption.neverInterrupt,
+      );
+      expect(controller.simulationDay, 8);
+
+      controller.setSimulationSpeed(SimulationSpeed.month);
+      controller.advanceSimulationDays(
+        controller.simulationSpeed.daysPerPulse,
+        interruptionPreference: CriticalEventInterruption.neverInterrupt,
+      );
+      expect(controller.simulationDay, 38);
+    },
+  );
+
+  test('year fast-forward preserves events and reaches day 365', () {
+    final controller = GameController(activeRun: true);
+    addTearDown(controller.dispose);
+    controller.castVote(
+      candidate: controller.scenario.candidates.first,
+      topIssue: controller.scenario.city.problems.first.id,
+      confidence: .6,
+    );
+    final expectedIds = controller.termResult!.livingCity.eventHistory
+        .map((event) => event.id)
+        .toList(growable: false);
+    final result = controller.fastForwardToYearEnd(
+      interruptionPreference: CriticalEventInterruption.neverInterrupt,
+    );
+
+    expect(result?.yearCompletedNow, isTrue);
+    expect(controller.simulationDay, 365);
+    expect(controller.simulationPaused, isTrue);
+    expect(controller.isTermReportReady, isTrue);
+    expect(
+      controller.termResult!.livingCity.eventHistory.map((event) => event.id),
+      orderedEquals(expectedIds),
+    );
+  });
+
+  test('important auto-pause stops at the first qualifying event', () {
+    final controller = GameController(activeRun: true);
+    addTearDown(controller.dispose);
+    controller.castVote(
+      candidate: controller.scenario.candidates.first,
+      topIssue: controller.scenario.city.problems.first.id,
+      confidence: .6,
+    );
+    final firstImportant = controller.termResult!.livingCity.eventHistory
+        .firstWhere(
+          (event) =>
+              event.importance == CityEventImportance.critical ||
+              event.importance == CityEventImportance.rare,
+        );
+    controller.setSimulationSpeed(SimulationSpeed.year);
+    final interruption = controller.advanceSimulationDays(
+      365,
+      interruptionPreference: CriticalEventInterruption.pauseAndNotify,
+    );
+
+    expect(interruption?.criticalEvent?.id, firstImportant.id);
+    expect(interruption?.shouldNotify, isTrue);
+    expect(interruption?.shouldOpenEvent, isFalse);
+    expect(controller.simulationDay, firstImportant.day);
+    expect(controller.simulationPaused, isTrue);
+  });
+
+  test('all critical-event interruption modes preserve event history', () {
+    for (final mode in CriticalEventInterruption.values) {
+      final controller = GameController(activeRun: true);
+      addTearDown(controller.dispose);
+      controller.castVote(
+        candidate: controller.scenario.candidates.first,
+        topIssue: controller.scenario.city.problems.first.id,
+        confidence: .6,
+      );
+      final history = controller.termResult!.livingCity.eventHistory;
+      final originalIds = history.map((event) => event.id).toList();
+      final firstCritical = history.firstWhere(
+        (event) =>
+            event.day < 365 &&
+            (event.importance == CityEventImportance.critical ||
+                event.importance == CityEventImportance.rare),
+      );
+      final result = controller.advanceSimulationDays(
+        firstCritical.day + 1,
+        interruptionPreference: mode,
+      )!;
+
+      expect(
+        controller.termResult!.livingCity.eventHistory.map((event) => event.id),
+        orderedEquals(originalIds),
+      );
+      switch (mode) {
+        case CriticalEventInterruption.autoOpen:
+          expect(result.criticalEvent?.id, firstCritical.id);
+          expect(result.shouldOpenEvent, isTrue);
+          expect(result.shouldNotify, isFalse);
+          expect(result.paused, isTrue);
+          expect(result.toDay, firstCritical.day);
+        case CriticalEventInterruption.pauseAndNotify:
+          expect(result.criticalEvent?.id, firstCritical.id);
+          expect(result.shouldOpenEvent, isFalse);
+          expect(result.shouldNotify, isTrue);
+          expect(result.paused, isTrue);
+          expect(result.toDay, firstCritical.day);
+        case CriticalEventInterruption.notifyOnly:
+          expect(result.criticalEvent?.id, firstCritical.id);
+          expect(result.shouldOpenEvent, isFalse);
+          expect(result.shouldNotify, isTrue);
+          expect(result.paused, isFalse);
+          expect(result.toDay, firstCritical.day + 1);
+        case CriticalEventInterruption.neverInterrupt:
+          expect(result.criticalEvent, isNull);
+          expect(result.shouldOpenEvent, isFalse);
+          expect(result.shouldNotify, isFalse);
+          expect(result.paused, isFalse);
+          expect(result.toDay, firstCritical.day + 1);
+      }
+    }
+  });
+
+  test('YEAR reaches the exact finish from day and month positions', () {
+    for (final startingDay in [11, 137]) {
+      final controller = GameController(activeRun: true);
+      addTearDown(controller.dispose);
+      controller.castVote(
+        candidate: controller.scenario.candidates.first,
+        topIssue: controller.scenario.city.problems.first.id,
+        confidence: .6,
+      );
+      controller.advanceSimulationDays(
+        startingDay,
+        interruptionPreference: CriticalEventInterruption.neverInterrupt,
+      );
+
+      final result = controller.fastForwardToYearEnd(
+        interruptionPreference: CriticalEventInterruption.neverInterrupt,
+      );
+
+      expect(result?.fromDay, startingDay);
+      expect(result?.toDay, 365);
+      expect(result?.yearCompletedNow, isTrue);
+      expect(controller.simulationDay, 365);
+      expect(
+        controller.fastForwardToYearEnd(
+          interruptionPreference: CriticalEventInterruption.neverInterrupt,
+        ),
+        isNull,
+      );
+    }
+  });
+
+  test('a paused YEAR command can resume without rerolling events', () {
+    final controller = GameController(activeRun: true);
+    addTearDown(controller.dispose);
+    controller.castVote(
+      candidate: controller.scenario.candidates.first,
+      topIssue: controller.scenario.city.problems.first.id,
+      confidence: .6,
+    );
+    final originalIds = controller.termResult!.livingCity.eventHistory
+        .map((event) => event.id)
+        .toList();
+
+    final interrupted = controller.fastForwardToYearEnd(
+      interruptionPreference: CriticalEventInterruption.pauseAndNotify,
+    )!;
+    expect(interrupted.criticalEvent, isNotNull);
+    expect(controller.simulationDay, lessThan(365));
+
+    final resumed = controller.fastForwardToYearEnd(
+      interruptionPreference: CriticalEventInterruption.neverInterrupt,
+    )!;
+    expect(resumed.toDay, 365);
+    expect(
+      controller.termResult!.livingCity.eventHistory.map((event) => event.id),
+      orderedEquals(originalIds),
+    );
+  });
+
+  test(
+    'simulation date, speed, inspection, and history restore without reroll',
+    () async {
+      final repository = MemoryRunRepository();
+      final controller = GameController(
+        repository: repository,
+        activeRun: true,
+      );
+      final candidate = controller.scenario.candidates.first;
+      controller.castVote(
+        candidate: candidate,
+        topIssue: controller.scenario.city.problems.first.id,
+        confidence: .7,
+      );
+      final originalHistory = controller.termResult!.livingCity.eventHistory
+          .map((event) => event.id)
+          .toList(growable: false);
+      controller.setSimulationSpeed(SimulationSpeed.month);
+      controller.advanceSimulationDays(
+        120,
+        interruptionPreference: CriticalEventInterruption.neverInterrupt,
+      );
+      final inspected = controller.termResult!.livingCity
+          .eventsThroughDay(controller.simulationDay)
+          .first;
+      controller.markCityEventInspected(inspected.id);
+      controller.pauseSimulation();
+      await controller.flushSaves();
+
+      final restored = GameController(repository: repository);
+      addTearDown(restored.dispose);
+      await restored.restore();
+
+      expect(restored.simulationDay, 120);
+      expect(restored.simulationSpeed, SimulationSpeed.month);
+      expect(restored.simulationPaused, isTrue);
+      expect(restored.inspectedCityEventIds, contains(inspected.id));
+      expect(
+        restored.termResult!.livingCity.eventHistory.map((event) => event.id),
+        orderedEquals(originalHistory),
+      );
+    },
+  );
+
   test('a new run becomes active and clears previous decisions', () {
     final controller = GameController();
     final candidate = controller.scenario.candidates.first;

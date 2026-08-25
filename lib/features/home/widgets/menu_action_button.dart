@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/audio/game_audio_service.dart';
+
 class MenuActionButton extends StatelessWidget {
   const MenuActionButton({
     required this.label,
@@ -47,7 +49,10 @@ class MenuActionButton extends StatelessWidget {
           ),
           child: InkWell(
             key: buttonKey,
-            onTap: onPressed,
+            onTap: () {
+              GameAudioScope.maybeOf(context)?.play(GameSound.uiTap);
+              onPressed();
+            },
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 56),
               child: Stack(

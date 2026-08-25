@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/resibo_theme.dart';
 import '../../core/state/game_controller.dart';
+import '../../core/audio/game_audio_service.dart';
 import '../../domain/models/candidate.dart';
 import '../../domain/models/citybook.dart';
 import '../../l10n/information_ecosystem_localizations.dart';
@@ -46,7 +47,7 @@ class _CityBookProfileScreenState extends State<CityBookProfileScreen> {
           backgroundColor: const Color(0xFF0B1725),
           body: Center(
             child: ChunkyActionButton(
-              label: 'Return to candidates',
+              label: context.informationStrings.returnToCandidates,
               icon: Icons.arrow_back_rounded,
               color: const Color(0xFF304A61),
               onPressed: () => context.go('/candidates'),
@@ -98,7 +99,12 @@ class _CityBookProfileScreenState extends State<CityBookProfileScreen> {
                             const SizedBox(height: 12),
                             _CityBookTabs(
                               selected: _tab,
-                              onSelected: (tab) => setState(() => _tab = tab),
+                              onSelected: (tab) {
+                                GameAudioScope.maybeOf(
+                                  context,
+                                )?.play(GameSound.uiTab);
+                                setState(() => _tab = tab);
+                              },
                             ),
                             const SizedBox(height: 14),
                             switch (_tab) {
@@ -172,24 +178,12 @@ class CityBookProfileHeader extends StatelessWidget {
               Positioned(
                 left: 18,
                 bottom: -42,
-                child: Container(
-                  width: 96,
-                  height: 96,
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: ClipOval(
-                    child: CandidateImageSlot(
-                      candidateId: candidate.id,
-                      assetKey: experience.portraitAssetKey,
-                      semanticLabel: candidate.name,
-                      color: color,
-                      aspectRatio: 1,
-                      borderRadius: 0,
-                    ),
-                  ),
+                child: CandidateAvatar(
+                  candidateId: candidate.id,
+                  assetKey: experience.portraitAssetKey,
+                  semanticLabel: candidate.name,
+                  color: color,
+                  size: 96,
                 ),
               ),
             ],
@@ -266,27 +260,71 @@ class _CityBookTabs extends StatelessWidget {
       children: [
         for (final tab in _CityBookTab.values)
           Expanded(
-            child: TextButton(
-              key: Key('citybook_tab_${tab.name}'),
-              style: TextButton.styleFrom(
-                backgroundColor: selected == tab
-                    ? const Color(0xFF3F78A8)
-                    : Colors.transparent,
-                foregroundColor: const Color(0xFFFFF1D1),
-              ),
+            child: _CityBookTabButton(
+              buttonKey: Key('citybook_tab_${tab.name}'),
+              selected: selected == tab,
               onPressed: () => onSelected(tab),
-              child: Text(
-                switch (tab) {
-                  _CityBookTab.posts => context.informationStrings.posts,
-                  _CityBookTab.about => context.informationStrings.about,
-                  _CityBookTab.media => context.informationStrings.media,
-                }.toUpperCase(),
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontFamily: 'LilitaOne'),
-              ),
+              label: switch (tab) {
+                _CityBookTab.posts => context.informationStrings.posts,
+                _CityBookTab.about => context.informationStrings.about,
+                _CityBookTab.media => context.informationStrings.media,
+              },
             ),
           ),
       ],
+    ),
+  );
+}
+
+class _CityBookTabButton extends StatelessWidget {
+  const _CityBookTabButton({
+    required this.buttonKey,
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final Key buttonKey;
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      key: buttonKey,
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(6),
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: selected
+              ? const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF4F91C5), Color(0xFF2D6898)],
+                )
+              : null,
+          border: selected
+              ? Border.all(color: const Color(0xFF07111D), width: 2)
+              : null,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: selected
+              ? const [BoxShadow(color: Colors.black45, offset: Offset(0, 2))]
+              : null,
+        ),
+        child: Text(
+          label.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFFFFF1D1),
+            fontFamily: 'LilitaOne',
+          ),
+        ),
+      ),
     ),
   );
 }
@@ -358,18 +396,12 @@ class CityBookPostCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    SizedBox(
-                      width: 44,
-                      child: ClipOval(
-                        child: CandidateImageSlot(
-                          candidateId: candidate.id,
-                          assetKey: experience.portraitAssetKey,
-                          semanticLabel: candidate.name,
-                          color: color,
-                          aspectRatio: 1,
-                          borderRadius: 0,
-                        ),
-                      ),
+                    CandidateAvatar(
+                      candidateId: candidate.id,
+                      assetKey: experience.portraitAssetKey,
+                      semanticLabel: candidate.name,
+                      color: color,
+                      size: 44,
                     ),
                     const SizedBox(width: 9),
                     Expanded(
@@ -449,6 +481,7 @@ class CityBookPostCard extends StatelessWidget {
                   onPressed: () => _showComments(context),
                   icon: Icons.chat_bubble_outline_rounded,
                   color: const Color(0xFF304A61),
+                  sound: GameSound.chatMessage,
                   label: context.informationStrings.viewComments,
                 ),
                 if (post.comparisonId != null)
@@ -465,6 +498,7 @@ class CityBookPostCard extends StatelessWidget {
                     onPressed: () => _openEvidence(context, evidenceId),
                     icon: Icons.receipt_long_rounded,
                     color: const Color(0xFFAA3F4B),
+                    sound: null,
                     label: context.informationStrings.viewReceipt,
                   ),
                 if (post.relatedNewsEventIds.isNotEmpty)
@@ -671,23 +705,9 @@ class CityBookCommentTile extends StatelessWidget {
                 comment.text,
                 style: const TextStyle(color: Color(0xFF24384A), height: 1.35),
               ),
-              if (comment.accountClues.isNotEmpty) ...[
-                const SizedBox(height: 7),
-                Wrap(
-                  spacing: 5,
-                  runSpacing: 5,
-                  children: [
-                    for (final clue in comment.accountClues)
-                      Chip(
-                        visualDensity: VisualDensity.compact,
-                        avatar: const Icon(
-                          Icons.info_outline_rounded,
-                          size: 14,
-                        ),
-                        label: Text(clue),
-                      ),
-                  ],
-                ),
+              if (comment.reactions.total > 0) ...[
+                const SizedBox(height: 8),
+                _CommentReactionSummary(reactions: comment.reactions),
               ],
             ],
           ),
@@ -695,6 +715,54 @@ class CityBookCommentTile extends StatelessWidget {
       ),
     ],
   );
+}
+
+class _CommentReactionSummary extends StatelessWidget {
+  const _CommentReactionSummary({required this.reactions});
+
+  final CityBookReactionDistribution reactions;
+
+  @override
+  Widget build(BuildContext context) {
+    final dominant = reactions.dominant.take(3).toList(growable: false);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        key: const Key('citybook_comment_reaction_summary'),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2E7CE),
+          border: Border.all(color: const Color(0xFFB7A27B), width: 1.2),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(color: Color(0x22000000), offset: Offset(0, 1)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final entry in dominant) ...[
+              Icon(
+                _reactionIcon(entry.key),
+                size: 14,
+                color: _reactionColor(entry.key),
+              ),
+              const SizedBox(width: 2),
+            ],
+            const SizedBox(width: 3),
+            Text(
+              context.informationStrings.formatCount(reactions.total),
+              style: const TextStyle(
+                color: Color(0xFF405466),
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _HistoricalBadge extends StatelessWidget {
@@ -747,7 +815,7 @@ class _CityBookAbout extends StatelessWidget {
           ),
           const SizedBox(height: 9),
           Text(
-            'Affiliation: ${profile.affiliation}',
+            '${context.informationStrings.affiliation}: ${profile.affiliation}',
             style: const TextStyle(
               color: dossierInk,
               fontWeight: FontWeight.w800,
@@ -762,7 +830,7 @@ class _CityBookAbout extends StatelessWidget {
           ],
           const SizedBox(height: 13),
           ChunkyActionButton(
-            label: 'Open Civic Archive',
+            label: context.informationStrings.openCivicArchive,
             icon: Icons.menu_book_rounded,
             color: ResiboColors.teal,
             onPressed: () =>

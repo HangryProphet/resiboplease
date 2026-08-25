@@ -11,6 +11,9 @@ import 'term_result.dart';
 class PublicCitySnapshot {
   const PublicCitySnapshot({
     this.id,
+    this.ownerId,
+    this.ownerDisplayName,
+    this.isPublic = true,
     required this.cityName,
     required this.termNumber,
     required this.startingPressure,
@@ -25,6 +28,9 @@ class PublicCitySnapshot {
   });
 
   final String? id;
+  final String? ownerId;
+  final String? ownerDisplayName;
+  final bool isPublic;
   final String cityName;
   final int termNumber;
   final String startingPressure;
@@ -39,6 +45,7 @@ class PublicCitySnapshot {
 
   /// JSON sent by POST. The database owns [id].
   Map<String, Object?> toPublishJson() => {
+    'is_public': isPublic,
     'city_name': cityName,
     'term_number': termNumber,
     'starting_pressure': startingPressure,
@@ -55,34 +62,49 @@ class PublicCitySnapshot {
   /// JSON used by the local public-gallery cache.
   Map<String, Object?> toJson() => {
     if (id != null) 'id': id,
+    if (ownerId != null) 'owner_id': ownerId,
+    if (ownerDisplayName != null) 'owner_display_name': ownerDisplayName,
     ...toPublishJson(),
   };
 
-  factory PublicCitySnapshot.fromJson(
-    Map<String, Object?> json,
-  ) => PublicCitySnapshot(
-    id: _optionalText(json['id']),
-    cityName: _requiredText(json['city_name'], 'city_name'),
-    termNumber: _requiredInt(json['term_number'], 'term_number'),
-    startingPressure: _requiredText(
-      json['starting_pressure'],
-      'starting_pressure',
-    ),
-    topIssue: _requiredText(json['top_issue'], 'top_issue'),
-    selectedCandidateName: _requiredText(
-      json['selected_candidate_name'],
-      'selected_candidate_name',
-    ),
-    candidateParty: _requiredText(json['candidate_party'], 'candidate_party'),
-    finalCityCondition: _requiredText(
-      json['final_city_condition'],
-      'final_city_condition',
-    ),
-    outcomeSummary: _requiredText(json['outcome_summary'], 'outcome_summary'),
-    majorIssues: _requiredTextList(json['major_issues'], 'major_issues'),
-    majorEvents: _requiredTextList(json['major_events'], 'major_events'),
-    createdAt: _requiredDate(json['created_at'], 'created_at'),
-  );
+  factory PublicCitySnapshot.fromJson(Map<String, Object?> json) =>
+      PublicCitySnapshot(
+        id: _optionalText(json['id'], maxLength: 100),
+        ownerId: _requiredText(json['owner_id'], 'owner_id', maxLength: 100),
+        ownerDisplayName: _ownerDisplayName(json),
+        isPublic: _requiredBool(json['is_public'], 'is_public'),
+        cityName: _requiredText(json['city_name'], 'city_name', maxLength: 60),
+        termNumber: _requiredInt(json['term_number'], 'term_number'),
+        startingPressure: _requiredText(
+          json['starting_pressure'],
+          'starting_pressure',
+          maxLength: 20,
+        ),
+        topIssue: _requiredText(json['top_issue'], 'top_issue', maxLength: 100),
+        selectedCandidateName: _requiredText(
+          json['selected_candidate_name'],
+          'selected_candidate_name',
+          maxLength: 100,
+        ),
+        candidateParty: _requiredText(
+          json['candidate_party'],
+          'candidate_party',
+          maxLength: 120,
+        ),
+        finalCityCondition: _requiredText(
+          json['final_city_condition'],
+          'final_city_condition',
+          maxLength: 20,
+        ),
+        outcomeSummary: _requiredText(
+          json['outcome_summary'],
+          'outcome_summary',
+          maxLength: 600,
+        ),
+        majorIssues: _requiredTextList(json['major_issues'], 'major_issues'),
+        majorEvents: _requiredTextList(json['major_events'], 'major_events'),
+        createdAt: _requiredDate(json['created_at'], 'created_at'),
+      );
 }
 
 /// Converts a completed local term into the only payload the API may receive.
@@ -91,6 +113,7 @@ PublicCitySnapshot buildPublicCitySnapshot({
   required CityRunConfiguration configuration,
   required TermResult result,
   required String? topIssueId,
+  bool isPublic = true,
   DateTime? createdAt,
 }) {
   final rankedIssues = [...city.problems]
@@ -104,6 +127,7 @@ PublicCitySnapshot buildPublicCitySnapshot({
     if (!events.contains(phase.title)) events.add(phase.title);
   }
   return PublicCitySnapshot(
+    isPublic: isPublic,
     cityName: configuration.cityName.trim(),
     termNumber: city.term,
     startingPressure: configuration.startingPressure.name,
@@ -118,6 +142,22 @@ PublicCitySnapshot buildPublicCitySnapshot({
     majorEvents: List.unmodifiable(events.take(4)),
     createdAt: (createdAt ?? DateTime.now()).toUtc(),
   );
+}
+
+String _ownerDisplayName(Map<String, Object?> json) {
+  final direct = json['owner_display_name'];
+  if (direct != null) {
+    return _requiredText(direct, 'owner_display_name', maxLength: 24);
+  }
+  final embedded = json['player_profiles'];
+  if (embedded is Map) {
+    return _requiredText(
+      embedded['display_name'],
+      'player_profiles.display_name',
+      maxLength: 24,
+    );
+  }
+  throw const FormatException('Missing owner profile in city snapshot.');
 }
 
 String _conditionFromResult(TermResult result) {
@@ -136,27 +176,40 @@ String _conditionFromResult(TermResult result) {
   };
 }
 
-String _requiredText(Object? value, String field) {
-  if (value is! String || value.trim().isEmpty) {
+String _requiredText(Object? value, String field, {int maxLength = 120}) {
+  if (value is! String ||
+      value.trim().isEmpty ||
+      value.trim().length > maxLength) {
     throw FormatException('Invalid $field in city snapshot.');
   }
   return value.trim();
 }
 
-String? _optionalText(Object? value) {
+String? _optionalText(Object? value, {int maxLength = 120}) {
   if (value == null) return null;
-  return _requiredText(value, 'id');
+  return _requiredText(value, 'id', maxLength: maxLength);
 }
 
 int _requiredInt(Object? value, String field) {
   if (value is! num) throw FormatException('Invalid $field in city snapshot.');
-  return value.toInt();
+  final integer = value.toInt();
+  if (integer < 1 || integer > 100) {
+    throw FormatException('Invalid $field in city snapshot.');
+  }
+  return integer;
+}
+
+bool _requiredBool(Object? value, String field) {
+  if (value is! bool) throw FormatException('Invalid $field in city snapshot.');
+  return value;
 }
 
 List<String> _requiredTextList(Object? value, String field) {
-  if (value is! List) throw FormatException('Invalid $field in city snapshot.');
+  if (value is! List || value.length > 8) {
+    throw FormatException('Invalid $field in city snapshot.');
+  }
   return List.unmodifiable(
-    value.map((item) => _requiredText(item, field)).take(8),
+    value.map((item) => _requiredText(item, field, maxLength: 120)),
   );
 }
 

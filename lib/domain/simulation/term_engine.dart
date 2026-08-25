@@ -177,7 +177,7 @@ class TermEngine {
           ? majorEvents.first
           : majorEvents.last;
       final kind = artworkSlot
-          ? fallback.kind
+          ? _kindForVisualAsset(visualEvent?.visualAssetKey) ?? fallback.kind
           : livingPhase.number == 1
           ? TermEventKind.policyLaunch
           : TermEventKind.recordsReview;
@@ -320,6 +320,17 @@ class TermEngine {
       'The event is selected from the city seed and starting pressures. '
       'Its impact is reduced by relevant policy knowledge, crisis response, '
       'implementation skill, and budget discipline.';
+
+  TermEventKind? _kindForVisualAsset(String? assetPath) => switch (assetPath) {
+    'assets/images/events/typhoon_response.jpg' =>
+      TermEventKind.typhoonResponse,
+    'assets/images/events/clinic_outbreak.jpg' => TermEventKind.clinicOutbreak,
+    'assets/images/events/water_emergency.jpg' => TermEventKind.waterEmergency,
+    'assets/images/events/jobs_shock.jpg' => TermEventKind.jobsShock,
+    'assets/images/events/transport_disruption.jpg' =>
+      TermEventKind.transportDisruption,
+    _ => null,
+  };
 
   Map<CityIndicator, int> _mergeChanges(
     Map<CityIndicator, int> first,

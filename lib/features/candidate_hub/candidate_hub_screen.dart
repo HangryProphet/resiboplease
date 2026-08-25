@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme/resibo_theme.dart';
 import '../../core/state/game_controller.dart';
+import '../../core/audio/game_audio_service.dart';
 import '../../domain/models/candidate.dart';
 import '../../domain/models/candidate_experience.dart';
 import '../../l10n/candidate_experience_localizations.dart';
@@ -136,8 +137,12 @@ class _CandidateHubScreenState extends State<CandidateHubScreen> {
                             const SizedBox(height: 14),
                             CandidateSectionTabs(
                               selected: _section,
-                              onSelected: (section) =>
-                                  setState(() => _section = section),
+                              onSelected: (section) {
+                                GameAudioScope.maybeOf(
+                                  context,
+                                )?.play(GameSound.uiTab);
+                                setState(() => _section = section);
+                              },
                             ),
                             const SizedBox(height: 17),
                             switch (_section) {

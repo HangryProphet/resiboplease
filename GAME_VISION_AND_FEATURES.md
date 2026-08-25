@@ -14,14 +14,24 @@ This document separates the game that exists in the repository today from the lo
 - Five local city-save slots are supported. Starting over in an occupied context requires confirmation.
 - Run setup currently includes city name, starting pressure, one to three priority concerns, candidate-field experience, assistance mode, campaign noise, and investigation time.
 - Settings include English/Filipino language selection, reduced motion,
-  high-contrast presentation, and dialogue sounds. About, credits, disclaimer,
-  privacy information, and app version belong under Settings.
+  high-contrast presentation, dialogue sounds, UI sound effects, SFX volume,
+  optional background music, music volume, and a persistent Critical Event
+  Interruption preference: Auto Open, Pause & Notify (default), Notify Only, or
+  Never Interrupt. About, credits, disclaimer, privacy information, and app
+  version belong under Settings.
+- A centralized audio service caches a small CC0 UI vocabulary and maps it to
+  navigation, investigation, social, election, and simulation interactions.
+  Three optional phase-aware music contexts are prepared. Local tracks are
+  currently present, but their licenses must be confirmed before distribution.
 - Save data is versioned and migrated instead of silently discarding older supported saves.
-- Visit Cities is an implemented asynchronous public gallery. Completed Term
-  Reports can POST a sanitized fictional summary to Supabase REST, while the
-  gallery GETs newest snapshots, caches the latest successful response, and
-  provides list/detail, loading, empty, retry, offline, and safe error states.
-  It never uploads the save file, world seed, hidden candidate capabilities,
+- Visit Cities is an implemented asynchronous sharing gallery. Community use
+  creates a hidden Supabase Anonymous Auth session and asks for only one unique
+  display name; normal local play never requires it. Completed Term Reports can
+  POST a sanitized Public or Private summary. Explore GETs only public cities,
+  My Cities GETs both owned privacy states, player search is debounced and
+  server-side, and owners can PATCH privacy or DELETE the uploaded snapshot.
+  Separate public/owned caches preserve read-only offline viewing. It never
+  uploads the save file, world seed, hidden candidate capabilities,
   investigation history, or private notes.
 
 ### Procedural city foundation
@@ -63,6 +73,12 @@ This document separates the game that exists in the repository today from the lo
   populism, ambition, policy strengths, controversies, relationships,
   presentation style, and information footprint. Raw values and quality bands
   are never rendered to the voter.
+- Career origin is also generated as career politician, public administrator,
+  professional, business, celebrity/media, community, advocacy, or public
+  safety. It changes the candidate's plausible history, evidence categories,
+  Biography record sections, public attention, and CityBook volume, but is
+  independent from competence, integrity, and quality. Roster weighting permits
+  zero, one, or multiple outsiders without assigning one to a fixed ballot slot.
 - Structured history is generated before prose. The Civic Archive biography,
   quick summary, promises, Then-vs-Now comparison, Campaign Trail, CityBook,
   debate, candidate news, and nine records then reference that same history and
@@ -89,6 +105,11 @@ This document separates the game that exists in the repository today from the lo
   historical statements. Every post has ten contextual fictional comments and
   evidence/news/receipt links where applicable. Reactions represent public
   sentiment only and never change truth or candidate scoring.
+- CityBook comments have deterministic, persisted reaction distributions scaled
+  from their parent post. The UI shows up to the three actually dominant icons
+  and one total; many comments receive modest engagement and some receive none.
+  Hidden account archetypes remain available to generation, but explicit
+  "suspicious account" hints are no longer shown to the player.
 - Historical CityBook posts can open the existing neutral **Then vs Now** comparison. Evidence-linked claims open the same Evidence Reader and retain its investigation costs, unlocks, bookmarks, and persistence rules.
 - Every world has three seed-stable fictional news outlets. Their names are selected deterministically, while structured traits describe sensationalism, depth, speed, tone, editorial aggression, and headline style.
 - A major Chronicle entry creates one underlying news event and three compatible outlet framings. Each framing has its own headline, emphasis, summary, and full article, but all three preserve one factual event source rather than creating competing hidden truths.
@@ -116,16 +137,47 @@ This document separates the game that exists in the repository today from the lo
 - The ballot asks the player to choose a candidate, identify the top issue, and record confidence.
 - A winner presentation transitions from the pre-election snapshot into the term.
 - The term engine is seeded and deterministic. It combines city indicators, problem weights, candidate policy knowledge, implementation, coalition skill, crisis response, budget discipline, integrity, and trade-offs.
-- The term keeps four broad player-paced phases, but every phase now contains
-  several weighted city events and project milestones. Events cover active
-  issues, indicator thresholds, administration behavior, external shocks,
-  positive opportunities, politics, ordinary city life, and rare surprises.
+- The post-election term is now one automatically running 365-day fictional
+  year. The four existing phases remain as internal date-derived quarters and
+  report groupings; the player no longer presses Advance Phase.
+- Pause, Day, Week, and Month use the same canonical simulated-day clock. YEAR
+  is a bounded finish-year command: it processes the remaining days through the
+  same engine, stops exactly at Day 365, and can resume after a required event
+  interruption without rerolling or duplicating events.
+- Critical/rare events always enter saved history. Depending on the persistent
+  setting, they either pause and auto-open, pause and show a player-opened
+  notice, notify while continuing, or never interrupt automatically.
+- Every ordinary term deterministically generates temporary fictional World
+  Conditions such as heavy rain, heat, typhoons, supply pressure, business
+  expansion, utility instability, festivals, and school periods. Active
+  conditions alter event weights and project progress rather than scripting
+  outcomes, are saved with their duration, and appear in a compact current
+  condition strip.
+- A source-tagged developer injector can add explicit sandbox conditions for
+  testing. A public Sandbox/Scenario Controls screen remains future work; debug
+  injections never masquerade as naturally rolled history.
+- The engine evaluates authored templates against current issues and trends,
+  indicators, projects, budget health, public trust, corruption pressure,
+  candidate truth, date/quarter, recent categories, cooldowns, pending causal
+  hooks, and isolated day seeds. Selection, timing, location variation, effects,
+  and follow-up history therefore differ between worlds without runtime AI.
+- Event chains retain the source event ID and delayed eligibility window. The
+  implemented pools include weather/flood/water/health and
+  roadworks/traffic/business chains as well as existing service-recovery pairs.
 - Candidate hidden traits and campaign promises influence project progress,
   crisis impact, trust, corruption pressure, and broad budget health without
   exposing a perfect-candidate score.
-- Revealed events create inspectable markers on the existing city artwork.
-  Chronicle, News, City 8 TV, CityBook, the map, and the final report reuse the
-  same saved event IDs.
+- A purpose-built overhead illustrated city is now an interactive pan-and-zoom
+  navigation map. Twenty-seven normalized semantic anchors cover civic,
+  institutional, residential, commercial, public-safety, utility, transport,
+  recreation, and industrial/logistics geography. Nineteen are persistent
+  tappable landmarks. Temporary event markers route toward sensible facilities,
+  spread deterministically to reduce overlap, expire by importance, and clear
+  when acknowledged; Event History retains the full readable record. City Hall
+  opens the current administration and project record.
+- Events become visible to Chronicle, three outlet framings, City 8 TV, and
+  CityBook only after their simulated date. All presentations reuse the same
+  saved event ID and past events never reroll.
 - The final report includes indicator movement, project/promise status, all
   phase events, and explanations. Existing event artwork is used where available.
 - Candidate/election/term behavior remains separate from the procedural city-foundation work described above.
@@ -196,16 +248,18 @@ The items below are design direction, not claims about the current build. They s
   objects used by Chronicle, CityBook, community voices, records, and articles.
   It must not create a separate version of truth.
 
-### Plague Inc.-inspired city map
+### Living-city map refinements
 
-- A future interactive city map may visualize districts, infrastructure networks, issue hotspots, projects, emergencies, and changing public conditions.
-- The map should summarize the same simulation state as the cards, not run a second hidden simulation.
-- Flame is a suitable tool for animated overlays, event markers, and a living city canvas once the underlying district model exists.
+- The static interactive map, logical locations, markers, Mayor's Office, and
+  Event History are implemented. Future work may add more reusable overlays or
+  district detail, but the map must remain a presentation of the same saved
+  aggregate simulation rather than a second hidden simulation.
 
 ### Asynchronous sharing expansion
 
-- Privacy-safe public city snapshot publishing and browsing are implemented as
-  a small Supabase REST gallery. Future work may add richer administration
+- Privacy-safe public/private city snapshot publishing, owned management, and
+  display-name search are implemented as a small Supabase REST gallery. Future
+  work may add richer administration
   comparison or shared civic challenges without expanding the uploaded private
   data surface.
 - Possible future modes include reviewing a friend’s public record or comparing

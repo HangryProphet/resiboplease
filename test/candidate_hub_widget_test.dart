@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:resiboplease/app/router.dart';
 import 'package:resiboplease/app/theme/resibo_theme.dart';
 import 'package:resiboplease/core/state/game_controller.dart';
+import 'package:resiboplease/features/dossier/widgets/dossier_ui.dart';
 import 'package:resiboplease/l10n/app_localizations.dart';
 
 void main() {
@@ -116,7 +117,7 @@ void main() {
     );
 
     final inspect = find.byKey(const Key('inspect_content_pulse_maya_donor'));
-    tester.widget<OutlinedButton>(inspect).onPressed!();
+    tester.widget<ChunkyActionButton>(inspect).onPressed!();
     await tester.pump(const Duration(milliseconds: 250));
     expect(
       find.textContaining(

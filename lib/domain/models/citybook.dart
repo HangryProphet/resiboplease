@@ -71,6 +71,10 @@ class CityBookReactionDistribution {
 
   int countFor(CityBookReaction reaction) => counts[reaction] ?? 0;
   int get total => counts.values.fold(0, (sum, count) => sum + count);
+
+  List<MapEntry<CityBookReaction, int>> get dominant =>
+      counts.entries.where((entry) => entry.value > 0).toList(growable: false)
+        ..sort((left, right) => right.value.compareTo(left.value));
 }
 
 class CityBookComment {
@@ -80,7 +84,7 @@ class CityBookComment {
     required this.authorHandle,
     required this.archetype,
     required this.text,
-    required this.reactionCount,
+    this.reactions = const CityBookReactionDistribution({}),
     this.accountClues = const [],
   });
 
@@ -89,7 +93,8 @@ class CityBookComment {
   final String authorHandle;
   final CityBookCommentArchetype archetype;
   final String text;
-  final int reactionCount;
+  final CityBookReactionDistribution reactions;
+  int get reactionCount => reactions.total;
   final List<String> accountClues;
 }
 

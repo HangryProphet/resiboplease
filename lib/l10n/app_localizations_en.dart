@@ -59,6 +59,33 @@ class AppLocalizationsEn extends AppLocalizations {
       'Strengthen text, border, and surface contrast for easier reading.';
 
   @override
+  String get audio => 'Audio';
+
+  @override
+  String get audioDescription =>
+      'Control interface sounds, dialogue blips, and future background music.';
+
+  @override
+  String get soundEffects => 'Sound effects';
+
+  @override
+  String get soundEffectsDescription =>
+      'Play subtle sounds for buttons, evidence, voting, and city developments.';
+
+  @override
+  String get music => 'Background music';
+
+  @override
+  String get musicDescription =>
+      'Play the soundtrack when licensed music files are installed.';
+
+  @override
+  String get sfxVolume => 'Sound-effect volume';
+
+  @override
+  String get musicVolume => 'Music volume';
+
+  @override
   String get deviceTextSize => 'Text size follows your device';
 
   @override
@@ -114,7 +141,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetSettingsConfirmation =>
-      'Language and accessibility preferences will return to their defaults. City files will stay untouched.';
+      'Language, accessibility, and audio preferences will return to their defaults. City files will stay untouched.';
 
   @override
   String get settingsResetNotice => 'Settings restored to defaults.';

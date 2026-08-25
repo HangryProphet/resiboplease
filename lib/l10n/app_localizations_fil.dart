@@ -60,6 +60,33 @@ class AppLocalizationsFil extends AppLocalizations {
       'Palakasin ang contrast ng teksto, border, at background para mas madaling basahin.';
 
   @override
+  String get audio => 'Audio';
+
+  @override
+  String get audioDescription =>
+      'Kontrolin ang tunog ng interface, dialogue blip, at hinaharap na background music.';
+
+  @override
+  String get soundEffects => 'Mga sound effect';
+
+  @override
+  String get soundEffectsDescription =>
+      'Magpatugtog ng banayad na tunog para sa button, ebidensya, pagboto, at pangyayari sa lungsod.';
+
+  @override
+  String get music => 'Background music';
+
+  @override
+  String get musicDescription =>
+      'Patugtugin ang soundtrack kapag nailagay na ang lisensyadong music files.';
+
+  @override
+  String get sfxVolume => 'Lakas ng sound effect';
+
+  @override
+  String get musicVolume => 'Lakas ng music';
+
+  @override
   String get deviceTextSize => 'Sinusunod ang text size ng device';
 
   @override
@@ -115,7 +142,7 @@ class AppLocalizationsFil extends AppLocalizations {
 
   @override
   String get resetSettingsConfirmation =>
-      'Babalik sa default ang wika at accessibility preferences. Mananatili ang city files.';
+      'Babalik sa default ang wika, accessibility, at audio preferences. Mananatili ang city files.';
 
   @override
   String get settingsResetNotice => 'Naibalik sa default ang settings.';

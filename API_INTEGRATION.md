@@ -1,44 +1,59 @@
-# Public City Gallery API Integration
+# Public City Gallery API Integration V2
 
-## API Name
+## API
 
-Supabase REST API (PostgREST)
+**Supabase REST API (PostgREST)** with **Supabase Anonymous Auth** for a hidden,
+stable owner identity.
 
-## Purpose
+The player supplies only a 3–24 character display name. There is no email,
+password, phone number, avatar, biography, friends list, or messaging system.
+Normal local gameplay never requires community identity setup.
 
-Stores and retrieves sanitized fictional city snapshots for the **Visit
-Cities** gallery. A completed local term can publish a deliberately limited
-summary; other installations can retrieve, browse, and inspect those public
-results asynchronously.
+## Features
 
-## Endpoints
+- Create/fetch the current anonymous player's display-name profile.
+- Publish a sanitized completed city as Public or Private.
+- Retrieve public cities for Explore.
+- Retrieve both public and private owned cities for My Cities.
+- Search player display names with a debounced server-side partial query.
+- Retrieve only one searched player's public cities.
+- Change an owned snapshot between Public and Private.
+- Delete an owned uploaded snapshot without deleting the local save.
+- Cache the last successful public list, owned list, and matching profile.
+
+## Explicit REST operations
+
+The database integration remains explicit in
+`lib/data/gallery/city_gallery_api_service.dart` for the school API requirement:
 
 ```text
-GET  {SUPABASE_URL}/rest/v1/city_snapshots
-POST {SUPABASE_URL}/rest/v1/city_snapshots
+GET    {SUPABASE_URL}/rest/v1/city_snapshots?is_public=eq.true
+GET    {SUPABASE_URL}/rest/v1/city_snapshots?owner_id=eq.<auth-user-id>
+POST   {SUPABASE_URL}/rest/v1/city_snapshots
+PATCH  {SUPABASE_URL}/rest/v1/city_snapshots?id=eq.<snapshot-id>
+DELETE {SUPABASE_URL}/rest/v1/city_snapshots?id=eq.<snapshot-id>
+
+GET    {SUPABASE_URL}/rest/v1/player_profiles?user_id=eq.<auth-user-id>
+GET    {SUPABASE_URL}/rest/v1/player_profiles?display_name_normalized=ilike.*query*
+POST   {SUPABASE_URL}/rest/v1/player_profiles
 ```
 
-The GET request adds `select`, `order=created_at.desc`, and `limit=50` query
-parameters. The POST request adds `Prefer: return=representation` so the API
-returns the inserted row and its database-generated ID.
+The file intentionally retains direct `http.get`, `http.post`, `http.patch`,
+`http.delete`, `jsonEncode`, and `jsonDecode` calls. `supabase_flutter` is used
+only to create, persist, and refresh the anonymous authentication session.
+PostgREST requests use the client-safe project key as `apikey` and the current
+user access token as the Bearer token, allowing `auth.uid()` RLS checks.
 
-## Methods
+## Public city JSON
 
-- **GET** — retrieves the newest published cities.
-- **POST** — publishes one completed, sanitized city snapshot.
-
-Both requests use Flutter's official `http` package in
-`lib/data/gallery/city_gallery_api_service.dart`. The file intentionally shows
-`http.get`, `http.post`, `jsonDecode`, and `jsonEncode` directly for the school
-API requirement.
-
-## Data Format
-
-JSON. A public row contains only:
+Retrieved rows contain the sanitized city data plus ownership presentation:
 
 ```json
 {
   "id": "8cbe205b-3304-4a6e-a28a-5e5ad8b27741",
+  "owner_id": "server-controlled-auth-user-id",
+  "is_public": true,
+  "player_profiles": {"display_name": "Kazuma"},
   "city_name": "Harborlight",
   "term_number": 1,
   "starting_pressure": "strained",
@@ -53,74 +68,97 @@ JSON. A public row contains only:
 }
 ```
 
-The public builder does **not** expose the world seed, entire save file, hidden
-candidate capabilities, investigation history, private notes, or secret game
-configuration.
+The POST body omits `id` and `owner_id`. PostgreSQL assigns `owner_id` from
+`auth.uid()`, column grants prevent clients from inserting/updating that field,
+and RLS independently verifies ownership. The builder cannot serialize the
+world seed, save file, hidden candidate capabilities, investigation history,
+bookmarks, or private notes.
 
-## Added Feature
+## Supabase setup
 
-**Public City Gallery / Visit Cities**
+1. Open the intended Supabase project.
+2. In **Authentication → Providers**, enable **Anonymous Sign-Ins**. Supabase
+   may display this as an Anonymous provider/settings switch.
+3. For a publicly exposed build, also configure CAPTCHA/Turnstile and review
+   anonymous sign-in rate limits to reduce automated account creation.
+4. Run [`docs/SUPABASE_CITY_GALLERY_V2.sql`](docs/SUPABASE_CITY_GALLERY_V2.sql)
+   in the SQL Editor.
+5. Do **not** rerun the old V1 SQL after V2.
+6. Copy the project URL and client-safe publishable/legacy anon key. Never use a
+   service-role key, secret key, database password, or server credential.
+7. Store values in the git-ignored `config/supabase.local.json` using
+   `config/supabase.example.json` as the shape.
 
-- Term Report confirmation and Publish/Publishing/Published/Failed states.
-- Sanitized completed-term conversion and HTTP POST.
-- Visit Cities loading, success, empty, offline, invalid-response, and server
-  failure states.
-- Retry support and newest-first city cards.
-- A detail page for the selected public snapshot.
-- Lightweight local caching of the last successful GET response. Cached cards
-  remain visible with an offline notice if the network is unavailable.
-- Debug-build JSON response logging with the prefix `[CityGalleryApi]`. Release
-  builds do not produce this log.
-
-## Configuration
-
-1. Create a Supabase project.
-2. Run [`docs/SUPABASE_CITY_GALLERY.sql`](docs/SUPABASE_CITY_GALLERY.sql) in
-   its SQL editor.
-3. Copy the project URL and client-safe key. Never use a service-role key,
-   secret key, or database password in a client application.
-4. Put the values in the git-ignored `config/supabase.local.json`. Use
-   `config/supabase.example.json` as the format reference.
-5. Run the app with that compile-time configuration:
+Run locally:
 
 ```powershell
 flutter run -d chrome --web-port 7357 `
   --dart-define-from-file=config/supabase.local.json
 ```
 
-For a release build:
+Build:
 
 ```powershell
-flutter build web `
+flutter build apk --release `
   --dart-define-from-file=config/supabase.local.json
 ```
 
-These values are kept out of Git, but client configuration is still visible in
-a compiled web or mobile application. Row Level Security and least-privilege
-database grants are the actual security boundary.
+Client keys remain extractable from a compiled app by design. RLS and narrow
+database grants—not obscuring the publishable key—are the security boundary.
 
-The publishable/anon key is designed for client use and is constrained by Row
-Level Security. The SQL grants only public SELECT and sanitized INSERT for this
-MVP; no public update or delete policy exists.
+## Migration behavior
 
-## Error Handling
+The V2 script is safe to run over the existing table structure, but V1 rows do
+not contain trustworthy ownership. Inside one transaction it:
 
-The service maps configuration, network, server, and invalid-response problems
-to typed failures. Player screens use short safe messages and never display raw
-exceptions or server response bodies. Duplicate publish taps are blocked while
-the POST is pending.
+1. creates `player_profiles`;
+2. adds `owner_id` and `is_public` when missing;
+3. deletes only legacy `city_snapshots` rows where `owner_id is null`;
+4. makes ownership mandatory and adds the owner foreign key/indexes;
+5. removes every old gallery/profile policy;
+6. creates the V2 RLS policies and least-privilege column grants.
 
-## Assignment Screenshots
+Back up legacy development rows before running it if they matter. They cannot
+be assigned to a player securely after the fact, so completed cities must be
+republished. Rerunning the V2 script later does not delete correctly owned rows.
 
-Useful evidence included in the submission document:
+## RLS summary
 
-1. `city_gallery_api_service.dart` showing GET, POST, JSON decoding, and JSON
-   encoding.
-2. A `[CityGalleryApi] GET JSON response:` sample from debug output.
-3. Retrieved city cards displayed on the Visit Cities screen.
+`player_profiles`:
 
-## Scope
+- SELECT: authenticated sessions may search display names.
+- INSERT: only a row whose `user_id = auth.uid()`.
+- UPDATE: only the same user's row.
+- Stored public fields: user ID, display name, normalized name, timestamps.
 
-The implemented loop is intentionally **Publish → Retrieve → Browse → View**.
-It does not add chat, likes, comments, friend requests, player profiles,
-rankings, or real-time multiplayer.
+`city_snapshots`:
+
+- SELECT: `is_public = true OR owner_id = auth.uid()`.
+- INSERT: authenticated only and `owner_id = auth.uid()`.
+- UPDATE: owner only; database grants restrict the client to `is_public`.
+- DELETE: owner only.
+- The unauthenticated `anon` database role receives no table privileges.
+
+An Anonymous Auth user uses the `authenticated` database role and has a stable
+`auth.uid()` for the persisted session. The raw UUID is never displayed.
+
+## Offline and error handling
+
+- Cached Explore/My Cities lists may be shown after a network/server failure.
+- Owned cache rows are filtered against the current authenticated user ID.
+- Publish, privacy changes, profile creation, and deletion are never reported as
+  successful while offline; there is no fake queued-write system.
+- Duplicate name, unavailable configuration, auth failure, timeout, malformed
+  JSON, RLS denial, and deleted-row conditions map to short player-safe states.
+- Raw Postgres/Supabase response bodies and credentials are not displayed.
+
+## Current limitations
+
+- Anonymous identity belongs to one local Supabase session. Clearing app/browser
+  data, signing out, or moving to another device loses access to that anonymous
+  identity and its private uploads because there is deliberately no recovery
+  email/password.
+- There are no friends, follows, chat, likes, comments, avatars, profiles beyond
+  display name, or rankings.
+- A live deployment must be checked after applying SQL; repository tests verify
+  request filtering and policy definitions but cannot prove dashboard state.

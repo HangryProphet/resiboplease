@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/resibo_theme.dart';
+import '../../../core/audio/game_audio_service.dart';
 
 Future<T?> showGameOverlay<T>({
   required BuildContext context,
@@ -324,7 +325,10 @@ class _BackButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           key: const Key('overlay_back_button'),
-          onTap: onPressed,
+          onTap: () {
+            GameAudioScope.maybeOf(context)?.play(GameSound.uiBack);
+            onPressed();
+          },
           child: SizedBox.square(
             dimension: compact ? 43 : 47,
             child: const Icon(
@@ -347,6 +351,7 @@ class ChunkyPaperButton extends StatelessWidget {
     this.icon,
     this.expand = true,
     this.buttonKey,
+    this.sound = GameSound.uiTap,
     super.key,
   });
 
@@ -356,6 +361,7 @@ class ChunkyPaperButton extends StatelessWidget {
   final IconData? icon;
   final bool expand;
   final Key? buttonKey;
+  final GameSound sound;
 
   @override
   Widget build(BuildContext context) {
@@ -385,7 +391,12 @@ class ChunkyPaperButton extends StatelessWidget {
           ),
           child: InkWell(
             key: buttonKey,
-            onTap: onPressed,
+            onTap: onPressed == null
+                ? null
+                : () {
+                    GameAudioScope.maybeOf(context)?.play(sound);
+                    onPressed!();
+                  },
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 49),
               child: Padding(

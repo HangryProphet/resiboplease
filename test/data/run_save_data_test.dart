@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resiboplease/data/persistence/run_save_data.dart';
 import 'package:resiboplease/data/seed_content/bayhaven_scenario.dart';
 import 'package:resiboplease/domain/models/city_run_configuration.dart';
+import 'package:resiboplease/domain/models/living_city_simulation.dart';
 
 void main() {
   RunSaveData sampleRun() {
@@ -151,5 +152,27 @@ void main() {
 
     expect(restored.proceduralElection, isNull);
     expect(restored.selectedCandidateId, 'maya_vargas');
+  });
+
+  test('schema seven phase progress migrates to the 365-day clock', () {
+    final raw = GameSaveData(activeSlotIndex: 0, slots: [sampleRun()]).toJson()
+      ..['schema_version'] = 7;
+    final slot = (raw['slots']! as List).single! as Map<String, Object?>
+      ..['revealed_term_phases'] = 3;
+    for (final key in const [
+      'simulation_day',
+      'simulation_speed',
+      'simulation_paused',
+      'inspected_city_event_ids',
+    ]) {
+      slot.remove(key);
+    }
+
+    final restored = GameSaveData.fromJson(raw).slots.single!;
+
+    expect(restored.simulationDay, 273);
+    expect(restored.simulationSpeed, SimulationSpeed.day);
+    expect(restored.simulationPaused, isTrue);
+    expect(restored.inspectedCityEventIds, isEmpty);
   });
 }

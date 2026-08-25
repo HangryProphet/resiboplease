@@ -19,9 +19,15 @@ class LivingEventTemplate {
     this.maximumPhase = 4,
     this.conditionIndicator,
     this.conditionBelow,
+    this.conditionAbove,
     this.requiredHook,
     this.followUpHooks = const [],
-    this.cooldownPhases = 1,
+    this.cooldownDays = 45,
+    this.followUpDelayDays = 8,
+    this.followUpWindowDays = 75,
+    this.preferredLocationIds = const [],
+    this.chainFamily,
+    this.repeatable = false,
     this.visualAssetKey,
   });
 
@@ -40,10 +46,18 @@ class LivingEventTemplate {
   final int maximumPhase;
   final CityIndicator? conditionIndicator;
   final int? conditionBelow;
+  final int? conditionAbove;
   final String? requiredHook;
   final List<String> followUpHooks;
-  final int cooldownPhases;
+  final int cooldownDays;
+  final int followUpDelayDays;
+  final int followUpWindowDays;
+  final List<String> preferredLocationIds;
+  final String? chainFamily;
+  final bool repeatable;
   final String? visualAssetKey;
+
+  String get effectiveChainFamily => chainFamily ?? id;
 }
 
 /// Authored facts and effects; selection and magnitude remain procedural.
@@ -67,6 +81,8 @@ const livingCityEventLibrary = <LivingEventTemplate>[
       CityIndicator.publicTrust: -1,
     },
     followUpHooks: ['cleanup_needed'],
+    chainFamily: 'flood_recovery',
+    preferredLocationIds: ['riverside', 'west_residential'],
     visualAssetKey: 'assets/images/events/typhoon_response.jpg',
   ),
   LivingEventTemplate(
@@ -81,6 +97,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     markerType: CityMapMarkerType.community,
     district: CitySimulationDistrict.riverside,
     requiredHook: 'cleanup_needed',
+    chainFamily: 'flood_recovery',
     severity: CityEventSeverity.minor,
     indicatorEffects: {
       CityIndicator.climateResilience: 1,
@@ -106,6 +123,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
       CityIndicator.publicTrust: -1,
     },
     followUpHooks: ['water_repair'],
+    chainFamily: 'water_service',
     visualAssetKey: 'assets/images/events/water_emergency.jpg',
   ),
   LivingEventTemplate(
@@ -120,6 +138,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     markerType: CityMapMarkerType.water,
     district: CitySimulationDistrict.southPoint,
     requiredHook: 'water_repair',
+    chainFamily: 'water_service',
     indicatorEffects: {
       CityIndicator.waterSecurity: 2,
       CityIndicator.publicTrust: 1,
@@ -144,6 +163,8 @@ const livingCityEventLibrary = <LivingEventTemplate>[
       CityIndicator.publicTrust: -1,
     },
     followUpHooks: ['clinic_recovery'],
+    chainFamily: 'health_surge',
+    preferredLocationIds: ['hospital'],
     visualAssetKey: 'assets/images/events/clinic_outbreak.jpg',
   ),
   LivingEventTemplate(
@@ -158,6 +179,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     markerType: CityMapMarkerType.clinic,
     district: CitySimulationDistrict.northWard,
     requiredHook: 'clinic_recovery',
+    chainFamily: 'health_surge',
     indicatorEffects: {
       CityIndicator.publicHealth: 2,
       CityIndicator.budgetHealth: -1,
@@ -183,6 +205,8 @@ const livingCityEventLibrary = <LivingEventTemplate>[
       CityIndicator.foodSecurity: -1,
     },
     followUpHooks: ['displaced_workers'],
+    chainFamily: 'employment_shock',
+    preferredLocationIds: ['industrial_zone'],
     visualAssetKey: 'assets/images/events/jobs_shock.jpg',
   ),
   LivingEventTemplate(
@@ -197,6 +221,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     markerType: CityMapMarkerType.jobs,
     district: CitySimulationDistrict.oldMarket,
     requiredHook: 'displaced_workers',
+    chainFamily: 'employment_shock',
     indicatorEffects: {
       CityIndicator.employmentQuality: 2,
       CityIndicator.publicTrust: 1,
@@ -221,6 +246,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
       CityIndicator.budgetHealth: -1,
     },
     followUpHooks: ['road_repair'],
+    chainFamily: 'road_disruption',
     visualAssetKey: 'assets/images/events/transport_disruption.jpg',
   ),
   LivingEventTemplate(
@@ -234,6 +260,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     markerType: CityMapMarkerType.transport,
     district: CitySimulationDistrict.harborDistrict,
     requiredHook: 'road_repair',
+    chainFamily: 'road_disruption',
     indicatorEffects: {
       CityIndicator.urbanResilience: 1,
       CityIndicator.publicTrust: 1,
@@ -259,6 +286,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
       CityIndicator.budgetHealth: -1,
     },
     followUpHooks: ['audit_pending'],
+    chainFamily: 'procurement_audit',
   ),
   LivingEventTemplate(
     id: 'records_released',
@@ -272,6 +300,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     markerType: CityMapMarkerType.audit,
     district: CitySimulationDistrict.civicCenter,
     requiredHook: 'audit_pending',
+    chainFamily: 'procurement_audit',
     indicatorEffects: {
       CityIndicator.corruptionPressure: -2,
       CityIndicator.publicTrust: 2,
@@ -324,6 +353,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     markerType: CityMapMarkerType.school,
     district: CitySimulationDistrict.hillview,
     issueFamily: CityIssueFamily.educationCapacity,
+    preferredLocationIds: ['school_district'],
     indicatorEffects: {
       CityIndicator.educationQuality: 2,
       CityIndicator.budgetHealth: -1,
@@ -343,6 +373,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     conditionIndicator: CityIndicator.foodSecurity,
     conditionBelow: 58,
     severity: CityEventSeverity.moderate,
+    preferredLocationIds: ['public_market'],
     indicatorEffects: {
       CityIndicator.foodSecurity: -3,
       CityIndicator.povertyReduction: -2,
@@ -395,6 +426,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     markerType: CityMapMarkerType.festival,
     district: CitySimulationDistrict.civicCenter,
     severity: CityEventSeverity.ambient,
+    preferredLocationIds: ['city_plaza'],
     indicatorEffects: {
       CityIndicator.employmentQuality: 1,
       CityIndicator.publicTrust: 1,
@@ -443,6 +475,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     markerType: CityMapMarkerType.power,
     district: CitySimulationDistrict.industrialBelt,
     severity: CityEventSeverity.moderate,
+    preferredLocationIds: ['industrial_zone'],
     indicatorEffects: {
       CityIndicator.urbanResilience: -2,
       CityIndicator.employmentQuality: -1,
@@ -496,6 +529,7 @@ const livingCityEventLibrary = <LivingEventTemplate>[
     conditionIndicator: CityIndicator.publicTrust,
     conditionBelow: 48,
     severity: CityEventSeverity.moderate,
+    preferredLocationIds: ['city_hall', 'city_plaza'],
     indicatorEffects: {CityIndicator.publicTrust: -1},
   ),
   LivingEventTemplate(
@@ -619,5 +653,290 @@ const livingCityEventLibrary = <LivingEventTemplate>[
       CityIndicator.publicTrust: 1,
       CityIndicator.urbanResilience: 1,
     },
+  ),
+  LivingEventTemplate(
+    id: 'heavy_rain_watch',
+    category: CityEventCategory.externalShock,
+    baseWeight: .82,
+    title: 'Heavy rain settles over the city',
+    summary:
+        'Hours of steady rain saturate roadside drains and slow travel through low districts.',
+    explanation:
+        'Rain is an outside event; drainage condition and local resilience shape what can follow.',
+    markerType: CityMapMarkerType.weather,
+    district: CitySimulationDistrict.riverside,
+    severity: CityEventSeverity.moderate,
+    indicatorEffects: {CityIndicator.climateResilience: -1},
+    followUpHooks: ['saturated_drainage'],
+    chainFamily: 'storm_water_health',
+    preferredLocationIds: ['riverside'],
+  ),
+  LivingEventTemplate(
+    id: 'flood_after_heavy_rain',
+    category: CityEventCategory.issueDriven,
+    baseWeight: 2.5,
+    title: 'Floodwater enters riverside streets',
+    summary:
+        'Saturated drains push dirty water into homes, shops, and a busy neighborhood road.',
+    explanation:
+        'The earlier rain combines with existing drainage pressure instead of creating an unrelated crisis.',
+    markerType: CityMapMarkerType.flood,
+    district: CitySimulationDistrict.riverside,
+    issueFamily: CityIssueFamily.floodingDrainage,
+    severity: CityEventSeverity.major,
+    requiredHook: 'saturated_drainage',
+    followUpHooks: ['contaminated_runoff'],
+    chainFamily: 'storm_water_health',
+    preferredLocationIds: ['riverside'],
+    indicatorEffects: {
+      CityIndicator.climateResilience: -3,
+      CityIndicator.urbanResilience: -2,
+      CityIndicator.publicTrust: -1,
+    },
+    visualAssetKey: 'assets/images/events/typhoon_response.jpg',
+  ),
+  LivingEventTemplate(
+    id: 'water_contamination_after_flood',
+    category: CityEventCategory.issueDriven,
+    baseWeight: 2.2,
+    title: 'Water testing finds contamination',
+    summary:
+        'Flood runoff reaches a damaged service line and triggers a boil-water advisory.',
+    explanation:
+        'This health risk requires an earlier runoff event and cannot appear as an impossible isolated fact.',
+    markerType: CityMapMarkerType.water,
+    district: CitySimulationDistrict.southPoint,
+    issueFamily: CityIssueFamily.waterSupply,
+    severity: CityEventSeverity.critical,
+    requiredHook: 'contaminated_runoff',
+    followUpHooks: ['clinic_recovery'],
+    chainFamily: 'storm_water_health',
+    preferredLocationIds: ['south_residential', 'hospital'],
+    indicatorEffects: {
+      CityIndicator.waterSecurity: -4,
+      CityIndicator.publicHealth: -3,
+      CityIndicator.publicTrust: -2,
+    },
+    visualAssetKey: 'assets/images/events/water_emergency.jpg',
+  ),
+  LivingEventTemplate(
+    id: 'central_avenue_roadworks',
+    category: CityEventCategory.administration,
+    baseWeight: .78,
+    title: 'Central Avenue roadworks begin',
+    summary:
+        'Crews close two lanes as a rehabilitation project moves from plans into street work.',
+    explanation:
+        'Visible construction can create temporary costs before any long-term benefit arrives.',
+    markerType: CityMapMarkerType.roadworks,
+    district: CitySimulationDistrict.civicCenter,
+    issueFamily: CityIssueFamily.unfinishedRoads,
+    severity: CityEventSeverity.moderate,
+    followUpHooks: ['roadworks_traffic'],
+    chainFamily: 'central_avenue_project',
+    preferredLocationIds: ['central_avenue'],
+    indicatorEffects: {
+      CityIndicator.budgetHealth: -1,
+      CityIndicator.urbanResilience: 1,
+    },
+    visualAssetKey: 'assets/images/events/transport_disruption.jpg',
+  ),
+  LivingEventTemplate(
+    id: 'roadworks_congestion',
+    category: CityEventCategory.issueDriven,
+    baseWeight: 2.1,
+    title: 'Traffic builds around the work zone',
+    summary:
+        'Buses and deliveries crowd side streets while Central Avenue remains partly closed.',
+    explanation: 'This disruption only becomes eligible after roadworks begin.',
+    markerType: CityMapMarkerType.transport,
+    district: CitySimulationDistrict.civicCenter,
+    issueFamily: CityIssueFamily.trafficTransport,
+    severity: CityEventSeverity.moderate,
+    requiredHook: 'roadworks_traffic',
+    followUpHooks: ['roadworks_business_pressure'],
+    chainFamily: 'central_avenue_project',
+    preferredLocationIds: ['central_avenue', 'transport_terminal'],
+    indicatorEffects: {
+      CityIndicator.urbanResilience: -2,
+      CityIndicator.employmentQuality: -1,
+    },
+  ),
+  LivingEventTemplate(
+    id: 'roadworks_business_complaints',
+    category: CityEventCategory.political,
+    baseWeight: 1.9,
+    title: 'Shops question the roadwork schedule',
+    summary:
+        'Small businesses near Central Avenue report fewer customers and demand a clearer completion date.',
+    explanation:
+        'Public criticism grows from the saved construction chain rather than a separate invented controversy.',
+    markerType: CityMapMarkerType.market,
+    district: CitySimulationDistrict.oldMarket,
+    severity: CityEventSeverity.moderate,
+    requiredHook: 'roadworks_business_pressure',
+    chainFamily: 'central_avenue_project',
+    preferredLocationIds: ['commercial_center'],
+    indicatorEffects: {
+      CityIndicator.employmentQuality: -1,
+      CityIndicator.publicTrust: -1,
+    },
+  ),
+  LivingEventTemplate(
+    id: 'heat_wave',
+    category: CityEventCategory.externalShock,
+    baseWeight: .62,
+    title: 'A heat wave strains daily routines',
+    summary:
+        'Hot afternoons shorten outdoor work hours and increase demand at public clinics.',
+    explanation:
+        'Climate and health readiness influence the local cost of a regional weather event.',
+    markerType: CityMapMarkerType.weather,
+    district: CitySimulationDistrict.northWard,
+    severity: CityEventSeverity.moderate,
+    minimumPhase: 2,
+    maximumPhase: 3,
+    preferredLocationIds: ['hospital', 'north_residential'],
+    indicatorEffects: {
+      CityIndicator.publicHealth: -2,
+      CityIndicator.climateResilience: -1,
+    },
+  ),
+  LivingEventTemplate(
+    id: 'fuel_price_jump',
+    category: CityEventCategory.externalShock,
+    baseWeight: .58,
+    title: 'Fuel prices climb across the region',
+    summary:
+        'Transport operators and delivery businesses warn that operating costs are rising.',
+    explanation:
+        'The price increase is external, while mobility and household conditions determine its local reach.',
+    markerType: CityMapMarkerType.transport,
+    district: CitySimulationDistrict.harborDistrict,
+    severity: CityEventSeverity.moderate,
+    preferredLocationIds: ['transport_terminal'],
+    indicatorEffects: {
+      CityIndicator.employmentQuality: -1,
+      CityIndicator.foodSecurity: -1,
+      CityIndicator.publicTrust: -1,
+    },
+  ),
+  LivingEventTemplate(
+    id: 'clinic_recognition',
+    category: CityEventCategory.positiveOpportunity,
+    baseWeight: .72,
+    title: 'Clinic teams earn service recognition',
+    summary:
+        'A regional health network recognizes shorter waiting times and stronger follow-up care.',
+    explanation:
+        'Strong public-health conditions make this positive event plausible rather than automatic.',
+    markerType: CityMapMarkerType.clinic,
+    district: CitySimulationDistrict.northWard,
+    severity: CityEventSeverity.minor,
+    conditionIndicator: CityIndicator.publicHealth,
+    conditionAbove: 58,
+    preferredLocationIds: ['hospital'],
+    indicatorEffects: {
+      CityIndicator.publicHealth: 1,
+      CityIndicator.publicTrust: 1,
+    },
+  ),
+  LivingEventTemplate(
+    id: 'student_science_win',
+    category: CityEventCategory.positiveOpportunity,
+    baseWeight: .68,
+    title: 'Public-school team wins science honors',
+    summary:
+        'Students return from a regional competition with awards for a low-cost flood sensor.',
+    explanation:
+        'Education strength creates opportunities that are not simply crisis recovery.',
+    markerType: CityMapMarkerType.school,
+    district: CitySimulationDistrict.hillview,
+    conditionIndicator: CityIndicator.educationQuality,
+    conditionAbove: 55,
+    preferredLocationIds: ['school_district'],
+    indicatorEffects: {
+      CityIndicator.educationQuality: 2,
+      CityIndicator.publicTrust: 1,
+    },
+  ),
+  LivingEventTemplate(
+    id: 'commercial_expansion',
+    category: CityEventCategory.positiveOpportunity,
+    baseWeight: .62,
+    title: 'Local firms open a shared workshop',
+    summary:
+        'Small manufacturers pool equipment and add new skilled jobs near the commercial center.',
+    explanation:
+        'Healthy employment makes investment more plausible, but the exact timing remains seeded.',
+    markerType: CityMapMarkerType.opportunity,
+    district: CitySimulationDistrict.oldMarket,
+    conditionIndicator: CityIndicator.employmentQuality,
+    conditionAbove: 58,
+    preferredLocationIds: ['commercial_center'],
+    indicatorEffects: {
+      CityIndicator.employmentQuality: 2,
+      CityIndicator.povertyReduction: 1,
+    },
+  ),
+  LivingEventTemplate(
+    id: 'city_hall_cat_returns',
+    category: CityEventCategory.cityLife,
+    baseWeight: .95,
+    title: 'The City Hall cat returns',
+    summary:
+        'Employees find the unofficial City Hall cat asleep in its usual spot near the steps.',
+    explanation:
+        'The city sometimes records ordinary stories with no policy consequence.',
+    markerType: CityMapMarkerType.community,
+    district: CitySimulationDistrict.civicCenter,
+    severity: CityEventSeverity.ambient,
+    preferredLocationIds: ['city_hall'],
+    indicatorEffects: {},
+  ),
+  LivingEventTemplate(
+    id: 'squidball_price_protest',
+    category: CityEventCategory.cityLife,
+    baseWeight: .62,
+    title: 'Squidball price protest confuses the plaza',
+    summary:
+        'A half-serious rally demands cheaper squidballs before turning into a lively street-food debate.',
+    explanation:
+        'A harmless civic oddity adds personality without changing the administration score.',
+    markerType: CityMapMarkerType.protest,
+    district: CitySimulationDistrict.civicCenter,
+    severity: CityEventSeverity.ambient,
+    preferredLocationIds: ['city_plaza'],
+    indicatorEffects: {},
+  ),
+  LivingEventTemplate(
+    id: 'rainy_day_proposal',
+    category: CityEventCategory.cityLife,
+    baseWeight: .68,
+    title: 'A rainy-day proposal stops traffic',
+    summary:
+        'Commuters cheer when a marriage proposal unfolds beneath one umbrella at the terminal.',
+    explanation:
+        'The story has no measurable city effect but remains part of this save\'s history.',
+    markerType: CityMapMarkerType.community,
+    district: CitySimulationDistrict.harborDistrict,
+    severity: CityEventSeverity.ambient,
+    preferredLocationIds: ['transport_terminal'],
+    indicatorEffects: {},
+  ),
+  LivingEventTemplate(
+    id: 'viral_tricycle_art',
+    category: CityEventCategory.cityLife,
+    baseWeight: .72,
+    title: 'A decorated tricycle becomes a local star',
+    summary:
+        'A driver\'s elaborate sea-monster paintwork draws photos across the transport terminal.',
+    explanation:
+        'A neutral viral moment gives the city texture without moving a hidden score.',
+    markerType: CityMapMarkerType.transport,
+    district: CitySimulationDistrict.harborDistrict,
+    severity: CityEventSeverity.ambient,
+    preferredLocationIds: ['transport_terminal'],
+    indicatorEffects: {},
   ),
 ];

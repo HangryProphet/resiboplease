@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/resibo_theme.dart';
+import '../../../core/audio/game_audio_service.dart';
 
 /// Compact, tactile action used throughout the fictional information system.
 ///
@@ -14,6 +15,7 @@ class InformationActionButton extends StatelessWidget {
     this.color = const Color(0xFF304A61),
     this.expanded = false,
     this.buttonKey,
+    this.sound = GameSound.uiTap,
     super.key,
   });
 
@@ -23,6 +25,7 @@ class InformationActionButton extends StatelessWidget {
   final Color color;
   final bool expanded;
   final Key? buttonKey;
+  final GameSound? sound;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +63,14 @@ class InformationActionButton extends StatelessWidget {
           ),
           child: InkWell(
             key: buttonKey,
-            onTap: onPressed,
+            onTap: onPressed == null
+                ? null
+                : () {
+                    if (sound case final effect?) {
+                      GameAudioScope.maybeOf(context)?.play(effect);
+                    }
+                    onPressed!();
+                  },
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 39),
               child: Padding(
@@ -122,6 +132,7 @@ class InformationLinkTile extends StatelessWidget {
     this.subtitle,
     this.color = ResiboColors.navy,
     this.buttonKey,
+    this.sound = GameSound.uiTap,
     super.key,
   });
 
@@ -132,6 +143,7 @@ class InformationLinkTile extends StatelessWidget {
   final Color color;
   final VoidCallback onPressed;
   final Key? buttonKey;
+  final GameSound? sound;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -160,7 +172,12 @@ class InformationLinkTile extends StatelessWidget {
         ),
         child: InkWell(
           key: buttonKey,
-          onTap: onPressed,
+          onTap: () {
+            if (sound case final effect?) {
+              GameAudioScope.maybeOf(context)?.play(effect);
+            }
+            onPressed();
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
             child: Row(

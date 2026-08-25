@@ -46,10 +46,12 @@ dependencies:
   sembast: ^3.8.9+1
   sembast_web: ^2.4.5+1
   shared_preferences: ^2.5.5
+  supabase_flutter: ^2.17.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -57,6 +59,15 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+flutter_launcher_icons:
+  android: true
+  image_path_android: assets/app_icon/resibo_launcher.png
+  min_sdk_android: 21
+  adaptive_icon_background: "#16263B"
+  adaptive_icon_foreground: assets/app_icon/resibo_launcher_foreground.png
+  adaptive_icon_foreground_inset: 20
+  adaptive_icon_monochrome: assets/app_icon/resibo_launcher_monochrome.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -80,12 +91,17 @@ flutter:
     - assets/images/candidates/portrait_06.png
     - assets/images/candidates/portrait_07.png
     - assets/images/city/bayhaven_base.png
+    - assets/images/city/bayhaven_topdown_map_districts.png
     - assets/images/city/bayhaven_community_voices.jpg
     - assets/images/events/
     - assets/images/issues/
     - assets/images/citybook/
     - assets/images/tv/
     - assets/audio/dialogue/
+    - assets/audio/sfx/
+    - assets/audio/music/menu/
+    - assets/audio/music/investigation/
+    - assets/audio/music/simulation/
     - assets/images/main_menu/bayhaven_menu_background_v2.png
     - assets/images/main_menu/candidate_group_v2.png
 

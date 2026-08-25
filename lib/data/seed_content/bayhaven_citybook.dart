@@ -1,5 +1,6 @@
 import '../../domain/models/city_problem.dart';
 import '../../domain/models/citybook.dart';
+import '../../domain/simulation/citybook_comment_reaction_engine.dart';
 
 CityBookCatalog buildBayhavenCityBook() {
   const profiles = <String, CityBookProfile>{
@@ -399,7 +400,14 @@ CityBookCommentThread _baseThreadFor(CityBookPost post) {
           authorHandle: comments[index].$2,
           archetype: comments[index].$3,
           text: comments[index].$4,
-          reactionCount: 14 + index * 17,
+          reactions: const CityBookCommentReactionEngine().generate(
+            parentReactions: post.reactions,
+            archetype: comments[index].$3,
+            seed: cityBookReactionSeed(
+              '${post.id}:authored-comment:$index:reactions',
+            ),
+            commentIndex: index,
+          ),
           accountClues:
               comments[index].$3 == CityBookCommentArchetype.suspiciousAccount
               ? const [
@@ -492,7 +500,14 @@ CityBookCommentThread _threadFor(CityBookPost post) {
               : _regularCommentAuthor(base, authorOffset, index).handle,
           archetype: comments[index].archetype,
           text: comments[index].text,
-          reactionCount: 9 + (_stableHash('${post.id}_$index') % 180),
+          reactions: const CityBookCommentReactionEngine().generate(
+            parentReactions: post.reactions,
+            archetype: comments[index].archetype,
+            seed: cityBookReactionSeed(
+              '${post.id}:context-comment:$index:reactions',
+            ),
+            commentIndex: index,
+          ),
           accountClues:
               comments[index].archetype ==
                   CityBookCommentArchetype.suspiciousAccount

@@ -9,6 +9,7 @@ import '../../dossier/widgets/dossier_ui.dart';
 import '../../dossier/widgets/evidence_reader.dart';
 import 'candidate_image_slot.dart';
 import 'then_now_card.dart';
+import '../../information/widgets/information_actions.dart';
 
 class CandidateBiographyView extends StatelessWidget {
   const CandidateBiographyView({
@@ -391,10 +392,11 @@ class _HistoryEventCard extends StatelessWidget {
                   spacing: 4,
                   children: [
                     for (final id in event.evidenceIds)
-                      TextButton.icon(
+                      InformationActionButton(
                         onPressed: () => onEvidence(id),
-                        icon: const Icon(Icons.receipt_long_rounded, size: 15),
-                        label: Text(context.candidateStrings.openCitation),
+                        icon: Icons.receipt_long_rounded,
+                        label: context.candidateStrings.openCitation,
+                        sound: null,
                       ),
                   ],
                 ),
