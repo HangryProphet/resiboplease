@@ -136,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
           SafeArea(
+            bottom: false,
             child: AnimatedBuilder(
               animation: widget.controller,
               builder: (context, _) => LayoutBuilder(
@@ -235,36 +236,58 @@ class _MobileMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final short = constraints.maxHeight < 720;
-      final candidateHeight = (constraints.maxWidth / 1.48).clamp(
+      final primaryActionCount = controller.hasActiveRun ? 4 : 3;
+      const comfortableHeightPerPrimaryAction = 320.0;
+      final short =
+          constraints.maxHeight <
+          comfortableHeightPerPrimaryAction * primaryActionCount;
+      final topPadding = short ? 10.0 : 14.0;
+      final bottomPadding = short || controller.hasActiveRun ? 14.0 : 22.0;
+      final baseCandidateHeight = (constraints.maxWidth / 1.48).clamp(
         short ? 190.0 : 220.0,
         short ? 245.0 : 300.0,
       );
+      final candidateHeight = baseCandidateHeight * (3 / primaryActionCount);
       return SingleChildScrollView(
-        physics: short
-            ? const ClampingScrollPhysics()
-            : const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
-        child: Column(
-          children: [
-            ResiboLogo(compact: short),
-            _SplashText(text: splashLine, scale: splashScale, compact: short),
-            SizedBox(
-              height: candidateHeight,
-              width: double.infinity,
-              child: const _FadedCandidateGroup(),
+        key: const Key('mobile_menu_scroll'),
+        physics: const ClampingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(18, topPadding, 18, bottomPadding),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: max(
+              0,
+              constraints.maxHeight - topPadding - bottomPadding,
             ),
-            Transform.translate(
-              offset: const Offset(0, -24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 390),
-                child: _MenuActions(
-                  controller: controller,
-                  settingsController: settingsController,
+          ),
+          child: IntrinsicHeight(
+            child: Column(
+              children: [
+                ResiboLogo(compact: short),
+                _SplashText(
+                  text: splashLine,
+                  scale: splashScale,
+                  compact: short,
                 ),
-              ),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: candidateHeight,
+                      child: const _FadedCandidateGroup(),
+                    ),
+                  ),
+                ),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 390),
+                  child: _MenuActions(
+                    controller: controller,
+                    settingsController: settingsController,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       );
     },
@@ -446,6 +469,7 @@ class _MenuActions extends StatelessWidget {
         ),
         const SizedBox(height: 15),
         Text(
+          key: const Key('menu_disclaimer'),
           context.l10n.fictionalDisclaimer,
           textAlign: TextAlign.center,
           style: TextStyle(

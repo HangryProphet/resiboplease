@@ -90,7 +90,14 @@ class TermReportScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _ReportHero(result: result),
+                          _ReportHero(
+                            result: result,
+                            portraitAssetKey:
+                                controller.candidateExperience
+                                    .profileFor(result.candidate.id)
+                                    ?.portraitAssetKey ??
+                                'candidate_${result.candidate.id}_neutral',
+                          ),
                           const SizedBox(height: 13),
                           CityPaperPanel(
                             color: const Color(0xFFF2DFAE),
@@ -382,9 +389,13 @@ int _healthyChange(CityIndicator indicator, int change) =>
     indicator == CityIndicator.corruptionPressure ? -change : change;
 
 class _ReportHero extends StatelessWidget {
-  const _ReportHero({required this.result});
+  const _ReportHero({
+    required this.result,
+    required this.portraitAssetKey,
+  });
 
   final TermResult result;
+  final String portraitAssetKey;
 
   @override
   Widget build(BuildContext context) {
@@ -414,7 +425,7 @@ class _ReportHero extends StatelessWidget {
             height: compact ? 300 : 235,
             child: CandidateImageSlot(
               candidateId: result.candidate.id,
-              assetKey: 'candidate_${result.candidate.id}_neutral',
+              assetKey: portraitAssetKey,
               semanticLabel: result.candidate.name,
               color: color,
               aspectRatio: compact ? 138 / 300 : 210 / 235,

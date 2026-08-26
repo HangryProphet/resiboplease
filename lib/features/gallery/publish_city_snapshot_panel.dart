@@ -75,34 +75,38 @@ class _PublishCitySnapshotPanelState extends State<PublishCitySnapshotPanel> {
                     style: const TextStyle(color: dossierInk, height: 1.4),
                   ),
                   const SizedBox(height: 13),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _PrivacyOption(
-                          key: const Key('publish_privacy_public'),
-                          label: 'Public',
-                          description: 'Visible in Explore and player search.',
-                          icon: Icons.public_rounded,
-                          selected: privacy == _PublishPrivacy.public,
-                          onTap: () => setDialogState(
-                            () => privacy = _PublishPrivacy.public,
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _PrivacyOption(
+                            key: const Key('publish_privacy_public'),
+                            label: 'Public',
+                            description:
+                                'Visible in Explore and player search.',
+                            icon: Icons.public_rounded,
+                            selected: privacy == _PublishPrivacy.public,
+                            onTap: () => setDialogState(
+                              () => privacy = _PublishPrivacy.public,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: _PrivacyOption(
-                          key: const Key('publish_privacy_private'),
-                          label: 'Private',
-                          description: 'Visible only in My Cities.',
-                          icon: Icons.lock_rounded,
-                          selected: privacy == _PublishPrivacy.private,
-                          onTap: () => setDialogState(
-                            () => privacy = _PublishPrivacy.private,
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: _PrivacyOption(
+                            key: const Key('publish_privacy_private'),
+                            label: 'Private',
+                            description: 'Visible only in My Cities.',
+                            icon: Icons.lock_rounded,
+                            selected: privacy == _PublishPrivacy.private,
+                            onTap: () => setDialogState(
+                              () => privacy = _PublishPrivacy.private,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 17),
                   Wrap(

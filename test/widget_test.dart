@@ -36,6 +36,14 @@ void main() {
     );
     expect(splash.data, isNot(contains('\n')));
     expect(splash.data!.length, lessThanOrEqualTo(40));
+    expect(
+      tester.getRect(find.byKey(const Key('settings_button'))).bottom,
+      lessThanOrEqualTo(844),
+    );
+    expect(
+      tester.getRect(find.byKey(const Key('menu_disclaimer'))).bottom,
+      lessThanOrEqualTo(844),
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -173,6 +181,12 @@ void main() {
     tester,
   ) async {
     usePhoneViewport(tester);
+    tester.view.padding = const FakeViewPadding(bottom: 24);
+    tester.view.viewPadding = const FakeViewPadding(bottom: 24);
+    tester.view.systemGestureInsets = const FakeViewPadding(bottom: 24);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+    addTearDown(tester.view.resetSystemGestureInsets);
     final controller = GameController(activeRun: true);
     addTearDown(controller.dispose);
     await tester.pumpWidget(
@@ -185,6 +199,14 @@ void main() {
 
     expect(find.text('CONTINUE CITY'), findsNWidgets(2));
     expect(find.byKey(const Key('start_new_city_secondary')), findsOneWidget);
+    expect(
+      tester.getRect(find.byKey(const Key('settings_button'))).bottom,
+      lessThanOrEqualTo(844),
+    );
+    expect(
+      tester.getRect(find.byKey(const Key('menu_disclaimer'))).bottom,
+      lessThanOrEqualTo(844),
+    );
 
     await tester.tap(find.byKey(const Key('start_new_city_secondary')));
     await finishOverlayAnimation(tester);
@@ -224,6 +246,37 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     expect(controller.hasActiveRun, isFalse);
     expect(find.textContaining('was removed from Save Slot 1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('saved main menu scrolls to Settings on a short viewport', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 560);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final controller = GameController(activeRun: true);
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildResiboTheme(),
+        home: HomeScreen(controller: controller),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('mobile_menu_scroll')), findsOneWidget);
+    expect(find.byKey(const Key('settings_button')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('settings_button')));
+    await tester.pump();
+
+    final settingsBounds = tester.getRect(
+      find.byKey(const Key('settings_button')),
+    );
+    expect(settingsBounds.top, greaterThanOrEqualTo(0));
+    expect(settingsBounds.bottom, lessThanOrEqualTo(560));
     expect(tester.takeException(), isNull);
   });
 }
