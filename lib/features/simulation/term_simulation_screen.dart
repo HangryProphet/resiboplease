@@ -8,6 +8,7 @@ import '../../core/settings/app_settings_controller.dart';
 import '../../core/audio/game_audio_service.dart';
 import '../../core/state/game_controller.dart';
 import '../../domain/models/candidate.dart';
+import '../../domain/models/citizen_action.dart';
 import '../../domain/models/city_indicator.dart';
 import '../../domain/models/city_indicator_set.dart';
 import '../../domain/models/living_city_simulation.dart';
@@ -197,6 +198,7 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
                       ? null
                       : () => _showEvent(latestEvent),
                   onHistory: () => _showHistory(result),
+                  onActions: _showCitizenActions,
                 ),
                 _SimulationDock(
                   day: day,
@@ -402,6 +404,211 @@ class _TermSimulationScreenState extends State<TermSimulationScreen> {
       ),
     );
   }
+
+  Future<void> _showCitizenActions() async {
+    widget.controller.pauseSimulation();
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final day = widget.controller.simulationDay;
+          final scheduled = {
+            for (final action in widget.controller.citizenActions)
+              action.type: action,
+          };
+          return SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 660),
+                height: MediaQuery.sizeOf(context).height * .82,
+                margin: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF102434),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF07111D), width: 3),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black87, offset: Offset(4, 6)),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.how_to_reg_rounded,
+                            color: Color(0xFFFFD765),
+                          ),
+                          const SizedBox(width: 9),
+                          Expanded(
+                            child: Text(
+                              context.l10n.citizenActions.toUpperCase(),
+                              style: const TextStyle(
+                                color: Color(0xFFFFEBC1),
+                                fontFamily: 'LilitaOne',
+                                fontSize: 23,
+                              ),
+                            ),
+                          ),
+                          GameIconButton(
+                            tooltip: MaterialLocalizations.of(
+                              context,
+                            ).closeButtonTooltip,
+                            icon: Icons.close_rounded,
+                            onPressed: () => Navigator.pop(sheetContext),
+                            color: const Color(0xFF29475F),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        context.l10n.citizenActionHubDescription,
+                        style: const TextStyle(
+                          color: Color(0xFFFFEBC1),
+                          fontSize: 12,
+                          height: 1.35,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _CitizenActionNotice(
+                        icon: Icons.balance_rounded,
+                        text: context.l10n.citizenActionCausalityNote,
+                      ),
+                      if (day < 30 || day > 350) ...[
+                        const SizedBox(height: 8),
+                        _CitizenActionNotice(
+                          icon: Icons.calendar_month_rounded,
+                          text: context.l10n.actionWindowNotice,
+                          warning: true,
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      for (final type in CitizenActionType.values) ...[
+                        _CitizenActionCard(
+                          type: type,
+                          action: scheduled[type],
+                          currentDay: day,
+                          supportingEvidenceTitle:
+                              type == CitizenActionType.challengeMisleadingClaim
+                              ? widget
+                                    .controller
+                                    .recommendedChallengeEvidence
+                                    ?.title
+                              : null,
+                          available: widget.controller.canPerformCitizenAction(
+                            type,
+                          ),
+                          delayReduction: widget.controller.civicProgression
+                              .actionDelayReductionDays(type),
+                          onPressed: () async {
+                            final confirmed = await _confirmCitizenAction(
+                              context,
+                              type,
+                            );
+                            if (!confirmed || !context.mounted) return;
+                            widget.controller.performCitizenAction(type);
+                            GameAudioScope.maybeOf(
+                              context,
+                            )?.play(GameSound.notification);
+                            setSheetState(() {});
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  context.l10n.actionFiledConfirmation,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        if (type != CitizenActionType.values.last)
+                          const SizedBox(height: 10),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<bool> _confirmCitizenAction(
+    BuildContext context,
+    CitizenActionType type,
+  ) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: CityPaperPanel(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.l10n.confirmCitizenAction.toUpperCase(),
+                    style: const TextStyle(
+                      color: cityBriefInk,
+                      fontFamily: 'LilitaOne',
+                      fontSize: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _citizenActionTitle(context, type),
+                    style: const TextStyle(
+                      color: ResiboColors.mutedRed,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.l10n.confirmCitizenActionBody,
+                    style: const TextStyle(
+                      color: cityBriefInk,
+                      height: 1.35,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _EventAction(
+                        icon: Icons.close_rounded,
+                        label: context.l10n.cancelAction,
+                        color: const Color(0xFF536778),
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                      ),
+                      _EventAction(
+                        icon: Icons.how_to_reg_rounded,
+                        label: context.l10n.confirmAction,
+                        color: ResiboColors.mutedRed,
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ) ??
+      false;
 
   Future<void> _showHistory(TermResult result) async {
     var filter = _HistoryFilter.all;
@@ -1422,18 +1629,340 @@ class _MapEventMarkerState extends State<_MapEventMarker>
   }
 }
 
+String _citizenActionTitle(BuildContext context, CitizenActionType type) =>
+    switch (type) {
+      CitizenActionType.requestPublicRecords =>
+        context.l10n.requestPublicRecords,
+      CitizenActionType.organizePetition => context.l10n.organizePetition,
+      CitizenActionType.challengeMisleadingClaim =>
+        context.l10n.challengeMisleadingClaim,
+    };
+
+String _citizenActionDescription(
+  BuildContext context,
+  CitizenActionType type,
+) => switch (type) {
+  CitizenActionType.requestPublicRecords =>
+    context.l10n.requestPublicRecordsDescription,
+  CitizenActionType.organizePetition =>
+    context.l10n.organizePetitionDescription,
+  CitizenActionType.challengeMisleadingClaim =>
+    context.l10n.challengeMisleadingClaimDescription,
+};
+
+class _CitizenActionNotice extends StatelessWidget {
+  const _CitizenActionNotice({
+    required this.icon,
+    required this.text,
+    this.warning = false,
+  });
+
+  final IconData icon;
+  final String text;
+  final bool warning;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(9),
+    decoration: BoxDecoration(
+      color: warning ? const Color(0xFF5B3034) : const Color(0xFF203C4C),
+      border: Border.all(color: const Color(0xFF07111D), width: 2),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFFFFD765)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFFFFEBC1),
+              fontSize: 10,
+              height: 1.3,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CitizenActionCard extends StatelessWidget {
+  const _CitizenActionCard({
+    required this.type,
+    required this.action,
+    required this.currentDay,
+    required this.supportingEvidenceTitle,
+    required this.available,
+    required this.delayReduction,
+    required this.onPressed,
+  });
+
+  final CitizenActionType type;
+  final ScheduledCitizenAction? action;
+  final int currentDay;
+  final String? supportingEvidenceTitle;
+  final bool available;
+  final int delayReduction;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final filed = action;
+    final resolved = filed?.isResolvedOn(currentDay) ?? false;
+    final accent = switch (type) {
+      CitizenActionType.requestPublicRecords => const Color(0xFF3277A0),
+      CitizenActionType.organizePetition => ResiboColors.teal,
+      CitizenActionType.challengeMisleadingClaim => ResiboColors.mutedRed,
+    };
+    return Container(
+      key: Key('citizen_action_${type.name}'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFF1C8), Color(0xFFE2CFA4)],
+        ),
+        border: Border.all(color: const Color(0xFF07111D), width: 3),
+        borderRadius: BorderRadius.circular(7),
+        boxShadow: const [
+          BoxShadow(color: Colors.black54, offset: Offset(2, 3)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: cityBriefInk, width: 2),
+                ),
+                child: Icon(switch (type) {
+                  CitizenActionType.requestPublicRecords =>
+                    Icons.folder_open_rounded,
+                  CitizenActionType.organizePetition => Icons.campaign_rounded,
+                  CitizenActionType.challengeMisleadingClaim =>
+                    Icons.fact_check_rounded,
+                }, color: const Color(0xFFFFEBC1)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _citizenActionTitle(context, type).toUpperCase(),
+                      style: const TextStyle(
+                        color: cityBriefInk,
+                        fontFamily: 'LilitaOne',
+                        fontSize: 18,
+                      ),
+                    ),
+                    Text(
+                      _citizenActionDescription(context, type),
+                      style: const TextStyle(
+                        color: cityBriefInk,
+                        fontSize: 11,
+                        height: 1.3,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (filed != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: resolved
+                    ? const Color(0xFFD5E4CE)
+                    : const Color(0xFFF7DFA1),
+                border: Border.all(color: cityBriefInk, width: 2),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (resolved
+                            ? context.l10n.actionResolved
+                            : context.l10n.actionPending)
+                        .toUpperCase(),
+                    style: TextStyle(
+                      color: resolved
+                          ? const Color(0xFF24664F)
+                          : ResiboColors.mutedRed,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    resolved
+                        ? filed.event.factualSummary
+                        : context.l10n.actionOutcomeDay(filed.event.day),
+                    style: const TextStyle(
+                      color: cityBriefInk,
+                      fontSize: 11,
+                      height: 1.3,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            if (type == CitizenActionType.challengeMisleadingClaim) ...[
+              const SizedBox(height: 9),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: supportingEvidenceTitle == null
+                      ? const Color(0xFFF0C8AE)
+                      : const Color(0xFFD5E4CE),
+                  border: Border.all(color: cityBriefInk, width: 1.5),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  supportingEvidenceTitle == null
+                      ? context.l10n.challengeEvidenceRequired
+                      : context.l10n.challengeEvidenceSelected(
+                          supportingEvidenceTitle!,
+                        ),
+                  style: const TextStyle(
+                    color: cityBriefInk,
+                    fontSize: 9,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+            if (delayReduction > 0) ...[
+              const SizedBox(height: 9),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD5E4CE),
+                  border: Border.all(color: cityBriefInk, width: 1.5),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  context.l10n.responseEfficiencyUnlocked(delayReduction),
+                  style: const TextStyle(
+                    color: cityBriefInk,
+                    fontSize: 9,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: _CitizenActionButton(
+                label: available
+                    ? context.l10n.takeCitizenAction
+                    : context.l10n.actionUnavailable,
+                enabled: available,
+                color: accent,
+                onPressed: onPressed,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CitizenActionButton extends StatelessWidget {
+  const _CitizenActionButton({
+    required this.label,
+    required this.enabled,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool enabled;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: enabled ? onPressed : null,
+      borderRadius: BorderRadius.circular(5),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        decoration: BoxDecoration(
+          color: enabled ? color : const Color(0xFF6C746F),
+          border: Border.all(color: cityBriefInk, width: 2),
+          borderRadius: BorderRadius.circular(5),
+          boxShadow: const [
+            BoxShadow(color: Colors.black45, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              enabled ? Icons.how_to_reg_rounded : Icons.lock_clock_rounded,
+              color: const Color(0xFFFFEBC1),
+              size: 17,
+            ),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
+                label.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFFFFEBC1),
+                  fontFamily: 'LilitaOne',
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class _LatestDevelopmentBar extends StatelessWidget {
   const _LatestDevelopmentBar({
     required this.event,
     required this.unreadCount,
     required this.onEvent,
     required this.onHistory,
+    required this.onActions,
   });
 
   final CityEvent? event;
   final int unreadCount;
   final VoidCallback? onEvent;
   final VoidCallback onHistory;
+  final VoidCallback onActions;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1493,6 +2022,16 @@ class _LatestDevelopmentBar extends StatelessWidget {
                   ],
                 ),
               ),
+              InkWell(
+                key: const Key('open_citizen_actions'),
+                onTap: onActions,
+                borderRadius: BorderRadius.circular(4),
+                child: const Padding(
+                  padding: EdgeInsets.all(5),
+                  child: Icon(Icons.how_to_reg_rounded, color: cityBriefInk),
+                ),
+              ),
+              const SizedBox(width: 3),
               InkWell(
                 key: const Key('open_event_history'),
                 onTap: onHistory,

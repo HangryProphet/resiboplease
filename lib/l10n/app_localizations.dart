@@ -1530,6 +1530,24 @@ abstract class AppLocalizations {
   /// **'A source can be reputable yet incomplete. Open the item before deciding what weight it deserves.'**
   String get evidenceDeskHint;
 
+  /// No description provided for @sourceDesk.
+  ///
+  /// In en, this message translates to:
+  /// **'Source Desk'**
+  String get sourceDesk;
+
+  /// No description provided for @sourceDeskDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the original dossier order.'**
+  String get sourceDeskDefault;
+
+  /// No description provided for @sourceDeskOrganized.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarked and reviewed files are grouped first, then by source type.'**
+  String get sourceDeskOrganized;
+
   /// No description provided for @investigationPointsRemaining.
   ///
   /// In en, this message translates to:
@@ -2112,6 +2130,18 @@ abstract class AppLocalizations {
   /// **'Replay seed {seed}'**
   String replaySeed(int seed);
 
+  /// No description provided for @continueToNextElection.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to Election {term}'**
+  String continueToNextElection(int term);
+
+  /// No description provided for @nextElectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Carry this city\'s results forward. The next campaign inherits its indicators, unresolved issues, and political history.'**
+  String get nextElectionDescription;
+
   /// No description provided for @caseFileMissing.
   ///
   /// In en, this message translates to:
@@ -2429,6 +2459,846 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry saving'**
   String get retrySave;
+
+  /// No description provided for @politicalHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Political history'**
+  String get politicalHistory;
+
+  /// No description provided for @openPoliticalHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Open political history'**
+  String get openPoliticalHistory;
+
+  /// No description provided for @politicalHistoryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review {count} completed administration record(s), including city outcomes, projects, major events, and your election receipts.'**
+  String politicalHistoryDescription(int count);
+
+  /// No description provided for @historicalReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Historical receipt'**
+  String get historicalReceipt;
+
+  /// No description provided for @historicalReceiptMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'That administration record is not stored in this city.'**
+  String get historicalReceiptMissing;
+
+  /// No description provided for @noAdministrationHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No completed administrations yet'**
+  String get noAdministrationHistory;
+
+  /// No description provided for @historyBeginsAfterTerm.
+  ///
+  /// In en, this message translates to:
+  /// **'Political history begins after Administration {term} is completed and the city continues to its next election.'**
+  String historyBeginsAfterTerm(int term);
+
+  /// No description provided for @cityPoliticalTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'The city\'s political timeline'**
+  String get cityPoliticalTimeline;
+
+  /// No description provided for @historyTimelineDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} administration(s) are sealed in the record. The city is now preparing for Election {election}.'**
+  String historyTimelineDescription(int count, int election);
+
+  /// No description provided for @administrationNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Administration {term}'**
+  String administrationNumber(int term);
+
+  /// No description provided for @openAdministrationReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the receipt for Administration {term}'**
+  String openAdministrationReceipt(int term);
+
+  /// No description provided for @projectsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} completed'**
+  String projectsCompleted(int count);
+
+  /// No description provided for @majorEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} major events'**
+  String majorEvents(int count);
+
+  /// No description provided for @openHistoricalReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the full term receipt'**
+  String get openHistoricalReceipt;
+
+  /// No description provided for @cityOutcome.
+  ///
+  /// In en, this message translates to:
+  /// **'City outcome'**
+  String get cityOutcome;
+
+  /// No description provided for @promiseProjectRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Promise and project record'**
+  String get promiseProjectRecord;
+
+  /// No description provided for @majorEventsRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Major events recorded'**
+  String get majorEventsRecorded;
+
+  /// No description provided for @noMajorEventsRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'No major event was marked in this administration.'**
+  String get noMajorEventsRecorded;
+
+  /// No description provided for @electionReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Election receipt'**
+  String get electionReceipt;
+
+  /// No description provided for @administrationOutcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Administration {term} ended with the city rated {condition}.'**
+  String administrationOutcome(int term, String condition);
+
+  /// No description provided for @projectProgressReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress}% complete · {milestones} recorded milestone(s)'**
+  String projectProgressReceipt(int progress, int milestones);
+
+  /// No description provided for @candidatesOnBallot.
+  ///
+  /// In en, this message translates to:
+  /// **'Candidates on ballot'**
+  String get candidatesOnBallot;
+
+  /// No description provided for @evidenceReviewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence reviewed'**
+  String get evidenceReviewed;
+
+  /// No description provided for @receiptsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipts saved'**
+  String get receiptsSaved;
+
+  /// No description provided for @topIssueRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Top issue recorded'**
+  String get topIssueRecorded;
+
+  /// No description provided for @voterConfidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Voter confidence'**
+  String get voterConfidence;
+
+  /// No description provided for @resiboNgBayan.
+  ///
+  /// In en, this message translates to:
+  /// **'Resibo ng Bayan'**
+  String get resiboNgBayan;
+
+  /// No description provided for @openResiboNgBayan.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Resibo ng Bayan'**
+  String get openResiboNgBayan;
+
+  /// No description provided for @publicAccountabilityJournal.
+  ///
+  /// In en, this message translates to:
+  /// **'Public accountability journal'**
+  String get publicAccountabilityJournal;
+
+  /// No description provided for @accountabilityJournalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign promises are matched with the sealed project record. Incomplete work is described by its recorded state, not automatically called a lie.'**
+  String get accountabilityJournalDescription;
+
+  /// No description provided for @promisesRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Promises recorded'**
+  String get promisesRecorded;
+
+  /// No description provided for @deliveredLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get deliveredLabel;
+
+  /// No description provided for @administrationsRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Administrations'**
+  String get administrationsRecorded;
+
+  /// No description provided for @allPromises.
+  ///
+  /// In en, this message translates to:
+  /// **'All promises'**
+  String get allPromises;
+
+  /// No description provided for @unresolvedPromises.
+  ///
+  /// In en, this message translates to:
+  /// **'Unresolved'**
+  String get unresolvedPromises;
+
+  /// No description provided for @noHistoricalPromises.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete an administration to begin the public promise journal.'**
+  String get noHistoricalPromises;
+
+  /// No description provided for @noPromisesInFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'No promises match this filter.'**
+  String get noPromisesInFilter;
+
+  /// No description provided for @promiseNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not started'**
+  String get promiseNotStarted;
+
+  /// No description provided for @promiseInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get promiseInProgress;
+
+  /// No description provided for @promisePartiallyDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Partially delivered'**
+  String get promisePartiallyDelivered;
+
+  /// No description provided for @promiseDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get promiseDelivered;
+
+  /// No description provided for @promiseDelayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Delayed'**
+  String get promiseDelayed;
+
+  /// No description provided for @promiseAbandoned.
+  ///
+  /// In en, this message translates to:
+  /// **'Abandoned'**
+  String get promiseAbandoned;
+
+  /// No description provided for @promiseBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked'**
+  String get promiseBlocked;
+
+  /// No description provided for @civicPredictions.
+  ///
+  /// In en, this message translates to:
+  /// **'Your expectations'**
+  String get civicPredictions;
+
+  /// No description provided for @civicPredictionsPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Optionally record up to two expectations before you seal the ballot.'**
+  String get civicPredictionsPrompt;
+
+  /// No description provided for @civicPredictionsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'These are reflection notes, not bets or a hidden score. The term report will compare them with observed city indicators.'**
+  String get civicPredictionsNote;
+
+  /// No description provided for @predictionsSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of 2 expectations recorded'**
+  String predictionsSelected(int count);
+
+  /// No description provided for @predictionHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Public health will improve'**
+  String get predictionHealth;
+
+  /// No description provided for @predictionHealthDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare the final public-health indicator with its starting condition.'**
+  String get predictionHealthDescription;
+
+  /// No description provided for @predictionInfrastructure.
+  ///
+  /// In en, this message translates to:
+  /// **'Infrastructure resilience will improve'**
+  String get predictionInfrastructure;
+
+  /// No description provided for @predictionInfrastructureDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare water, urban, and climate resilience across the term.'**
+  String get predictionInfrastructureDescription;
+
+  /// No description provided for @predictionLivelihoods.
+  ///
+  /// In en, this message translates to:
+  /// **'Livelihood conditions will improve'**
+  String get predictionLivelihoods;
+
+  /// No description provided for @predictionLivelihoodsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare employment quality and poverty reduction.'**
+  String get predictionLivelihoodsDescription;
+
+  /// No description provided for @predictionBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'The city budget will remain healthier'**
+  String get predictionBudget;
+
+  /// No description provided for @predictionBudgetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare final budget health with the start of the term.'**
+  String get predictionBudgetDescription;
+
+  /// No description provided for @predictionTrust.
+  ///
+  /// In en, this message translates to:
+  /// **'Public trust will improve'**
+  String get predictionTrust;
+
+  /// No description provided for @predictionTrustDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare public trust before and after the administration.'**
+  String get predictionTrustDescription;
+
+  /// No description provided for @predictionCorruption.
+  ///
+  /// In en, this message translates to:
+  /// **'Corruption pressure will fall'**
+  String get predictionCorruption;
+
+  /// No description provided for @predictionCorruptionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A lower final corruption-pressure indicator is healthier.'**
+  String get predictionCorruptionDescription;
+
+  /// No description provided for @predictionReflection.
+  ///
+  /// In en, this message translates to:
+  /// **'Your expectation receipt'**
+  String get predictionReflection;
+
+  /// No description provided for @predictionReflectionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This compares what you recorded before voting with observed indicator movement. It does not grade the vote or reveal a correct candidate.'**
+  String get predictionReflectionBody;
+
+  /// No description provided for @predictionObserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Observed improvement'**
+  String get predictionObserved;
+
+  /// No description provided for @predictionMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed result'**
+  String get predictionMixed;
+
+  /// No description provided for @predictionNotObserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Not observed'**
+  String get predictionNotObserved;
+
+  /// No description provided for @historicalEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Historical evidence'**
+  String get historicalEvidence;
+
+  /// No description provided for @historicalEvidenceMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'That evidence item is not present in the archived election snapshot.'**
+  String get historicalEvidenceMissing;
+
+  /// No description provided for @archivedElectionSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Sealed election snapshot'**
+  String get archivedElectionSnapshot;
+
+  /// No description provided for @historicalEvidenceNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the evidence snapshot stored with that election. Later campaigns cannot replace or rewrite this historical document.'**
+  String get historicalEvidenceNotice;
+
+  /// No description provided for @openArchivedEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Open archived evidence'**
+  String get openArchivedEvidence;
+
+  /// No description provided for @recurringRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring records'**
+  String get recurringRecords;
+
+  /// No description provided for @recurringRecordsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'These patterns come from multiple sealed administrations. Repetition provides context; it is not automatic proof of honesty, guilt, or future performance.'**
+  String get recurringRecordsDescription;
+
+  /// No description provided for @repeatedPromise.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeated promise area'**
+  String get repeatedPromise;
+
+  /// No description provided for @recurringControversy.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring controversy'**
+  String get recurringControversy;
+
+  /// No description provided for @administrationsList.
+  ///
+  /// In en, this message translates to:
+  /// **'Administrations: {terms}'**
+  String administrationsList(String terms);
+
+  /// No description provided for @citizenActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Citizen Actions'**
+  String get citizenActions;
+
+  /// No description provided for @citizenActionHubDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You are a citizen, not the mayor. Take limited actions during this term; the administration may cooperate, compromise, or resist.'**
+  String get citizenActionHubDescription;
+
+  /// No description provided for @requestPublicRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Request Public Records'**
+  String get requestPublicRecords;
+
+  /// No description provided for @requestPublicRecordsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask City Hall to release records relevant to public accountability.'**
+  String get requestPublicRecordsDescription;
+
+  /// No description provided for @organizePetition.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize a Petition'**
+  String get organizePetition;
+
+  /// No description provided for @organizePetitionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Build public pressure around the city\'s most severe current concern.'**
+  String get organizePetitionDescription;
+
+  /// No description provided for @challengeMisleadingClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge a Misleading Claim'**
+  String get challengeMisleadingClaim;
+
+  /// No description provided for @challengeMisleadingClaimDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use reviewed evidence to challenge a misleading or false public claim.'**
+  String get challengeMisleadingClaimDescription;
+
+  /// No description provided for @challengeEvidenceRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Review a reliable fact-check, public record, budget document, or documented controversy during the election to unlock this action.'**
+  String get challengeEvidenceRequired;
+
+  /// No description provided for @challengeEvidenceSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Supporting reviewed evidence: {title}'**
+  String challengeEvidenceSelected(String title);
+
+  /// No description provided for @actionWindowNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions become available on Day 30 and close after Day 350.'**
+  String get actionWindowNotice;
+
+  /// No description provided for @actionAlreadyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Filed this term'**
+  String get actionAlreadyUsed;
+
+  /// No description provided for @actionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable right now'**
+  String get actionUnavailable;
+
+  /// No description provided for @takeCitizenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Take action'**
+  String get takeCitizenAction;
+
+  /// No description provided for @actionPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending response'**
+  String get actionPending;
+
+  /// No description provided for @actionResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Outcome recorded'**
+  String get actionResolved;
+
+  /// No description provided for @actionOutcomeDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Expected response: Day {day}'**
+  String actionOutcomeDay(int day);
+
+  /// No description provided for @actionFiledConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Action filed. Its outcome is now part of this term\'s fixed future.'**
+  String get actionFiledConfirmation;
+
+  /// No description provided for @citizenActionCausalityNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Outcome depends on city conditions, issue difficulty, public trust, budget health, and the mayor\'s capabilities. Success is not guaranteed.'**
+  String get citizenActionCausalityNote;
+
+  /// No description provided for @confirmCitizenAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm citizen action?'**
+  String get confirmCitizenAction;
+
+  /// No description provided for @confirmCitizenActionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This action can be used only once this term. Its deterministic outcome will occur later and will persist with the save.'**
+  String get confirmCitizenActionBody;
+
+  /// No description provided for @cancelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get cancelAction;
+
+  /// No description provided for @confirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'File action'**
+  String get confirmAction;
+
+  /// No description provided for @civicProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Civic Profile'**
+  String get civicProfile;
+
+  /// No description provided for @openCivicProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Civic Profile'**
+  String get openCivicProfile;
+
+  /// No description provided for @civicProfileCityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Track civic practice and long-term accomplishments without exposing hidden candidate scores.'**
+  String get civicProfileCityDescription;
+
+  /// No description provided for @civicProfileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your long-term civic record'**
+  String get civicProfileSubtitle;
+
+  /// No description provided for @civicGrowthExplanation.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress comes from unique investigation, accountability work, citizen action, and completed administrations. It improves civic tools—not politicians—and never reveals hidden candidate truth.'**
+  String get civicGrowthExplanation;
+
+  /// No description provided for @civicTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Civic practice'**
+  String get civicTracks;
+
+  /// No description provided for @civicLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {level}'**
+  String civicLevel(int level);
+
+  /// No description provided for @civicPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'{points} record points'**
+  String civicPoints(int points);
+
+  /// No description provided for @civicNextLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'{points} to next level'**
+  String civicNextLevel(int points);
+
+  /// No description provided for @civicMaxLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum level reached'**
+  String get civicMaxLevel;
+
+  /// No description provided for @researchTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Research'**
+  String get researchTrack;
+
+  /// No description provided for @researchTrackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review and organize evidence across distinct elections.'**
+  String get researchTrackDescription;
+
+  /// No description provided for @accountabilityTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Public Accountability'**
+  String get accountabilityTrack;
+
+  /// No description provided for @accountabilityTrackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep receipts, request records, and document recurring concerns.'**
+  String get accountabilityTrackDescription;
+
+  /// No description provided for @organizingTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Civic Organizing'**
+  String get organizingTrack;
+
+  /// No description provided for @organizingTrackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Build experience through limited petitions and continued participation.'**
+  String get organizingTrackDescription;
+
+  /// No description provided for @historyTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Historical Analysis'**
+  String get historyTrack;
+
+  /// No description provided for @historyTrackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete administrations and connect recurring political records.'**
+  String get historyTrackDescription;
+
+  /// No description provided for @responseEfficiencyUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Civic experience shortens this action\'s response time by {days} days without improving its chance of success.'**
+  String responseEfficiencyUnlocked(int days);
+
+  /// No description provided for @sourceDeskUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Source Desk unlocked: optionally organize visible dossier files by review state and source type. It does not reveal hidden truth or unlock evidence.'**
+  String get sourceDeskUnlocked;
+
+  /// No description provided for @civicAccomplishments.
+  ///
+  /// In en, this message translates to:
+  /// **'Accomplishments'**
+  String get civicAccomplishments;
+
+  /// No description provided for @civicAccomplishmentsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} documented'**
+  String civicAccomplishmentsCount(int done, int total);
+
+  /// No description provided for @accomplishmentFirstAdministration.
+  ///
+  /// In en, this message translates to:
+  /// **'A City Remembers'**
+  String get accomplishmentFirstAdministration;
+
+  /// No description provided for @accomplishmentFirstAdministrationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete and archive one administration.'**
+  String get accomplishmentFirstAdministrationDescription;
+
+  /// No description provided for @accomplishmentThreeAdministrations.
+  ///
+  /// In en, this message translates to:
+  /// **'Three Elections Later'**
+  String get accomplishmentThreeAdministrations;
+
+  /// No description provided for @accomplishmentThreeAdministrationsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete three administrations in the same city.'**
+  String get accomplishmentThreeAdministrationsDescription;
+
+  /// No description provided for @accomplishmentFiveAdministrations.
+  ///
+  /// In en, this message translates to:
+  /// **'Long Civic Memory'**
+  String get accomplishmentFiveAdministrations;
+
+  /// No description provided for @accomplishmentFiveAdministrationsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete five administrations in the same city.'**
+  String get accomplishmentFiveAdministrationsDescription;
+
+  /// No description provided for @accomplishmentMultiSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Check More Than One Source'**
+  String get accomplishmentMultiSource;
+
+  /// No description provided for @accomplishmentMultiSourceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review at least five evidence items in one election.'**
+  String get accomplishmentMultiSourceDescription;
+
+  /// No description provided for @accomplishmentRecurringPromise.
+  ///
+  /// In en, this message translates to:
+  /// **'Promise, Repeated'**
+  String get accomplishmentRecurringPromise;
+
+  /// No description provided for @accomplishmentRecurringPromiseDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Document a recurring promise across sealed administrations.'**
+  String get accomplishmentRecurringPromiseDescription;
+
+  /// No description provided for @accomplishmentPublicRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Records Obtained'**
+  String get accomplishmentPublicRecords;
+
+  /// No description provided for @accomplishmentPublicRecordsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive a useful or partial public-record release.'**
+  String get accomplishmentPublicRecordsDescription;
+
+  /// No description provided for @accomplishmentPetition.
+  ///
+  /// In en, this message translates to:
+  /// **'A Public Response'**
+  String get accomplishmentPetition;
+
+  /// No description provided for @accomplishmentPetitionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize a petition that produces a recorded concession or response.'**
+  String get accomplishmentPetitionDescription;
+
+  /// No description provided for @accomplishmentIssueRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Signs of Recovery'**
+  String get accomplishmentIssueRecovery;
+
+  /// No description provided for @accomplishmentIssueRecoveryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'See a major city issue improve substantially during a term.'**
+  String get accomplishmentIssueRecoveryDescription;
+
+  /// No description provided for @accomplishmentCrossTermProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Across Administrations'**
+  String get accomplishmentCrossTermProject;
+
+  /// No description provided for @accomplishmentCrossTermProjectDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Track work in the same issue family across multiple terms.'**
+  String get accomplishmentCrossTermProjectDescription;
+
+  /// No description provided for @accomplishmentPoliticalComeback.
+  ///
+  /// In en, this message translates to:
+  /// **'The Comeback'**
+  String get accomplishmentPoliticalComeback;
+
+  /// No description provided for @accomplishmentPoliticalComebackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Witness a former mayor return after at least one administration away.'**
+  String get accomplishmentPoliticalComebackDescription;
 }
 
 class _AppLocalizationsDelegate

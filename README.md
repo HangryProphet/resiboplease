@@ -1,10 +1,21 @@
 # Resibo, Please
 
+> **October 2026 source audit:** the current implementation is summarized in
+> [`RESIBO_PROJECT_CONTEXT_HANDOFF.md`](RESIBO_PROJECT_CONTEXT_HANDOFF.md).
+> Documentation was reconciled against source without rerunning tests or builds.
+
 **Resibo, Please** is a fictional civic decision simulation about evidence, tradeoffs, and the long-term consequences of a vote. The current build is the local Bayhaven vertical slice described in [`resibo_please_project_context.md`](resibo_please_project_context.md). See [`GAME_VISION_AND_FEATURES.md`](GAME_VISION_AND_FEATURES.md) for a strict separation between implemented features and future design.
 
 All candidates, parties, media outlets, events, and city records are fictional. The project does not compare real politicians or provide advice about real elections.
 
 The post-election MVP now includes a deterministic **365-day Living Procedural City Simulation**: automatic time, Pause/Day/Week/Month/Year controls, state-weighted civic events and causal follow-ups, promise projects, an interactive city map, shared Chronicle/News/TV/CityBook records, and a complete year report. See [`docs/CITY_SIMULATION_ARCHITECTURE.md`](docs/CITY_SIMULATION_ARCHITECTURE.md) for its architecture and extension rules.
+
+The first persistent-city foundation is also implemented: a completed Term
+Report can continue into the next election, inherit the previous final city
+state, retain immutable administration records, and generate a roster mixing
+eligible returning politicians with new challengers. See
+[`docs/PERSISTENT_CITY_DEVELOPMENT_ROADMAP.md`](docs/PERSISTENT_CITY_DEVELOPMENT_ROADMAP.md)
+for the verified slice and remaining work.
 
 ## Current vertical slice
 
@@ -158,7 +169,7 @@ configure a private release keystore before any app-store or public release.
 lib/
 ├── app/                 theme and routing
 ├── core/                app state and reusable widgets
-├── data/seed_content/   fixed Bayhaven scenario truth
+├── data/seed_content/   authored libraries plus fallback/reference fixtures
 ├── data/persistence/    versioned local run saves and repository adapters
 ├── domain/models/       immutable typed game data
 ├── domain/simulation/   deterministic outcome rules
@@ -181,13 +192,16 @@ Important boundaries:
 
 ## Near-term roadmap
 
-1. Carry the final city state into a deterministic second election.
-2. Add election/term history, an end-run choice, and a local final summary.
+1. Add a complete political-history interface and prior-office campaign memory
+   to the implemented multi-election foundation.
+2. Add an end-run choice and a local final historical summary.
 3. Add moderation and richer comparisons to the implemented public snapshot
    gallery without expanding its private-data surface.
 4. Expand deterministic event and promise-outcome tracking tests.
 5. Expand the procedural content libraries without changing saved version-1
    election snapshots.
-6. Add Firebase and AI only after the offline multi-election loop is stable.
+6. Consider broader cloud saves/accounts and runtime AI only after the offline
+   multi-election loop is stable; Supabase already powers the optional,
+   sanitized Public City Gallery.
 
 The comprehensive product rules, safety constraints, research plan, and future phases remain in the project context document and should be updated before any conflicting implementation decision.

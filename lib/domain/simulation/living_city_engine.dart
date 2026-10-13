@@ -12,6 +12,67 @@ import 'seed_derivation.dart';
 import 'seeded_random.dart';
 import 'citybook_comment_reaction_engine.dart';
 
+/// Reduces recently repeated event templates across administrations without
+/// prohibiting recurrence when the underlying civic issue remains severe.
+double historicalTemplateMultiplier({
+  required int priorUses,
+  required int unresolvedSeverity,
+}) {
+  if (priorUses <= 0) return 1;
+  final base = 1 / (1 + priorUses * .75);
+  final floor = unresolvedSeverity >= 75
+      ? .68
+      : unresolvedSeverity >= 60
+      ? .56
+      : .28;
+  return base < floor ? floor : base;
+}
+
+/// Reduces repeated artwork/marker-and-district combinations while retaining a
+/// recurrence floor for severe unresolved conditions.
+double historicalVisualMultiplier({
+  required int priorUses,
+  required int unresolvedSeverity,
+}) {
+  if (priorUses <= 0) return 1;
+  final base = 1 / (1 + priorUses * .45);
+  final floor = unresolvedSeverity >= 75 ? .78 : .52;
+  return base < floor ? floor : base;
+}
+
+/// Reduces a recently repeated outlet framing without ever removing it from
+/// consideration. The floor keeps each outlet's familiar editorial voice
+/// recognizable even across a long political timeline.
+double historicalNewsFramingMultiplier({required int priorUses}) {
+  if (priorUses <= 0) return 1;
+  final multiplier = 1 / (1 + priorUses * .55);
+  return multiplier < .24 ? .24 : multiplier;
+}
+
+String newsFramingKey({
+  required String outletId,
+  required String framingAngle,
+}) => '$outletId|$framingAngle';
+
+String livingEventVisualKey({
+  required String? visualAssetKey,
+  required CityMapMarkerType markerType,
+  required CitySimulationDistrict district,
+}) => '${visualAssetKey ?? 'marker:${markerType.name}'}:${district.name}';
+
+String? livingEventVisualKeyForTemplateId(String templateId) {
+  for (final template in livingCityEventLibrary) {
+    if (template.id == templateId) {
+      return livingEventVisualKey(
+        visualAssetKey: template.visualAssetKey,
+        markerType: template.markerType,
+        district: template.district,
+      );
+    }
+  }
+  return null;
+}
+
 class LivingCityEngine {
   const LivingCityEngine();
 
@@ -24,6 +85,9 @@ class LivingCityEngine {
     CandidateTruthSnapshot? truth,
     List<CandidatePromise> promises = const [],
     List<WorldCondition> injectedWorldConditions = const [],
+    Map<String, int> historicalTemplatePressure = const {},
+    Map<String, int> historicalVisualPressure = const {},
+    Map<String, int> historicalNewsFramingPressure = const {},
   }) {
     final candidateTruth = truth ?? truthSnapshotFromCandidate(candidate);
     var indicators = scenario.city.indicators;
@@ -151,6 +215,8 @@ class LivingCityEngine {
           lastLocationDay: lastLocationDay,
           lastIssueDay: lastIssueDay,
           worldConditions: activeWorldConditions,
+          historicalTemplatePressure: historicalTemplatePressure,
+          historicalVisualPressure: historicalVisualPressure,
         );
         if (selected != null) {
           final sourceHook = selected.requiredHook == null
@@ -167,6 +233,7 @@ class LivingCityEngine {
             phase: phase,
             step: phaseSteps[phase]!,
             parentEventId: sourceHook?.sourceEventId,
+            historicalUseCount: historicalTemplatePressure[selected.id] ?? 0,
           );
           history.add(event);
           phaseEvents[phase]!.add(event);
@@ -228,7 +295,11 @@ class LivingCityEngine {
         return dayOrder != 0 ? dayOrder : left.id.compareTo(right.id);
       });
     final chronicle = _chronicleEntries(orderedHistory);
-    final news = _newsCoverages(orderedHistory);
+    final news = _newsCoverages(
+      scenario: scenario,
+      events: orderedHistory,
+      historicalNewsFramingPressure: historicalNewsFramingPressure,
+    );
     final cityBook = _cityBookArtifacts(candidate, orderedHistory, projects);
     final tvEvents = orderedHistory
         .where(
@@ -497,17 +568,22 @@ class LivingCityEngine {
     );
     final policy = truth.policyFor(project.relevantIndicator);
     final capacity =
-        truth.implementationSkill * .30 +
+        truth.implementationSkill * .29 +
         truth.generalCompetence * .17 +
-        truth.coalitionSkill * .16 +
+        truth.coalitionSkill * .10 +
+        truth.institutionalStanding * .06 +
         truth.budgetDiscipline * .17 +
         policy * .14 +
-        truth.experience * .06;
+        truth.experience * .07;
     final fiscalPenalty = indicators.valueOf(CityIndicator.budgetHealth) < 35
         ? 7
         : 0;
     final integrityPenalty =
         project.corruptionExposure * truth.corruptionRisk / 650;
+    final reformDeliveryModifier = project.difficulty >= 70
+        ? (truth.reformCredibility - 50) / 25
+        : 0;
+    final fatiguePenalty = (truth.politicalFatigue - 50).clamp(0, 45) / 12;
     final externalProgressModifier = worldConditions
         .fold<int>(
           0,
@@ -520,6 +596,8 @@ class LivingCityEngine {
                 project.difficulty / 8 -
                 fiscalPenalty -
                 integrityPenalty +
+                reformDeliveryModifier -
+                fatiguePenalty +
                 externalProgressModifier +
                 random.between(-5, 6))
             .round()
@@ -633,7 +711,7 @@ class LivingCityEngine {
           : 'Project work advances',
       factualSummary: milestone.summary,
       explanation:
-          'Project progress reflects policy fit, implementation, coalition support, fiscal room, integrity risk, difficulty, and seeded variation.',
+          'Project progress reflects policy fit, implementation, institutional support, fiscal room, integrity risk, accumulated governing pressure, difficulty, and seeded variation.',
       fictionalDate: _fictionalDate(day, scenario.city.term),
       district: anchor.district,
       locationId: anchor.id,
@@ -671,6 +749,8 @@ class LivingCityEngine {
     required Map<String, int> lastLocationDay,
     required Map<CityIssueFamily, int> lastIssueDay,
     required List<WorldCondition> worldConditions,
+    required Map<String, int> historicalTemplatePressure,
+    required Map<String, int> historicalVisualPressure,
   }) {
     final random = SeededRandom(
       SeedDerivation.derive(
@@ -771,6 +851,22 @@ class LivingCityEngine {
         weight *= .55 + issueSeverity / 58;
       }
       if (template.requiredHook != null) weight *= 3.1;
+      if (template.requiredHook == null) {
+        weight *= historicalTemplateMultiplier(
+          priorUses: historicalTemplatePressure[template.id] ?? 0,
+          unresolvedSeverity: issueSeverity,
+        );
+        weight *= historicalVisualMultiplier(
+          priorUses:
+              historicalVisualPressure[livingEventVisualKey(
+                visualAssetKey: template.visualAssetKey,
+                markerType: template.markerType,
+                district: template.district,
+              )] ??
+              0,
+          unresolvedSeverity: issueSeverity,
+        );
+      }
       if (recentCategories.contains(template.category)) weight *= .58;
       if (!hasPositive &&
           day >= 120 &&
@@ -828,6 +924,7 @@ class LivingCityEngine {
     required int phase,
     required int step,
     required String? parentEventId,
+    required int historicalUseCount,
   }) {
     final random = SeededRandom(
       SeedDerivation.derive(
@@ -875,6 +972,20 @@ class LivingCityEngine {
     final importance = _importanceFor(template.severity);
     final x = anchor.x + random.between(-.018, .018);
     final y = anchor.y + random.between(-.014, .014);
+    final recurring =
+        historicalUseCount > 0 &&
+        template.requiredHook == null &&
+        template.issueFamily != null;
+    final title = recurring
+        ? 'Recurring civic pressure: ${template.title}'
+        : template.title;
+    final factualSummary = [
+      template.summary,
+      if (recurring)
+        'A related pressure appeared in an earlier administration, but the present conditions and response determine this outcome.',
+      if (relatedProjects.isNotEmpty)
+        'An active administration project is now part of the public delivery record for this issue.',
+    ].join(' ');
     return CityEvent(
       id: 'city_event_t${scenario.city.term}_d${day}_${template.id}',
       templateId: template.id,
@@ -885,8 +996,8 @@ class LivingCityEngine {
       day: day,
       phase: phase,
       step: step,
-      title: template.title,
-      factualSummary: template.summary,
+      title: title,
+      factualSummary: factualSummary,
       explanation:
           '${template.explanation} The saved result reflects city conditions and the administration response on this date.',
       fictionalDate: _fictionalDate(day, scenario.city.term),
@@ -1159,29 +1270,36 @@ class LivingCityEngine {
       )
       .toList(growable: false);
 
-  List<NewsCoverage> _newsCoverages(List<CityEvent> events) {
+  List<NewsCoverage> _newsCoverages({
+    required Scenario scenario,
+    required List<CityEvent> events,
+    required Map<String, int> historicalNewsFramingPressure,
+  }) {
     final coverages = <NewsCoverage>[];
     for (final event in events.where((event) => event.newsEligible)) {
-      for (final outlet in const [
-        ('outlet_daily', 'City record and public consequence'),
-        ('outlet_wire', 'Immediate disruption and public reaction'),
-        ('outlet_lantern', 'Systems, records, and longer-term context'),
-      ]) {
+      for (final outlet in _livingNewsOutletFrames.entries) {
+        final frame = _selectNewsFrame(
+          scenario: scenario,
+          event: event,
+          outletId: outlet.key,
+          variants: outlet.value,
+          historicalNewsFramingPressure: historicalNewsFramingPressure,
+        );
         coverages.add(
           NewsCoverage(
-            id: '${event.id}_${outlet.$1}',
+            id: '${event.id}_${outlet.key}',
             eventId: event.id,
-            outletId: outlet.$1,
+            outletId: outlet.key,
             category: _categoryName(event.category),
             publicationTime: '${event.fictionalDate} · 8:15 AM',
-            headline: event.title,
-            subheadline:
-                'The verified city record is shared; this report emphasizes ${outlet.$2.toLowerCase()}.',
+            headline: frame.headlineFor(event.title),
+            subheadline: frame.subheadline,
             articleSummary: event.factualSummary,
-            framingAngle: outlet.$2,
+            framingAngle: frame.angle,
             articleBody: [
               event.factualSummary,
               event.explanation,
+              frame.contextSentence,
               if (event.parentEventId != null)
                 'This development follows an earlier recorded city event in the same causal chain.',
               'The map, Event History, Chronicle, news coverage, television reference, and CityBook discussion all point to the same saved event.',
@@ -1191,6 +1309,41 @@ class LivingCityEngine {
       }
     }
     return coverages;
+  }
+
+  _NewsFrameVariant _selectNewsFrame({
+    required Scenario scenario,
+    required CityEvent event,
+    required String outletId,
+    required List<_NewsFrameVariant> variants,
+    required Map<String, int> historicalNewsFramingPressure,
+  }) {
+    final random = SeededRandom(
+      SeedDerivation.derive(
+        worldSeed: scenario.seed,
+        generationVersion: generationVersion,
+        path:
+            'term:${scenario.city.term}:news:${event.id}:outlet:$outletId:frame',
+      ),
+    );
+    final weights = [
+      for (final variant in variants)
+        historicalNewsFramingMultiplier(
+          priorUses:
+              historicalNewsFramingPressure[newsFramingKey(
+                outletId: outletId,
+                framingAngle: variant.angle,
+              )] ??
+              0,
+        ),
+    ];
+    final totalWeight = weights.fold<double>(0, (sum, value) => sum + value);
+    var roll = random.nextDouble() * totalWeight;
+    for (var index = 0; index < variants.length; index++) {
+      roll -= weights[index];
+      if (roll <= 0) return variants[index];
+    }
+    return variants.last;
   }
 
   (List<CityBookPost>, Map<String, CityBookCommentThread>) _cityBookArtifacts(
@@ -1386,6 +1539,120 @@ class LivingCityEngine {
     return '${candidate.name}\'s first simulated year ends with $complete of ${projects.length} tracked commitments completed and the city classified as ${overallCityCondition(indicators).name}. The record separates administration decisions from events outside City Hall\'s control.';
   }
 }
+
+enum _NewsHeadlineShape { unchanged, prefix, suffix }
+
+class _NewsFrameVariant {
+  const _NewsFrameVariant({
+    required this.angle,
+    required this.headlineAffix,
+    required this.headlineShape,
+    required this.subheadline,
+    required this.contextSentence,
+  });
+
+  final String angle;
+  final String headlineAffix;
+  final _NewsHeadlineShape headlineShape;
+  final String subheadline;
+  final String contextSentence;
+
+  String headlineFor(String eventTitle) => switch (headlineShape) {
+    _NewsHeadlineShape.unchanged => eventTitle,
+    _NewsHeadlineShape.prefix => '$headlineAffix: $eventTitle',
+    _NewsHeadlineShape.suffix => '$eventTitle — $headlineAffix',
+  };
+}
+
+const _livingNewsOutletFrames = <String, List<_NewsFrameVariant>>{
+  'outlet_daily': [
+    _NewsFrameVariant(
+      angle: 'City record and public consequence',
+      headlineAffix: '',
+      headlineShape: _NewsHeadlineShape.unchanged,
+      subheadline:
+          'The verified city record is placed beside its immediate public consequence.',
+      contextSentence:
+          'This report emphasizes the official record and what residents can verify from it.',
+    ),
+    _NewsFrameVariant(
+      angle: 'Official record and delivery status',
+      headlineAffix: 'City record',
+      headlineShape: _NewsHeadlineShape.prefix,
+      subheadline:
+          'Documents and delivery status frame the same verified city development.',
+      contextSentence:
+          'This report follows the documented response and the status of public delivery.',
+    ),
+    _NewsFrameVariant(
+      angle: 'Public consequence through city records',
+      headlineAffix: 'what records show',
+      headlineShape: _NewsHeadlineShape.suffix,
+      subheadline:
+          'The public consequence is examined through the available city record.',
+      contextSentence:
+          'This report connects the verified event to its documented public consequence.',
+    ),
+  ],
+  'outlet_wire': [
+    _NewsFrameVariant(
+      angle: 'Immediate disruption and public reaction',
+      headlineAffix: 'BREAKING',
+      headlineShape: _NewsHeadlineShape.prefix,
+      subheadline:
+          'The developing response and immediate disruption lead this report.',
+      contextSentence:
+          'This report emphasizes what changed immediately and how the public responded.',
+    ),
+    _NewsFrameVariant(
+      angle: 'Response speed and public pressure',
+      headlineAffix: 'response under pressure',
+      headlineShape: _NewsHeadlineShape.suffix,
+      subheadline:
+          'Attention turns to response speed as residents wait for the next step.',
+      contextSentence:
+          'This report watches the pace of response without changing the verified facts.',
+    ),
+    _NewsFrameVariant(
+      angle: 'Immediate resident impact and next steps',
+      headlineAffix: 'residents await action',
+      headlineShape: _NewsHeadlineShape.suffix,
+      subheadline:
+          'Residents describe the immediate impact while officials outline what follows.',
+      contextSentence:
+          'This report leads with immediate resident impact and the announced next steps.',
+    ),
+  ],
+  'outlet_lantern': [
+    _NewsFrameVariant(
+      angle: 'Systems, records, and longer-term context',
+      headlineAffix: 'Beyond the headline',
+      headlineShape: _NewsHeadlineShape.prefix,
+      subheadline:
+          'The same city event is placed inside its wider institutional context.',
+      contextSentence:
+          'This report examines the systems and earlier records surrounding the event.',
+    ),
+    _NewsFrameVariant(
+      angle: 'Long-term delivery and institutional context',
+      headlineAffix: 'the longer public record',
+      headlineShape: _NewsHeadlineShape.suffix,
+      subheadline:
+          'Long-term delivery questions remain after the immediate response.',
+      contextSentence:
+          'This report follows the longer delivery record and the institutions responsible for it.',
+    ),
+    _NewsFrameVariant(
+      angle: 'Root causes and durable public impact',
+      headlineAffix: 'root causes and what follows',
+      headlineShape: _NewsHeadlineShape.suffix,
+      subheadline:
+          'Root causes and durable public impact receive closer attention.',
+      contextSentence:
+          'This report considers root causes and durable effects while preserving the same event record.',
+    ),
+  ],
+};
 
 class _PendingHook {
   const _PendingHook({

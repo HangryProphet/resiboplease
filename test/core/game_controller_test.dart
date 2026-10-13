@@ -6,9 +6,89 @@ import 'package:resiboplease/core/settings/app_settings_controller.dart';
 import 'package:resiboplease/data/persistence/run_repository.dart';
 import 'package:resiboplease/data/persistence/run_save_data.dart';
 import 'package:resiboplease/domain/models/city_run_configuration.dart';
+import 'package:resiboplease/domain/models/citizen_action.dart';
+import 'package:resiboplease/domain/models/evidence_item.dart';
 import 'package:resiboplease/domain/models/living_city_simulation.dart';
 
 void main() {
+  test('claim challenge unlocks only from reviewed qualifying evidence', () {
+    final controller = GameController(activeRun: true);
+    addTearDown(controller.dispose);
+    final evidence = controller.scenario.candidates
+        .expand((candidate) => candidate.evidence)
+        .firstWhere(
+          (item) =>
+              item.type == EvidenceType.factCheck && item.reliability >= 75,
+        );
+
+    controller.castVote(
+      candidate: controller.scenario.candidates.first,
+      topIssue: controller.scenario.city.problems.first.id,
+      confidence: .7,
+    );
+    controller.advanceSimulationDays(
+      40,
+      interruptionPreference: CriticalEventInterruption.neverInterrupt,
+    );
+    expect(
+      controller.canPerformCitizenAction(
+        CitizenActionType.challengeMisleadingClaim,
+      ),
+      isFalse,
+    );
+
+    // Evidence review is normally completed before voting; the controller
+    // retains that reviewed receipt through the term.
+    expect(controller.markEvidenceViewed(evidence.id), isTrue);
+    expect(controller.recommendedChallengeEvidence?.id, evidence.id);
+    expect(
+      controller.canPerformCitizenAction(
+        CitizenActionType.challengeMisleadingClaim,
+      ),
+      isTrue,
+    );
+    final resolution = controller.performCitizenAction(
+      CitizenActionType.challengeMisleadingClaim,
+    );
+    expect(resolution.outcomeEvent.relatedEvidenceIds, [evidence.id]);
+  });
+
+  test('pending citizen action survives save and restore exactly', () async {
+    final repository = MemoryRunRepository();
+    final controller = GameController(repository: repository);
+    addTearDown(controller.dispose);
+    controller.startNewRun();
+    controller.castVote(
+      candidate: controller.scenario.candidates.first,
+      topIssue: controller.scenario.city.problems.first.id,
+      confidence: .7,
+    );
+    controller.advanceSimulationDays(
+      70,
+      interruptionPreference: CriticalEventInterruption.neverInterrupt,
+    );
+    final filed = controller.performCitizenAction(
+      CitizenActionType.requestPublicRecords,
+    );
+    await controller.flushSaves();
+
+    final restored = GameController(repository: repository);
+    addTearDown(restored.dispose);
+    await restored.restore();
+
+    expect(restored.citizenActions, hasLength(1));
+    expect(restored.citizenActions.single.event.id, filed.outcomeEvent.id);
+    expect(
+      restored.citizenActions.single.event.factualSummary,
+      filed.outcomeEvent.factualSummary,
+    );
+    expect(restored.simulationDay, 70);
+    expect(
+      restored.canPerformCitizenAction(CitizenActionType.requestPublicRecords),
+      isFalse,
+    );
+  });
+
   test(
     'simulation speeds process logical day batches and pause blocks ticks',
     () {

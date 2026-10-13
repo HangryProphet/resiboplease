@@ -1,6 +1,25 @@
 # Resibo, Please - Current System Report
 
-> August 2026 update: the post-election MVP is now a deterministic 365-day living procedural city simulation. Time advances automatically at selectable speeds; current state drives event timing, chains, project progress, and consequences. Dated events appear on an interactive map and share stable IDs with Chronicle, News, TV, CityBook, schema-8 persistence, and the final report. See [CITY_SIMULATION_ARCHITECTURE.md](CITY_SIMULATION_ARCHITECTURE.md).
+> October 2026 documentation audit: repository source was reviewed without
+> running the app or verification commands. Current facts are five generated
+> candidates, save schema 10, candidate generation version 1, and Living City
+> generation version 4. See `../RESIBO_PROJECT_CONTEXT_HANDOFF.md` for the
+> source-led cross-system handoff.
+
+> October 2026 update: the post-election MVP now continues across elections and
+> preserves administration history, predictions, accountability receipts, and
+> bounded citizen-action outcomes. The deterministic 365-day Living City still
+> drives event timing, chains, projects, Chronicle, News, TV, CityBook, schema-10
+> persistence, and the final report. See
+> [CITY_SIMULATION_ARCHITECTURE.md](CITY_SIMULATION_ARCHITECTURE.md).
+>
+> The persistent-city update also adds Political History, Resibo ng Bayan,
+> optional prediction receipts, two bounded citizen actions, and a derived
+> Civic Profile with four practice tracks and neutral accomplishments. Later
+> administrations apply cross-term event-template pressure to reduce repetition
+> while still allowing severe unresolved issues to recur. Later elections can
+> also gain one pressure-supported authored concern or retire one substantially
+> improved concern while keeping four to six active issues.
 
 ## 1. Current System Overview
 
@@ -9,7 +28,9 @@ acts as a voter in a fictional configured city, reviews the condition of the
 city, investigates five generated mayoral candidates, casts a vote, and observes the effects of
 the elected candidate's term.
 
-The current version supports one complete local gameplay loop:
+The current version supports repeated local election/administration loops. The
+multi-election foundation is implemented and automated-tested, while its
+dedicated political-history UI and richer career memory remain in progress:
 
 1. Create and configure a city save.
 2. Review the city's problems and starting condition.
@@ -39,6 +60,11 @@ ballot.
 The game never displays a best-candidate label, match percentage, overall
 grade, hidden quality band, or voting recommendation. Players are expected to
 form their own judgment from public information and the needs of their city.
+
+Research progression now has one optional organization benefit. At Research
+Level 2, the dossier's **Source Desk** can group visible files by bookmark and
+review state, then by source type. It does not unlock a file, change its cost,
+show hidden truth, or rank candidates.
 
 ### 2.0 Procedural election foundation (implemented August 2026)
 
@@ -806,7 +832,7 @@ The following candidate-investigation state persists in the local city save:
 - pinned candidates for comparison; and
 - private Receipt notes.
 
-The save format is currently schema version 6 and includes migration support
+The save format is currently schema version 10 and includes migration support
 for older local runs.
 
 Candidate-interface controls are available in English and Filipino. The

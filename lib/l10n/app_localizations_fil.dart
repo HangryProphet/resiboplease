@@ -819,6 +819,16 @@ class AppLocalizationsFil extends AppLocalizations {
       'Maaaring kagalang-galang ngunit kulang ang isang source. Buksan muna bago magpasya kung gaano ito kabigat.';
 
   @override
+  String get sourceDesk => 'Mesa ng Sanggunian';
+
+  @override
+  String get sourceDeskDefault => 'Gamitin ang orihinal na ayos ng dossier.';
+
+  @override
+  String get sourceDeskOrganized =>
+      'Nauuna ang mga naka-bookmark at nasuring file, saka inaayos ayon sa uri ng source.';
+
+  @override
   String investigationPointsRemaining(int count) {
     return '$count investigation points ang natitira';
   }
@@ -1153,6 +1163,15 @@ class AppLocalizationsFil extends AppLocalizations {
   }
 
   @override
+  String continueToNextElection(int term) {
+    return 'Magpatuloy sa Halalan $term';
+  }
+
+  @override
+  String get nextElectionDescription =>
+      'Ipagpatuloy ang kasaysayan ng lungsod. Mananatili sa susunod na kampanya ang mga indicator, hindi pa nalutas na isyu, at rekord pampolitika nito.';
+
+  @override
   String get caseFileMissing => 'Hindi mahanap ang case file na iyon.';
 
   @override
@@ -1317,4 +1336,508 @@ class AppLocalizationsFil extends AppLocalizations {
 
   @override
   String get retrySave => 'Subukang i-save muli';
+
+  @override
+  String get politicalHistory => 'Kasaysayang pampolitika';
+
+  @override
+  String get openPoliticalHistory => 'Buksan ang kasaysayang pampolitika';
+
+  @override
+  String politicalHistoryDescription(int count) {
+    return 'Balikan ang $count nakumpletong administrasyon, kasama ang kalagayan ng lungsod, mga proyekto, malalaking pangyayari, at resibo ng iyong halalan.';
+  }
+
+  @override
+  String get historicalReceipt => 'Makasaysayang resibo';
+
+  @override
+  String get historicalReceiptMissing =>
+      'Hindi naka-save sa lungsod na ito ang rekord ng administrasyong iyon.';
+
+  @override
+  String get noAdministrationHistory => 'Wala pang nakumpletong administrasyon';
+
+  @override
+  String historyBeginsAfterTerm(int term) {
+    return 'Magsisimula ang kasaysayang pampolitika kapag natapos ang Administrasyon $term at tumuloy ang lungsod sa susunod na halalan.';
+  }
+
+  @override
+  String get cityPoliticalTimeline => 'Kasaysayang pampolitika ng lungsod';
+
+  @override
+  String historyTimelineDescription(int count, int election) {
+    return 'Nakaselyo sa rekord ang $count administrasyon. Naghahanda na ang lungsod para sa Halalan $election.';
+  }
+
+  @override
+  String administrationNumber(int term) {
+    return 'Administrasyon $term';
+  }
+
+  @override
+  String openAdministrationReceipt(int term) {
+    return 'Buksan ang resibo ng Administrasyon $term';
+  }
+
+  @override
+  String projectsCompleted(int count) {
+    return '$count natapos';
+  }
+
+  @override
+  String majorEvents(int count) {
+    return '$count malaking pangyayari';
+  }
+
+  @override
+  String get openHistoricalReceipt => 'Buksan ang buong resibo ng termino';
+
+  @override
+  String get cityOutcome => 'Kinalabasan ng lungsod';
+
+  @override
+  String get promiseProjectRecord => 'Rekord ng pangako at proyekto';
+
+  @override
+  String get majorEventsRecorded => 'Naitalang malalaking pangyayari';
+
+  @override
+  String get noMajorEventsRecorded =>
+      'Walang malaking pangyayaring minarkahan sa administrasyong ito.';
+
+  @override
+  String get electionReceipt => 'Resibo ng halalan';
+
+  @override
+  String administrationOutcome(int term, String condition) {
+    return 'Nagtapos ang Administrasyon $term na may kalagayang $condition ang lungsod.';
+  }
+
+  @override
+  String projectProgressReceipt(int progress, int milestones) {
+    return '$progress% kumpleto · $milestones naitalang milestone';
+  }
+
+  @override
+  String get candidatesOnBallot => 'Mga kandidato sa balota';
+
+  @override
+  String get evidenceReviewed => 'Ebidensyang sinuri';
+
+  @override
+  String get receiptsSaved => 'Resibong itinabi';
+
+  @override
+  String get topIssueRecorded => 'Pangunahing isyu';
+
+  @override
+  String get voterConfidence => 'Katiyakan ng botante';
+
+  @override
+  String get resiboNgBayan => 'Resibo ng Bayan';
+
+  @override
+  String get openResiboNgBayan => 'Buksan ang Resibo ng Bayan';
+
+  @override
+  String get publicAccountabilityJournal =>
+      'Pampublikong talaan ng pananagutan';
+
+  @override
+  String get accountabilityJournalDescription =>
+      'Itinutugma ang mga pangako sa kampanya sa nakaselyong rekord ng proyekto. Inilalarawan ang hindi natapos na gawain ayon sa rekord at hindi agad tinatawag na kasinungalingan.';
+
+  @override
+  String get promisesRecorded => 'Naitalang pangako';
+
+  @override
+  String get deliveredLabel => 'Naihatid';
+
+  @override
+  String get administrationsRecorded => 'Administrasyon';
+
+  @override
+  String get allPromises => 'Lahat ng pangako';
+
+  @override
+  String get unresolvedPromises => 'Hindi pa nalutas';
+
+  @override
+  String get noHistoricalPromises =>
+      'Kumpletuhin ang isang administrasyon upang simulan ang pampublikong talaan ng pangako.';
+
+  @override
+  String get noPromisesInFilter =>
+      'Walang pangakong tumutugma sa filter na ito.';
+
+  @override
+  String get promiseNotStarted => 'Hindi nasimulan';
+
+  @override
+  String get promiseInProgress => 'Isinasagawa';
+
+  @override
+  String get promisePartiallyDelivered => 'Bahagyang naihatid';
+
+  @override
+  String get promiseDelivered => 'Naihatid';
+
+  @override
+  String get promiseDelayed => 'Naantala';
+
+  @override
+  String get promiseAbandoned => 'Iniwan';
+
+  @override
+  String get promiseBlocked => 'Nahadlangan';
+
+  @override
+  String get civicPredictions => 'Iyong mga inaasahan';
+
+  @override
+  String get civicPredictionsPrompt =>
+      'Opsyonal na magtala ng hanggang dalawang inaasahan bago iselyo ang balota.';
+
+  @override
+  String get civicPredictionsNote =>
+      'Tala ito para sa pagninilay, hindi pustahan o hidden score. Ihahambing ito ng term report sa naobserbahang indicator ng lungsod.';
+
+  @override
+  String predictionsSelected(int count) {
+    return '$count sa 2 inaasahan ang naitala';
+  }
+
+  @override
+  String get predictionHealth => 'Bubuti ang pampublikong kalusugan';
+
+  @override
+  String get predictionHealthDescription =>
+      'Ihambing ang huling public-health indicator sa panimulang kalagayan.';
+
+  @override
+  String get predictionInfrastructure =>
+      'Bubuti ang katatagan ng imprastraktura';
+
+  @override
+  String get predictionInfrastructureDescription =>
+      'Ihambing ang tubig, urban, at climate resilience sa buong termino.';
+
+  @override
+  String get predictionLivelihoods => 'Bubuti ang kabuhayan';
+
+  @override
+  String get predictionLivelihoodsDescription =>
+      'Ihambing ang kalidad ng trabaho at pagbawas ng kahirapan.';
+
+  @override
+  String get predictionBudget => 'Mananatiling mas malusog ang badyet';
+
+  @override
+  String get predictionBudgetDescription =>
+      'Ihambing ang huling budget health sa simula ng termino.';
+
+  @override
+  String get predictionTrust => 'Tataas ang tiwala ng publiko';
+
+  @override
+  String get predictionTrustDescription =>
+      'Ihambing ang tiwala ng publiko bago at matapos ang administrasyon.';
+
+  @override
+  String get predictionCorruption => 'Bababa ang pressure ng korapsyon';
+
+  @override
+  String get predictionCorruptionDescription =>
+      'Mas mabuti ang mas mababang huling corruption-pressure indicator.';
+
+  @override
+  String get predictionReflection => 'Resibo ng iyong inaasahan';
+
+  @override
+  String get predictionReflectionBody =>
+      'Inihahambing nito ang itinala mo bago bumoto sa naobserbahang galaw ng indicator. Hindi nito binibigyan ng grado ang boto o inilalantad ang tamang kandidato.';
+
+  @override
+  String get predictionObserved => 'Naobserbahang pagbuti';
+
+  @override
+  String get predictionMixed => 'Halo ang resulta';
+
+  @override
+  String get predictionNotObserved => 'Hindi naobserbahan';
+
+  @override
+  String get historicalEvidence => 'Makasaysayang ebidensya';
+
+  @override
+  String get historicalEvidenceMissing =>
+      'Wala ang ebidensyang iyon sa naka-archive na snapshot ng halalan.';
+
+  @override
+  String get archivedElectionSnapshot => 'Nakaselyong snapshot ng halalan';
+
+  @override
+  String get historicalEvidenceNotice =>
+      'Ito ang snapshot ng ebidensyang naka-save kasama ng halalang iyon. Hindi ito maaaring palitan o baguhin ng mga susunod na kampanya.';
+
+  @override
+  String get openArchivedEvidence => 'Buksan ang naka-archive na ebidensya';
+
+  @override
+  String get recurringRecords => 'Paulit-ulit na rekord';
+
+  @override
+  String get recurringRecordsDescription =>
+      'Mula ang mga pattern na ito sa maraming nakaselyong administrasyon. Nagbibigay ng konteksto ang pag-uulit; hindi ito awtomatikong patunay ng katapatan, kasalanan, o magiging pagganap.';
+
+  @override
+  String get repeatedPromise => 'Inulit na larangan ng pangako';
+
+  @override
+  String get recurringControversy => 'Paulit-ulit na kontrobersya';
+
+  @override
+  String administrationsList(String terms) {
+    return 'Mga Administrasyon: $terms';
+  }
+
+  @override
+  String get citizenActions => 'Mga Aksyon ng Mamamayan';
+
+  @override
+  String get citizenActionHubDescription =>
+      'Mamamayan ka, hindi alkalde. Gumawa ng limitadong mga aksyon sa terminong ito; maaaring makipagtulungan, magbigay ng kaunti, o tumutol ang administrasyon.';
+
+  @override
+  String get requestPublicRecords => 'Humiling ng Pampublikong Rekord';
+
+  @override
+  String get requestPublicRecordsDescription =>
+      'Hilingin sa City Hall na ilabas ang mga rekord na mahalaga sa pampublikong pananagutan.';
+
+  @override
+  String get organizePetition => 'Mag-organisa ng Petisyon';
+
+  @override
+  String get organizePetitionDescription =>
+      'Bumuo ng pampublikong pressure para sa pinakamabigat na kasalukuyang problema ng lungsod.';
+
+  @override
+  String get challengeMisleadingClaim =>
+      'Kuwestiyunin ang Mapanlinlang na Pahayag';
+
+  @override
+  String get challengeMisleadingClaimDescription =>
+      'Gumamit ng nasuring ebidensya upang kuwestiyunin ang mapanlinlang o maling pampublikong pahayag.';
+
+  @override
+  String get challengeEvidenceRequired =>
+      'Suriin muna sa panahon ng halalan ang mapagkakatiwalaang fact-check, pampublikong rekord, dokumento ng badyet, o dokumentadong kontrobersya upang mabuksan ang aksyong ito.';
+
+  @override
+  String challengeEvidenceSelected(String title) {
+    return 'Gagamitin na nasuring ebidensya: $title';
+  }
+
+  @override
+  String get actionWindowNotice =>
+      'Magiging available ang mga aksyon sa Day 30 at magsasara pagkatapos ng Day 350.';
+
+  @override
+  String get actionAlreadyUsed => 'Naisampa ngayong termino';
+
+  @override
+  String get actionUnavailable => 'Hindi available ngayon';
+
+  @override
+  String get takeCitizenAction => 'Kumilos';
+
+  @override
+  String get actionPending => 'Naghihintay ng tugon';
+
+  @override
+  String get actionResolved => 'Naitala ang resulta';
+
+  @override
+  String actionOutcomeDay(int day) {
+    return 'Inaasahang tugon: Day $day';
+  }
+
+  @override
+  String get actionFiledConfirmation =>
+      'Naisampa ang aksyon. Bahagi na ng nakatakdang hinaharap ng termino ang resulta nito.';
+
+  @override
+  String get citizenActionCausalityNote =>
+      'Nakadepende ang resulta sa kalagayan ng lungsod, hirap ng isyu, tiwala ng publiko, badyet, at kakayahan ng alkalde. Hindi garantisado ang tagumpay.';
+
+  @override
+  String get confirmCitizenAction => 'Kumpirmahin ang aksyon?';
+
+  @override
+  String get confirmCitizenActionBody =>
+      'Isang beses lang maaaring gamitin ang aksyong ito sa terminong ito. Mangyayari ang deterministic na resulta nito sa susunod at mase-save ito.';
+
+  @override
+  String get cancelAction => 'Hindi muna';
+
+  @override
+  String get confirmAction => 'Isampa ang aksyon';
+
+  @override
+  String get civicProfile => 'Civic Profile';
+
+  @override
+  String get openCivicProfile => 'Buksan ang Civic Profile';
+
+  @override
+  String get civicProfileCityDescription =>
+      'Subaybayan ang civic practice at pangmatagalang accomplishment nang hindi inilalantad ang hidden candidate scores.';
+
+  @override
+  String get civicProfileSubtitle =>
+      'Iyong pangmatagalang rekord bilang mamamayan';
+
+  @override
+  String get civicGrowthExplanation =>
+      'Nagmumula ang progreso sa natatanging imbestigasyon, gawaing pananagutan, aksyon ng mamamayan, at natapos na administrasyon. Pinauunlad nito ang civic tools—hindi ang mga politiko—at hindi nito inilalantad ang hidden candidate truth.';
+
+  @override
+  String get civicTracks => 'Civic practice';
+
+  @override
+  String civicLevel(int level) {
+    return 'Antas $level';
+  }
+
+  @override
+  String civicPoints(int points) {
+    return '$points record points';
+  }
+
+  @override
+  String civicNextLevel(int points) {
+    return '$points pa sa susunod na antas';
+  }
+
+  @override
+  String get civicMaxLevel => 'Naabot na ang pinakamataas na antas';
+
+  @override
+  String get researchTrack => 'Pananaliksik';
+
+  @override
+  String get researchTrackDescription =>
+      'Suriin at ayusin ang ebidensya sa magkakaibang halalan.';
+
+  @override
+  String get accountabilityTrack => 'Pampublikong Pananagutan';
+
+  @override
+  String get accountabilityTrackDescription =>
+      'Magtago ng resibo, humiling ng rekord, at idokumento ang umuulit na concern.';
+
+  @override
+  String get organizingTrack => 'Civic Organizing';
+
+  @override
+  String get organizingTrackDescription =>
+      'Magkaroon ng karanasan sa limitadong petisyon at patuloy na pakikilahok.';
+
+  @override
+  String get historyTrack => 'Pagsusuri ng Kasaysayan';
+
+  @override
+  String get historyTrackDescription =>
+      'Kumpletuhin ang mga administrasyon at pagdugtungin ang umuulit na rekord pampolitika.';
+
+  @override
+  String responseEfficiencyUnlocked(int days) {
+    return 'Pinaiikli ng civic experience ang response time ng aksyong ito nang $days araw nang hindi tinataasan ang tsansa ng tagumpay.';
+  }
+
+  @override
+  String get sourceDeskUnlocked =>
+      'Na-unlock ang Mesa ng Sanggunian: maaaring ayusin ang nakikitang dossier files ayon sa review state at uri ng source. Hindi nito inilalantad ang hidden truth o nagbubukas ng ebidensya.';
+
+  @override
+  String get civicAccomplishments => 'Mga Accomplishment';
+
+  @override
+  String civicAccomplishmentsCount(int done, int total) {
+    return '$done sa $total ang naidokumento';
+  }
+
+  @override
+  String get accomplishmentFirstAdministration => 'Naaalala ng Lungsod';
+
+  @override
+  String get accomplishmentFirstAdministrationDescription =>
+      'Kumpletuhin at i-archive ang isang administrasyon.';
+
+  @override
+  String get accomplishmentThreeAdministrations =>
+      'Pagkalipas ng Tatlong Halalan';
+
+  @override
+  String get accomplishmentThreeAdministrationsDescription =>
+      'Kumpletuhin ang tatlong administrasyon sa iisang lungsod.';
+
+  @override
+  String get accomplishmentFiveAdministrations => 'Mahabang Civic Memory';
+
+  @override
+  String get accomplishmentFiveAdministrationsDescription =>
+      'Kumpletuhin ang limang administrasyon sa iisang lungsod.';
+
+  @override
+  String get accomplishmentMultiSource => 'Suriin ang Higit sa Isang Source';
+
+  @override
+  String get accomplishmentMultiSourceDescription =>
+      'Suriin ang hindi bababa sa limang ebidensya sa isang halalan.';
+
+  @override
+  String get accomplishmentRecurringPromise => 'Pangako, Inulit';
+
+  @override
+  String get accomplishmentRecurringPromiseDescription =>
+      'Idokumento ang umuulit na pangako sa mga nakaselyong administrasyon.';
+
+  @override
+  String get accomplishmentPublicRecords => 'Nakuha ang mga Rekord';
+
+  @override
+  String get accomplishmentPublicRecordsDescription =>
+      'Makatanggap ng kapaki-pakinabang o bahagyang public-record release.';
+
+  @override
+  String get accomplishmentPetition => 'Isang Pampublikong Tugon';
+
+  @override
+  String get accomplishmentPetitionDescription =>
+      'Mag-organisa ng petisyong nagbunga ng naitalang tugon o concession.';
+
+  @override
+  String get accomplishmentIssueRecovery => 'Mga Palatandaan ng Pagbangon';
+
+  @override
+  String get accomplishmentIssueRecoveryDescription =>
+      'Makita ang malaking pagbuti ng isang seryosong isyu sa lungsod sa loob ng termino.';
+
+  @override
+  String get accomplishmentCrossTermProject => 'Sa Iba\'t Ibang Administrasyon';
+
+  @override
+  String get accomplishmentCrossTermProjectDescription =>
+      'Subaybayan ang gawain sa parehong issue family sa maraming termino.';
+
+  @override
+  String get accomplishmentPoliticalComeback => 'Ang Pagbabalik';
+
+  @override
+  String get accomplishmentPoliticalComebackDescription =>
+      'Masaksihan ang dating alkalde na bumalik matapos ang kahit isang administrasyong wala siya.';
 }

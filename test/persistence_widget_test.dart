@@ -89,6 +89,63 @@ void main() {
     expect(repository.value, isNotNull);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'restored second election opens inherited city and political history',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final repository = MemoryRunRepository();
+      final firstSession = GameController(repository: repository);
+      firstSession.createCity(
+        slotIndex: 0,
+        configuration: CityRunConfiguration.defaults(cityName: 'Timeline City'),
+        worldSeed: 20261012,
+      );
+      firstSession.castVote(
+        candidate: firstSession.scenario.candidates.first,
+        topIssue: firstSession.scenario.city.problems.first.id,
+        confidence: .7,
+      );
+      while (!firstSession.isTermReportReady) {
+        firstSession.advanceTerm();
+      }
+      firstSession.continueToNextElection();
+      await firstSession.flushSaves();
+      firstSession.dispose();
+
+      final restored = GameController(repository: repository);
+      await restored.restore();
+      addTearDown(restored.dispose);
+      await tester.pumpWidget(ResiboPleaseApp(gameController: restored));
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('continue_city')));
+      await tester.pump(const Duration(milliseconds: 320));
+      await tester.tap(find.byKey(const Key('continue_city_slot_0')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(restored.currentElectionNumber, 2);
+      expect(restored.administrationHistory, hasLength(1));
+      expect(find.byKey(const Key('city_hub_scroll')), findsOneWidget);
+      final history = find.byKey(const Key('open_political_history'));
+      await tester.ensureVisible(history);
+      await tester.tap(history);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(find.byKey(const Key('administration_card_1')), findsOneWidget);
+      expect(
+        find.byKey(const Key('open_accountability_journal')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 class _FailOnceRunRepository implements RunRepository {

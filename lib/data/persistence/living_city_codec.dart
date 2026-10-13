@@ -260,6 +260,7 @@ abstract final class LivingCityCodec {
     'issue_ids': value.relatedIssueIds,
     'project_ids': value.relatedProjectIds,
     'candidate_ids': value.relatedCandidateIds,
+    'evidence_ids': value.relatedEvidenceIds,
     'indicator_effects': _indicatorMap(value.indicatorEffects),
     'issue_effects': value.issueSeverityEffects,
     'required_hooks': value.requiredHooks,
@@ -323,6 +324,9 @@ abstract final class LivingCityCodec {
       relatedIssueIds: _strings(json['issue_ids'], 'issue_ids'),
       relatedProjectIds: _strings(json['project_ids'], 'project_ids'),
       relatedCandidateIds: _strings(json['candidate_ids'], 'candidate_ids'),
+      relatedEvidenceIds: json['evidence_ids'] == null
+          ? const []
+          : _strings(json['evidence_ids'], 'evidence_ids'),
       indicatorEffects: _decodeIndicatorMap(
         _map(json['indicator_effects'], 'indicator_effects'),
       ),

@@ -7,6 +7,9 @@
 > superseded this roadmap's temporary no-final-art restriction: the portrait
 > pool now contains exactly seven approved reusable identities. See
 > `PROCEDURAL_GENERATION.md` and `CURRENT_SYSTEM_REPORT.md` for current behavior.
+> The instruction later in this roadmap to “use the current three candidates”
+> records the temporary implementation stage and is superseded by the current
+> five-candidate procedural ballot.
 >
 > **Document scope:** Candidate-facing gameplay only  
 > **Primary focus:** How players discover, judge, compare, and emotionally react to candidates  

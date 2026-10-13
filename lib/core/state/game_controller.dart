@@ -8,7 +8,10 @@ import '../../data/persistence/run_save_data.dart';
 import '../../data/seed_content/bayhaven_candidate_experience.dart';
 import '../../data/seed_content/bayhaven_citybook.dart';
 import '../../data/seed_content/bayhaven_scenario.dart';
+import '../../data/seed_content/city_issue_library.dart';
 import '../../domain/models/candidate.dart';
+import '../../domain/models/city.dart';
+import '../../domain/models/city_problem.dart';
 import '../../domain/models/candidate_experience.dart';
 import '../../domain/models/city_run_configuration.dart';
 import '../../domain/models/evidence_item.dart';
@@ -20,11 +23,21 @@ import '../../domain/models/procedural_election.dart';
 import '../../domain/models/scenario.dart';
 import '../../domain/models/term_result.dart';
 import '../../domain/models/living_city_simulation.dart';
+import '../../domain/models/political_timeline.dart';
+import '../../domain/models/accountability_journal.dart';
+import '../../domain/models/citizen_action.dart';
+import '../../domain/models/civic_progression.dart';
 import '../settings/app_settings_controller.dart';
+import '../../domain/simulation/candidate_career_evolution_engine.dart';
+import '../../domain/simulation/citizen_action_engine.dart';
+import '../../domain/simulation/emerging_issue_engine.dart';
 import '../../domain/simulation/pre_election_brief_engine.dart';
 import '../../domain/simulation/information_ecosystem_engine.dart';
+import '../../domain/simulation/living_city_engine.dart';
 import '../../domain/simulation/procedural_candidate_generator.dart';
 import '../../domain/simulation/term_engine.dart';
+import '../../domain/simulation/seed_derivation.dart';
+import '../../domain/simulation/seeded_random.dart';
 
 enum CityRunProgress { electionBrief, termInProgress, termReportReady }
 
@@ -93,6 +106,9 @@ class GameController extends ChangeNotifier {
 
   final TermEngine _engine;
   final PreElectionBriefEngine _briefEngine;
+  static const _careerEvolutionEngine = CandidateCareerEvolutionEngine();
+  static const _citizenActionEngine = CitizenActionEngine();
+  static const _emergingIssueEngine = EmergingIssueEngine();
   final InformationEcosystemEngine _informationEngine;
   final ProceduralCandidateGenerator _candidateGenerator;
   final Scenario _baseScenario;
@@ -154,6 +170,40 @@ class GameController extends ChangeNotifier {
   SimulationSpeed get simulationSpeed =>
       _activeRun?.simulationSpeed ?? SimulationSpeed.day;
   bool get simulationPaused => _activeRun?.simulationPaused ?? true;
+  List<ScheduledCitizenAction> get citizenActions {
+    final living = termResult?.livingCity;
+    return living == null
+        ? const []
+        : List.unmodifiable(scheduledCitizenActions(living));
+  }
+
+  List<EvidenceItem> get qualifyingChallengeEvidence {
+    final run = _activeRun;
+    if (run == null) return const [];
+    final items = <EvidenceItem>[
+      for (final candidate in run.scenario.candidates)
+        for (final evidence in candidate.evidence)
+          if (run.viewedEvidenceIds.contains(evidence.id) &&
+              _citizenActionEngine.isQualifyingChallengeEvidence(evidence))
+            evidence,
+    ];
+    items.sort((left, right) {
+      final bookmarkOrder =
+          (run.bookmarkedEvidenceIds.contains(right.id) ? 1 : 0).compareTo(
+            run.bookmarkedEvidenceIds.contains(left.id) ? 1 : 0,
+          );
+      if (bookmarkOrder != 0) return bookmarkOrder;
+      final reliabilityOrder = right.reliability.compareTo(left.reliability);
+      return reliabilityOrder != 0
+          ? reliabilityOrder
+          : left.id.compareTo(right.id);
+    });
+    return List.unmodifiable(items);
+  }
+
+  EvidenceItem? get recommendedChallengeEvidence =>
+      qualifyingChallengeEvidence.firstOrNull;
+
   Set<String> get inspectedCityEventIds =>
       Set.unmodifiable(_activeRun?.inspectedCityEventIds ?? const <String>{});
   int get unreadCityEventCount {
@@ -222,8 +272,25 @@ class GameController extends ChangeNotifier {
   );
   Map<String, String> get receiptNotes =>
       Map.unmodifiable(_activeRun?.receiptNotes ?? const <String, String>{});
+  Set<String> get predictionIds =>
+      Set.unmodifiable(_activeRun?.predictionIds ?? const <String>{});
   Set<String> get usedCandidateNames =>
       Set.unmodifiable(_activeRun?.usedCandidateNames ?? const <String>{});
+  List<AdministrationRecord> get administrationHistory => List.unmodifiable(
+    _activeRun?.administrationHistory ?? const <AdministrationRecord>[],
+  );
+  AccountabilityJournal get accountabilityJournal =>
+      AccountabilityJournal.fromAdministrations(administrationHistory);
+  CivicProgressionProfile get civicProgression =>
+      CivicProgressionProfile.fromState(
+        administrations: administrationHistory,
+        activeViewedEvidenceIds: viewedEvidenceIds,
+        activeBookmarkedEvidenceIds: bookmarkedEvidenceIds,
+        activeReceiptNotes: receiptNotes,
+        activeLivingCity: termResult?.livingCity,
+        activeSimulationDay: simulationDay,
+      );
+  int get currentElectionNumber => scenario.city.term;
   int get receiptCount =>
       pinnedContentIds.length +
       pinnedQuestionIds.length +
@@ -456,6 +523,21 @@ class GameController extends ChangeNotifier {
   String receiptNote(String receiptId) =>
       _activeRun?.receiptNotes[receiptId] ?? '';
 
+  bool togglePrediction(String predictionId) {
+    final run = _ensureActiveRun();
+    if (run.selectedCandidate != null) return false;
+    if (run.predictionIds.remove(predictionId)) {
+      run.touch();
+      _commit();
+      return true;
+    }
+    if (run.predictionIds.length >= 2) return false;
+    run.predictionIds.add(predictionId);
+    run.touch();
+    _commit();
+    return true;
+  }
+
   bool reserveCandidateName(String fullName) {
     final run = _ensureActiveRun();
     final normalized = fullName.trim().replaceAll(RegExp(r'\s+'), ' ');
@@ -593,6 +675,15 @@ class GameController extends ChangeNotifier {
       truth: generatedTruth == null
           ? null
           : truthSnapshotFromProfile(generatedTruth, activeCandidate),
+      historicalTemplatePressure: _historicalTemplatePressure(
+        run.administrationHistory,
+      ),
+      historicalVisualPressure: _historicalVisualPressure(
+        run.administrationHistory,
+      ),
+      historicalNewsFramingPressure: _historicalNewsFramingPressure(
+        run.administrationHistory,
+      ),
     );
     run.revealedTermPhases = 0;
     run.simulationDay = 0;
@@ -618,6 +709,44 @@ class GameController extends ChangeNotifier {
     run.simulationPaused = true;
     run.touch();
     _commit();
+  }
+
+  bool canPerformCitizenAction(CitizenActionType type) {
+    final living = termResult?.livingCity;
+    return living != null &&
+        _citizenActionEngine.canPerform(
+          simulation: living,
+          type: type,
+          currentDay: simulationDay,
+          supportingEvidence: type == CitizenActionType.challengeMisleadingClaim
+              ? recommendedChallengeEvidence
+              : null,
+        );
+  }
+
+  CitizenActionResolution performCitizenAction(CitizenActionType type) {
+    final run = _ensureActiveRun();
+    final result = run.termResult;
+    if (result == null) {
+      throw StateError('A confirmed election is required for citizen actions.');
+    }
+    final resolution = _citizenActionEngine.apply(
+      result: result,
+      type: type,
+      currentDay: run.simulationDay,
+      problems: run.scenario.city.problems,
+      responseDelayReductionDays: civicProgression.actionDelayReductionDays(
+        type,
+      ),
+      supportingEvidence: type == CitizenActionType.challengeMisleadingClaim
+          ? recommendedChallengeEvidence
+          : null,
+    );
+    run.termResult = resolution.termResult;
+    run.simulationPaused = true;
+    run.touch();
+    _commit();
+    return resolution;
   }
 
   SimulationAdvanceResult? advanceSimulationDays(
@@ -752,9 +881,331 @@ class GameController extends ChangeNotifier {
 
   void restartSameSeed() {
     final run = _ensureActiveRun();
+    // A migrated completed single-term save may already contain the active
+    // report in history. Replaying that election replaces only this active
+    // term, never earlier administrations, and prevents a stale duplicate.
+    run.administrationHistory.removeWhere(
+      (record) => record.termNumber == run.scenario.city.term,
+    );
     _resetRun(run, run.scenario);
     _commit();
   }
+
+  /// Archives the completed administration and opens the next election while
+  /// retaining the city's resulting indicators and issue conditions.
+  void continueToNextElection() {
+    final run = _ensureActiveRun();
+    final result = run.termResult;
+    final elected = run.selectedCandidate;
+    if (result == null || elected == null || run.simulationDay < 365) {
+      throw StateError(
+        'The current administration must be completed before continuing.',
+      );
+    }
+
+    final completedTerm = run.scenario.city.term;
+    final administrationId = 'administration_$completedTerm';
+    if (!run.administrationHistory.any(
+      (record) => record.id == administrationId,
+    )) {
+      final portrait = run.candidateExperience
+          .profileFor(elected.id)
+          ?.portraitAssetKey;
+      run.administrationHistory.add(
+        AdministrationRecord(
+          id: administrationId,
+          termNumber: completedTerm,
+          electionSeed: _electionSeedFor(run.scenario.seed, completedTerm),
+          electedCandidateId: elected.id,
+          electedCandidateName: elected.name,
+          electedParty: elected.party,
+          electedPortraitAssetKey:
+              portrait ?? 'candidate_${elected.id}_neutral',
+          topIssue: run.topIssue,
+          confidence: run.confidence,
+          election: run.proceduralElection,
+          livingCity: result.livingCity,
+          investigation: AdministrationInvestigationSnapshot(
+            viewedEvidenceIds: Set.unmodifiable(run.viewedEvidenceIds),
+            bookmarkedEvidenceIds: Set.unmodifiable(run.bookmarkedEvidenceIds),
+            pinnedCandidateIds: Set.unmodifiable(run.pinnedCandidateIds),
+            pinnedContentIds: Set.unmodifiable(run.pinnedContentIds),
+            pinnedQuestionIds: Set.unmodifiable(run.pinnedQuestionIds),
+            bookmarkedDebateMessageIds: Set.unmodifiable(
+              run.bookmarkedDebateMessageIds,
+            ),
+            pinnedDebateMessageIds: Set.unmodifiable(
+              run.pinnedDebateMessageIds,
+            ),
+            suspiciousDebateMessageIds: Set.unmodifiable(
+              run.suspiciousDebateMessageIds,
+            ),
+            receiptNotes: Map.unmodifiable(run.receiptNotes),
+            predictionIds: Set.unmodifiable(run.predictionIds),
+          ),
+          completedAt: run.updatedAt,
+        ),
+      );
+    }
+
+    final nextTerm = completedTerm + 1;
+    final inheritedCity = _inheritedCityForNextElection(run, result, nextTerm);
+    final electionSeed = _electionSeedFor(run.scenario.seed, nextTerm);
+    final returningCandidates = _returningCandidatesFor(
+      run,
+      electionSeed: electionSeed,
+      nextTerm: nextTerm,
+    );
+    final nextElection = _candidateGenerator.generate(
+      worldSeed: electionSeed,
+      city: inheritedCity,
+      candidateField: run.configuration.candidateField,
+      campaignNoise: run.configuration.campaignNoise,
+      previouslyUsedNames: run.usedCandidateNames,
+      returningCandidates: returningCandidates,
+    );
+    final nextScenario = run.scenario.copyWith(
+      city: inheritedCity,
+      candidates: nextElection.candidates,
+    );
+    final nextBrief = _briefEngine.build(
+      scenario: nextScenario,
+      configuration: run.configuration,
+    );
+    run.proceduralElection = nextElection;
+    run.reset(scenario: nextScenario, preElectionBrief: nextBrief);
+    _commit();
+  }
+
+  City _inheritedCityForNextElection(
+    _RunSession run,
+    TermResult result,
+    int nextTerm,
+  ) {
+    final issueTransition = _emergingIssueEngine.transition(
+      currentProblems: run.scenario.city.problems,
+      finalIssueStates: result.livingCity.finalIssueStates,
+      before: result.before,
+      after: result.after,
+      projects: result.livingCity.projects,
+      worldSeed: run.scenario.seed,
+      nextTerm: nextTerm,
+      cityName: run.cityName,
+    );
+    final inheritedProblems = issueTransition.activeProblems;
+    final unresolved = [...inheritedProblems]
+      ..sort((left, right) => right.issueWeight.compareTo(left.issueWeight));
+    final concernText = unresolved
+        .take(3)
+        .map((problem) => problem.title.toLowerCase())
+        .join(', ');
+    final developmentText = issueTransition.emergedProblem == null
+        ? ''
+        : ' ${issueTransition.emergedProblem!.title} has newly entered the active city agenda.';
+    final resolutionText = issueTransition.resolvedProblem == null
+        ? ''
+        : ' ${issueTransition.resolvedProblem!.title} has left the active agenda after sustained improvement, while its historical record remains archived.';
+    return run.scenario.city.copyWith(
+      term: nextTerm,
+      indicators: result.after,
+      problems: inheritedProblems,
+      summary:
+          '${run.cityName} enters Election $nextTerm carrying the recorded results of Administration ${nextTerm - 1}. Current concerns include $concernText.$developmentText$resolutionText',
+    );
+  }
+
+  List<ReturningCandidateIdentity> _returningCandidatesFor(
+    _RunSession run, {
+    required int electionSeed,
+    required int nextTerm,
+  }) {
+    final election = run.proceduralElection;
+    final incumbent = run.selectedCandidate;
+    if (election == null || incumbent == null) return const [];
+
+    ReturningCandidateIdentity? identityFor(
+      Candidate candidate,
+      ProceduralElection sourceElection, {
+      ReturningCandidateCampaignRecord? priorCampaign,
+    }) {
+      final truth = sourceElection.truthProfiles[candidate.id];
+      final portrait = sourceElection.candidateExperience
+          .profileFor(candidate.id)
+          ?.portraitAssetKey;
+      if (truth == null || portrait == null) return null;
+      final priorAdministrations = run.administrationHistory
+          .where((record) => record.electedCandidateId == candidate.id)
+          .toList(growable: false);
+      final latestAdministration = priorAdministrations.lastOrNull;
+      final careerEvolution = latestAdministration == null
+          ? null
+          : _careerEvolutionEngine.evolve(
+              baseline: truth,
+              administration: latestAdministration.livingCity,
+            );
+      return ReturningCandidateIdentity(
+        candidate: candidate,
+        truth: careerEvolution?.truth ?? truth,
+        portraitId: portrait,
+        priorOffice: latestAdministration == null
+            ? null
+            : ReturningCandidateOfficeRecord(
+                termsServed: priorAdministrations.length,
+                latestTermNumber: latestAdministration.termNumber,
+                finalCondition:
+                    latestAdministration.livingCity.finalCondition.name,
+                summary: latestAdministration.livingCity.summary,
+                completedProjectTitles: latestAdministration.livingCity.projects
+                    .where(
+                      (project) =>
+                          project.state == AdministrationProjectState.completed,
+                    )
+                    .map((project) => project.title)
+                    .toList(growable: false),
+                unresolvedProjectTitles: latestAdministration
+                    .livingCity
+                    .projects
+                    .where(
+                      (project) =>
+                          project.state != AdministrationProjectState.completed,
+                    )
+                    .map((project) => project.title)
+                    .toList(growable: false),
+                majorEventTitles: latestAdministration.livingCity.eventHistory
+                    .where((event) => event.isMajor)
+                    .map((event) => event.title)
+                    .toList(growable: false),
+                careerEvolutionReasons:
+                    careerEvolution?.publicReasons ?? const [],
+              ),
+        priorCampaign: priorCampaign,
+      );
+    }
+
+    var consecutiveTerms = 0;
+    for (final record in run.administrationHistory.reversed) {
+      if (record.electedCandidateId != incumbent.id) break;
+      consecutiveTerms++;
+    }
+    final selected = <ReturningCandidateIdentity>[];
+    if (consecutiveTerms < 2) {
+      final incumbentIdentity = identityFor(incumbent, election);
+      if (incumbentIdentity != null) selected.add(incumbentIdentity);
+    }
+
+    // Every third election can surface one politician who genuinely sat out
+    // the immediately preceding ballot. Their archived identity and truth are
+    // reused exactly; only their present-day public framing is regenerated.
+    // This makes political memory visible without flooding every election with
+    // familiar names.
+    if (nextTerm >= 3 && nextTerm % 3 == 0) {
+      final currentCandidateIds = election.candidates
+          .map((candidate) => candidate.id)
+          .toSet();
+      final archivedCandidates = <String, Candidate>{};
+      final archivedElections = <String, ProceduralElection>{};
+      final lastElectionTerms = <String, int>{};
+      final electionsContested = <String, int>{};
+      for (final administration in run.administrationHistory) {
+        final archivedElection = administration.election;
+        if (archivedElection == null) continue;
+        for (final candidate in archivedElection.candidates) {
+          archivedCandidates[candidate.id] = candidate;
+          archivedElections[candidate.id] = archivedElection;
+          lastElectionTerms[candidate.id] = administration.termNumber;
+          electionsContested.update(
+            candidate.id,
+            (count) => count + 1,
+            ifAbsent: () => 1,
+          );
+        }
+      }
+      final usedPortraits = selected
+          .map((identity) => identity.portraitId)
+          .toSet();
+      final eligibleComebacks =
+          archivedCandidates.keys
+              .where((candidateId) {
+                if (currentCandidateIds.contains(candidateId) ||
+                    selected.any((item) => item.candidate.id == candidateId)) {
+                  return false;
+                }
+                final archivedElection = archivedElections[candidateId];
+                final portrait = archivedElection?.candidateExperience
+                    .profileFor(candidateId)
+                    ?.portraitAssetKey;
+                return portrait != null && !usedPortraits.contains(portrait);
+              })
+              .toList(growable: false)
+            ..sort();
+      if (eligibleComebacks.isNotEmpty) {
+        final random = SeededRandom(
+          SeedDerivation.derive(
+            worldSeed: electionSeed,
+            generationVersion: ProceduralCandidateGenerator.generationVersion,
+            path: 'returning-comeback',
+          ),
+        );
+        final candidateId =
+            eligibleComebacks[random.nextInt(eligibleComebacks.length)];
+        final lastElectionTerm = lastElectionTerms[candidateId]!;
+        final comeback = identityFor(
+          archivedCandidates[candidateId]!,
+          archivedElections[candidateId]!,
+          priorCampaign: ReturningCandidateCampaignRecord(
+            electionsContested: electionsContested[candidateId]!,
+            lastElectionTerm: lastElectionTerm,
+            yearsAway: (nextTerm - lastElectionTerm - 1).clamp(1, nextTerm),
+          ),
+        );
+        if (comeback != null) selected.add(comeback);
+      }
+    }
+
+    final reservedPortraits = selected
+        .map((identity) => identity.portraitId)
+        .toSet();
+    final eligibleLosers = election.candidates
+        .where(
+          (candidate) =>
+              candidate.id != incumbent.id &&
+              !selected.any((item) => item.candidate.id == candidate.id) &&
+              !reservedPortraits.contains(
+                election.candidateExperience
+                    .profileFor(candidate.id)
+                    ?.portraitAssetKey,
+              ),
+        )
+        .toList(growable: false);
+    if (selected.length < 2 && eligibleLosers.isNotEmpty) {
+      final random = SeededRandom(
+        SeedDerivation.derive(
+          worldSeed: electionSeed,
+          generationVersion: ProceduralCandidateGenerator.generationVersion,
+          path: 'returning-challenger',
+        ),
+      );
+      final challenger = identityFor(
+        eligibleLosers[random.nextInt(eligibleLosers.length)],
+        election,
+      );
+      if (challenger != null &&
+          !selected.any(
+            (item) => item.candidate.id == challenger.candidate.id,
+          )) {
+        selected.add(challenger);
+      }
+    }
+    return List.unmodifiable(selected);
+  }
+
+  int _electionSeedFor(int worldSeed, int termNumber) => termNumber <= 1
+      ? worldSeed
+      : SeedDerivation.derive(
+          worldSeed: worldSeed,
+          generationVersion: ProceduralCandidateGenerator.generationVersion,
+          path: 'election:$termNumber',
+        );
 
   _RunSession _restoreRun(RunSaveData saved) {
     final freshBase = _baseScenario.id.startsWith('bayhaven')
@@ -768,10 +1219,23 @@ class GameController extends ChangeNotifier {
     if (proceduralElection != null) {
       scenario = scenario.copyWith(candidates: proceduralElection.candidates);
     }
+    final restoredProblems = _restoreCurrentProblems(
+      scenario.city.problems,
+      saved.currentIssueStates,
+      cityName: saved.configuration.cityName,
+    );
     scenario = scenario.copyWith(
       city: scenario.city.copyWith(
         indicators: saved.indicators,
         term: saved.term,
+        problems: restoredProblems,
+        summary: _restoredCitySummary(
+          originalSummary: scenario.city.summary,
+          cityName: saved.configuration.cityName,
+          term: saved.term,
+          problems: restoredProblems,
+          history: saved.administrationHistory,
+        ),
       ),
     );
     Candidate? candidate;
@@ -848,6 +1312,7 @@ class GameController extends ChangeNotifier {
       chronicleVoiceIds: saved.chronicleVoiceIds,
       usedChronicleTemplateIds: saved.usedChronicleTemplateIds,
       proceduralElection: proceduralElection,
+      administrationHistory: saved.administrationHistory,
     );
     final restoredTruth = candidate == null
         ? null
@@ -879,6 +1344,7 @@ class GameController extends ChangeNotifier {
         saved.suspiciousDebateMessageIds.where(validDebateIds.contains),
       )
       ..receiptNotes.addAll(saved.receiptNotes)
+      ..predictionIds.addAll(saved.predictionIds)
       ..usedCandidateNames.addAll({
         ...saved.usedCandidateNames,
         ...scenario.candidates.map((candidate) => candidate.name),
@@ -893,6 +1359,15 @@ class GameController extends ChangeNotifier {
                 truth: restoredTruth == null
                     ? null
                     : truthSnapshotFromProfile(restoredTruth, candidate),
+                historicalTemplatePressure: _historicalTemplatePressure(
+                  saved.administrationHistory,
+                ),
+                historicalVisualPressure: _historicalVisualPressure(
+                  saved.administrationHistory,
+                ),
+                historicalNewsFramingPressure: _historicalNewsFramingPressure(
+                  saved.administrationHistory,
+                ),
               ),
               saved.livingCity,
             )
@@ -922,6 +1397,68 @@ class GameController extends ChangeNotifier {
             }
       ..topIssue = saved.topIssue
       ..confidence = saved.confidence.clamp(0, 1);
+  }
+
+  List<CityProblem> _restoreCurrentProblems(
+    List<CityProblem> configuredProblems,
+    Map<String, CityIssueSaveState> savedStates, {
+    required String cityName,
+  }) {
+    if (savedStates.isEmpty) return configuredProblems;
+    final authoredById = <String, CityProblem>{
+      for (final problem in cityIssueLibrary) problem.id: problem,
+    };
+    final configuredById = <String, CityProblem>{
+      for (final problem in configuredProblems) problem.id: problem,
+    };
+    final restored = <CityProblem>[];
+    for (final entry in savedStates.entries) {
+      final source = configuredById[entry.key] ?? authoredById[entry.key];
+      if (source == null) continue;
+      restored.add(
+        source.copyWith(
+          description: source.description.replaceAll('the city', cityName),
+          severity: entry.value.severity,
+          urgency: entry.value.urgency,
+          trend: entry.value.trend,
+        ),
+      );
+    }
+    restored.sort(
+      (left, right) => right.issueWeight.compareTo(left.issueWeight),
+    );
+    return restored.isEmpty ? configuredProblems : List.unmodifiable(restored);
+  }
+
+  String _restoredCitySummary({
+    required String originalSummary,
+    required String cityName,
+    required int term,
+    required List<CityProblem> problems,
+    required List<AdministrationRecord> history,
+  }) {
+    if (term <= 1 || history.isEmpty) return originalSummary;
+    final concernText = problems
+        .take(3)
+        .map((problem) => problem.title.toLowerCase())
+        .join(', ');
+    final priorIds = history.last.livingCity.finalIssueStates.keys.toSet();
+    final currentIds = problems.map((problem) => problem.id).toSet();
+    final emergedIds = currentIds.difference(priorIds);
+    final resolvedIds = priorIds.difference(currentIds);
+    final emerged = problems
+        .where((problem) => emergedIds.contains(problem.id))
+        .firstOrNull;
+    final resolved = cityIssueLibrary
+        .where((problem) => resolvedIds.contains(problem.id))
+        .firstOrNull;
+    final developmentText = emerged == null
+        ? ''
+        : ' ${emerged.title} has newly entered the active city agenda.';
+    final resolutionText = resolved == null
+        ? ''
+        : ' ${resolved.title} has left the active agenda after sustained improvement, while its historical record remains archived.';
+    return '$cityName enters Election $term carrying the recorded results of Administration ${term - 1}. Current concerns include $concernText.$developmentText$resolutionText';
   }
 
   void _commit() {
@@ -973,6 +1510,7 @@ class GameController extends ChangeNotifier {
     List<String> chronicleVoiceIds = const [],
     Set<String> usedChronicleTemplateIds = const {},
     ProceduralElection? proceduralElection,
+    List<AdministrationRecord> administrationHistory = const [],
   }) {
     final generated = _briefEngine.build(
       scenario: scenario,
@@ -1002,6 +1540,7 @@ class GameController extends ChangeNotifier {
         createdAt: createdAt,
         updatedAt: updatedAt,
         proceduralElection: proceduralElection,
+        administrationHistory: administrationHistory,
       )
       ..chronicleStoryIds.addAll(brief.news.map((item) => item.id))
       ..chronicleVoiceIds.addAll(brief.voices.map((item) => item.id))
@@ -1096,8 +1635,10 @@ class _RunSession {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.proceduralElection,
+    List<AdministrationRecord> administrationHistory = const [],
   }) : createdAt = createdAt ?? DateTime.now().toUtc(),
-       updatedAt = updatedAt ?? DateTime.now().toUtc() {
+       updatedAt = updatedAt ?? DateTime.now().toUtc(),
+       administrationHistory = List.of(administrationHistory) {
     initializeCandidateNames();
   }
 
@@ -1105,7 +1646,8 @@ class _RunSession {
   String get cityName => configuration.cityName;
   Scenario scenario;
   PreElectionCityBrief preElectionBrief;
-  final ProceduralElection? proceduralElection;
+  ProceduralElection? proceduralElection;
+  final List<AdministrationRecord> administrationHistory;
   CandidateExperienceCatalog get candidateExperience =>
       proceduralElection?.candidateExperience ?? bayhavenCandidateExperience;
   CityBookCatalog get cityBook =>
@@ -1129,6 +1671,7 @@ class _RunSession {
   final Set<String> pinnedDebateMessageIds = {};
   final Set<String> suspiciousDebateMessageIds = {};
   final Map<String, String> receiptNotes = {};
+  final Set<String> predictionIds = {};
   final Set<String> usedCandidateNames = {};
   Candidate? selectedCandidate;
   TermResult? termResult;
@@ -1184,6 +1727,7 @@ class _RunSession {
     pinnedDebateMessageIds.clear();
     suspiciousDebateMessageIds.clear();
     receiptNotes.clear();
+    predictionIds.clear();
     initializeCandidateNames();
     touch();
   }
@@ -1207,6 +1751,7 @@ class _RunSession {
     pinnedDebateMessageIds: pinnedDebateMessageIds,
     suspiciousDebateMessageIds: suspiciousDebateMessageIds,
     receiptNotes: receiptNotes,
+    predictionIds: predictionIds,
     usedCandidateNames: usedCandidateNames,
     chronicleStoryIds: chronicleStoryIds,
     chronicleVoiceIds: chronicleVoiceIds,
@@ -1224,12 +1769,120 @@ class _RunSession {
     simulationSpeed: simulationSpeed,
     simulationPaused: simulationPaused,
     inspectedCityEventIds: inspectedCityEventIds,
+    administrationHistory: administrationHistory,
+    currentIssueStates: {
+      for (final problem in scenario.city.problems)
+        problem.id: CityIssueSaveState(
+          severity: problem.severity,
+          urgency: problem.urgency,
+          trend: problem.trend,
+        ),
+    },
   );
 }
 
 bool _isInterruptingCriticalEvent(CityEvent event) =>
     event.importance == CityEventImportance.critical ||
     event.importance == CityEventImportance.rare;
+
+Map<String, int> _historicalTemplatePressure(
+  List<AdministrationRecord> administrations,
+) {
+  final pressure = <String, int>{};
+  for (var index = 0; index < administrations.length; index++) {
+    final record = administrations[index];
+    final recencyWeight = index == administrations.length - 1 ? 2 : 1;
+    final usedThisTerm = record.livingCity.eventHistory
+        .where(
+          (event) =>
+              !event.templateId.startsWith('project_milestone_') &&
+              citizenActionTypeForTemplate(event.templateId) == null,
+        )
+        .map((event) => event.templateId)
+        .toSet();
+    for (final templateId in usedThisTerm) {
+      pressure.update(
+        templateId,
+        (value) => value + recencyWeight,
+        ifAbsent: () => recencyWeight,
+      );
+    }
+  }
+  return Map.unmodifiable(pressure);
+}
+
+Map<String, int> _historicalVisualPressure(
+  List<AdministrationRecord> administrations,
+) {
+  final pressure = <String, int>{};
+  for (var index = 0; index < administrations.length; index++) {
+    final record = administrations[index];
+    final recencyWeight = index == administrations.length - 1 ? 2 : 1;
+    final usedThisTerm = record.livingCity.eventHistory
+        .where(
+          (event) =>
+              !event.templateId.startsWith('project_milestone_') &&
+              citizenActionTypeForTemplate(event.templateId) == null,
+        )
+        .map(
+          (event) =>
+              livingEventVisualKeyForTemplateId(event.templateId) ??
+              livingEventVisualKey(
+                visualAssetKey: event.visualAssetKey,
+                markerType: event.markerType,
+                district: event.district,
+              ),
+        )
+        .toSet();
+    for (final visualKey in usedThisTerm) {
+      pressure.update(
+        visualKey,
+        (value) => value + recencyWeight,
+        ifAbsent: () => recencyWeight,
+      );
+    }
+  }
+  return Map.unmodifiable(pressure);
+}
+
+Map<String, int> _historicalNewsFramingPressure(
+  List<AdministrationRecord> administrations,
+) {
+  final pressure = <String, int>{};
+  for (var index = 0; index < administrations.length; index++) {
+    final record = administrations[index];
+    final recencyWeight = index == administrations.length - 1 ? 2 : 1;
+    final countsByOutlet = <String, Map<String, int>>{};
+    for (final coverage in record.livingCity.newsCoverages) {
+      final framingKey = newsFramingKey(
+        outletId: coverage.outletId,
+        framingAngle: coverage.framingAngle,
+      );
+      final outletCounts = countsByOutlet.putIfAbsent(
+        coverage.outletId,
+        () => <String, int>{},
+      );
+      outletCounts.update(framingKey, (value) => value + 1, ifAbsent: () => 1);
+    }
+    for (final outletCounts in countsByOutlet.values) {
+      final dominantUseCount = outletCounts.values.fold<int>(
+        0,
+        (highest, count) => count > highest ? count : highest,
+      );
+      final dominantKeys = outletCounts.entries
+          .where((entry) => entry.value == dominantUseCount)
+          .map((entry) => entry.key);
+      for (final framingKey in dominantKeys) {
+        pressure.update(
+          framingKey,
+          (value) => value + recencyWeight,
+          ifAbsent: () => recencyWeight,
+        );
+      }
+    }
+  }
+  return Map.unmodifiable(pressure);
+}
 
 TermResult _restoreTermResult(
   TermResult generated,

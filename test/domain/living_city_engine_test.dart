@@ -14,6 +14,68 @@ import 'package:resiboplease/core/settings/app_settings_controller.dart';
 void main() {
   const engine = LivingCityEngine();
 
+  test(
+    'historical repetition pressure preserves unresolved issue recurrence',
+    () {
+      expect(
+        historicalTemplateMultiplier(priorUses: 0, unresolvedSeverity: 20),
+        1,
+      );
+      final firstUse = historicalTemplateMultiplier(
+        priorUses: 1,
+        unresolvedSeverity: 35,
+      );
+      final repeated = historicalTemplateMultiplier(
+        priorUses: 3,
+        unresolvedSeverity: 35,
+      );
+      final unresolved = historicalTemplateMultiplier(
+        priorUses: 3,
+        unresolvedSeverity: 82,
+      );
+
+      expect(firstUse, lessThan(1));
+      expect(repeated, lessThan(firstUse));
+      expect(unresolved, greaterThan(repeated));
+      expect(unresolved, .68);
+    },
+  );
+
+  test(
+    'historical visual pressure cools combinations without banning crises',
+    () {
+      expect(
+        historicalVisualMultiplier(priorUses: 0, unresolvedSeverity: 30),
+        1,
+      );
+      final repeated = historicalVisualMultiplier(
+        priorUses: 3,
+        unresolvedSeverity: 35,
+      );
+      final severe = historicalVisualMultiplier(
+        priorUses: 3,
+        unresolvedSeverity: 82,
+      );
+
+      expect(repeated, lessThan(1));
+      expect(severe, greaterThan(repeated));
+      expect(severe, .78);
+    },
+  );
+
+  test(
+    'historical news framing cooldown is bounded and never bans a frame',
+    () {
+      expect(historicalNewsFramingMultiplier(priorUses: 0), 1);
+      final recent = historicalNewsFramingMultiplier(priorUses: 2);
+      final repeated = historicalNewsFramingMultiplier(priorUses: 20);
+
+      expect(recent, lessThan(1));
+      expect(repeated, lessThan(recent));
+      expect(repeated, .24);
+    },
+  );
+
   LivingTermSimulation run(int seed) {
     final scenario = buildBayhavenScenario(seed: seed);
     final candidate = scenario.candidates.first;
@@ -43,6 +105,138 @@ void main() {
       isNot(equals(second.eventHistory.map((event) => event.templateId))),
     );
   });
+
+  test(
+    'later-term history pressure changes selection without invalid events',
+    () {
+      final scenario = buildBayhavenScenario(seed: 5839201);
+      final termTwo = scenario.copyWith(city: scenario.city.copyWith(term: 2));
+      final candidate = termTwo.candidates.first;
+      final baseline = engine.simulate(
+        scenario: termTwo,
+        candidate: candidate,
+        promises: bayhavenCandidateExperience.promisesFor(candidate.id),
+      );
+      final repeatedTemplates = baseline.eventHistory
+          .where((event) => !event.templateId.startsWith('project_milestone_'))
+          .take(8)
+          .map((event) => event.templateId);
+      final pressured = engine.simulate(
+        scenario: termTwo,
+        candidate: candidate,
+        promises: bayhavenCandidateExperience.promisesFor(candidate.id),
+        historicalTemplatePressure: {
+          for (final templateId in repeatedTemplates) templateId: 3,
+        },
+      );
+
+      expect(
+        pressured.eventHistory.map((event) => event.templateId),
+        isNot(equals(baseline.eventHistory.map((event) => event.templateId))),
+      );
+      expect(
+        pressured.validate(
+          candidateIds: termTwo.candidates.map((item) => item.id),
+          problemIds: termTwo.city.problems.map((problem) => problem.id),
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  test(
+    'news framing memory varies presentation without changing event truth',
+    () {
+      final scenario = buildBayhavenScenario(seed: 5839201);
+      final termTwo = scenario.copyWith(city: scenario.city.copyWith(term: 2));
+      final candidate = termTwo.candidates.first;
+      final baseline = engine.simulate(
+        scenario: termTwo,
+        candidate: candidate,
+        promises: bayhavenCandidateExperience.promisesFor(candidate.id),
+      );
+      final pressure = <String, int>{};
+      for (final coverage in baseline.newsCoverages.take(3)) {
+        pressure[newsFramingKey(
+              outletId: coverage.outletId,
+              framingAngle: coverage.framingAngle,
+            )] =
+            20;
+      }
+      final reframed = engine.simulate(
+        scenario: termTwo,
+        candidate: candidate,
+        promises: bayhavenCandidateExperience.promisesFor(candidate.id),
+        historicalNewsFramingPressure: pressure,
+      );
+
+      expect(
+        reframed.eventHistory.map((event) => event.id),
+        orderedEquals(baseline.eventHistory.map((event) => event.id)),
+      );
+      expect(
+        reframed.newsCoverages.map((coverage) => coverage.id),
+        orderedEquals(baseline.newsCoverages.map((coverage) => coverage.id)),
+      );
+      expect(
+        reframed.newsCoverages.map((coverage) => coverage.articleSummary),
+        orderedEquals(
+          baseline.newsCoverages.map((coverage) => coverage.articleSummary),
+        ),
+      );
+      expect(
+        reframed.newsCoverages.map((coverage) => coverage.framingAngle),
+        isNot(
+          orderedEquals(
+            baseline.newsCoverages.map((coverage) => coverage.framingAngle),
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
+    'repeated issue events acknowledge prior administrations in public copy',
+    () {
+      final scenario = buildBayhavenScenario(seed: 778899);
+      final termThree = scenario.copyWith(
+        city: scenario.city.copyWith(term: 3),
+      );
+      final candidate = termThree.candidates.first;
+      final issueTemplates = livingCityEventLibrary.where(
+        (template) =>
+            template.issueFamily != null && template.requiredHook == null,
+      );
+      final simulation = engine.simulate(
+        scenario: termThree,
+        candidate: candidate,
+        promises: bayhavenCandidateExperience.promisesFor(candidate.id),
+        historicalTemplatePressure: {
+          for (final template in issueTemplates) template.id: 1,
+        },
+      );
+      final issueTemplateIds = issueTemplates
+          .map((template) => template.id)
+          .toSet();
+      final repeatedEvents = simulation.eventHistory
+          .where((event) => issueTemplateIds.contains(event.templateId))
+          .toList(growable: false);
+
+      expect(repeatedEvents, isNotEmpty);
+      expect(
+        repeatedEvents.every(
+          (event) => event.title.startsWith('Recurring civic pressure:'),
+        ),
+        isTrue,
+      );
+      expect(
+        repeatedEvents.every(
+          (event) => event.factualSummary.contains('earlier administration'),
+        ),
+        isTrue,
+      );
+    },
+  );
 
   test('world conditions are deterministic, bounded, and naturally tagged', () {
     final scenario = buildBayhavenScenario(seed: 5839201);

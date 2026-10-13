@@ -1,5 +1,9 @@
 # Living Procedural City Simulation Architecture
 
+> October 2026 source audit: the implemented Living City generator is version
+> **4** (`LivingCityEngine.generationVersion`). This document describes the
+> current first-term architecture; tests were not rerun during the audit.
+
 ## Purpose and implemented scope
 
 The post-election game simulates one complete fictional year after the player
@@ -91,7 +95,7 @@ term:{term}:project:{project}:quarter:{quarter}:review-day
 term:{term}:day:{day}:project:{project}
 ```
 
-The Living City generation version is `2`. An extra draw in one event or
+The Living City generation version is `4`. An extra draw in one event or
 project path cannot consume the candidate generator's stream or reroll another
 day. Identical world/candidate/input/version data reproduce an identical saved
 year. Different world seeds change event timing, selection, location offsets,
@@ -310,7 +314,7 @@ same event ID.
 
 ## Persistence and migration
 
-Save schema `8` stores:
+Save schema `10` stores:
 
 - the complete generated `LivingTermSimulation`;
 - current simulated day;
@@ -324,12 +328,54 @@ Save schema `8` stores:
   comments; and
 - deterministic World Conditions with start, duration, intensity, and
   natural/sandbox source; and
+- append-only administration history and inherited city issue state;
+- optional pre-election civic predictions; and
+- pending or completed citizen-action outcomes as deterministic Living City
+  events; and
 - the existing vote/investigation/candidate data.
 
 Schema 7 saves migrate their old revealed-phase count to Day 0, 91, 182, 273,
-or 365 and begin paused at Day speed. Older saved Living City fields receive
-safe date/location/importance defaults in the codec. Generated past events are
-loaded from JSON rather than rerun.
+or 365 and begin paused at Day speed. Schema 8 introduces the political
+timeline through schema 9; schema 10 adds civic predictions. Older saved Living
+City fields receive safe date/location/importance defaults in the codec.
+Generated past events and filed citizen actions are loaded from JSON rather
+than rerun.
+
+The first citizen-action slice uses a deterministic future-action overlay. It
+adds a bounded outcome after the current day and rebuilds derived phase/final
+snapshots without changing already observed events or milestones. It does not
+reroll unrelated future events. See
+`CITIZEN_ACTION_SIMULATION_DESIGN.md` for the architecture comparison and
+future checkpoint/suffix-regeneration requirements.
+
+From Election 2 onward, the controller also supplies compact event-template
+memory from archived administrations. Recently used standalone templates
+receive a deterministic weight penalty during later event selection. Required
+causal follow-ups are exempt, and severe unresolved issue families retain a
+higher recurrence floor. This reduces identical term composition without
+pretending that an unresolved flood, health, transport, or corruption problem
+cannot recur. When an issue-backed template does recur, its public title and
+summary explicitly frame it as recurring pressure and mention an active related
+project when present. Template identity, effects, and causal links remain the
+same simulation truth.
+
+Archived administrations also contribute one compact key per distinct event
+visual combination (artwork or marker type plus nominal district). Later event
+selection applies a separate bounded cooldown to recently repeated visual keys.
+Severe unresolved issues retain a higher recurrence floor, and required causal
+follow-ups are exempt. This changes selection weight only; it does not swap an
+event's approved artwork after the event has been created.
+
+Between administrations, `EmergingIssueEngine` converts the sealed final issue
+states into the next election's active agenda. It can add at most one authored
+issue whose pressure is supported by inherited indicators, recent
+deterioration/growth, and project outcomes. It can remove at most one concern
+that reached a low improving severity. The active set remains between four and
+six problems, while retired concerns remain intact in historical
+administration snapshots. Because every possible issue comes from
+`cityIssueLibrary`, existing visuals, event hooks, SDG links, and policy hooks
+remain valid. The active issue IDs and values are restored from the existing
+`current_issue_states` save field; no competing city-state ledger is added.
 
 ## Performance decisions
 
@@ -353,6 +399,7 @@ low-end and mid-range Android devices.
 
 - `lib/domain/models/living_city_simulation.dart`
 - `lib/domain/simulation/living_city_engine.dart`
+- `lib/domain/simulation/emerging_issue_engine.dart`
 - `lib/domain/simulation/simulation_clock.dart`
 - `lib/data/seed_content/living_city_event_library.dart`
 - `lib/data/persistence/living_city_codec.dart`

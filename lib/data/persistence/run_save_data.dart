@@ -1,9 +1,12 @@
 import '../../domain/models/city_indicator_set.dart';
 import '../../domain/models/city_run_configuration.dart';
+import '../../domain/models/city_problem.dart';
 import '../../domain/models/procedural_election.dart';
 import '../../domain/models/living_city_simulation.dart';
+import '../../domain/models/political_timeline.dart';
 import 'procedural_election_codec.dart';
 import 'living_city_codec.dart';
+import 'political_timeline_codec.dart';
 
 class GameSaveData {
   GameSaveData({
@@ -12,7 +15,7 @@ class GameSaveData {
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now().toUtc();
 
-  static const currentSchemaVersion = 8;
+  static const currentSchemaVersion = 10;
 
   final int? activeSlotIndex;
   final List<RunSaveData?> slots;
@@ -78,6 +81,9 @@ class RunSaveData {
     this.simulationSpeed = SimulationSpeed.day,
     this.simulationPaused = true,
     this.inspectedCityEventIds = const {},
+    this.administrationHistory = const [],
+    this.currentIssueStates = const {},
+    this.predictionIds = const {},
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now().toUtc(),
@@ -114,6 +120,9 @@ class RunSaveData {
   final SimulationSpeed simulationSpeed;
   final bool simulationPaused;
   final Set<String> inspectedCityEventIds;
+  final List<AdministrationRecord> administrationHistory;
+  final Map<String, CityIssueSaveState> currentIssueStates;
+  final Set<String> predictionIds;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -155,6 +164,13 @@ class RunSaveData {
     'simulation_speed': simulationSpeed.name,
     'simulation_paused': simulationPaused,
     'inspected_city_event_ids': inspectedCityEventIds.toList()..sort(),
+    'administration_history': administrationHistory
+        .map(PoliticalTimelineCodec.encode)
+        .toList(growable: false),
+    'current_issue_states': currentIssueStates.map(
+      (id, state) => MapEntry(id, state.toJson()),
+    ),
+    'prediction_ids': predictionIds.toList()..sort(),
     'created_at': createdAt.toIso8601String(),
     'updated_at': updatedAt.toIso8601String(),
   };
@@ -258,6 +274,20 @@ class RunSaveData {
       json['inspected_city_event_ids'],
       'inspected_city_event_ids',
     ),
+    administrationHistory: _mapList(
+      json['administration_history'],
+      'administration_history',
+    ).map(PoliticalTimelineCodec.decode).toList(growable: false),
+    currentIssueStates:
+        _stringMap(json['current_issue_states'], 'current_issue_states').map(
+          (id, value) => MapEntry(
+            id,
+            CityIssueSaveState.fromJson(
+              _stringMap(value, 'current_issue_states.$id'),
+            ),
+          ),
+        ),
+    predictionIds: _stringSet(json['prediction_ids'], 'prediction_ids'),
     createdAt: _dateTime(json['created_at'], 'created_at'),
     updatedAt: _dateTime(json['updated_at'], 'updated_at'),
   );
@@ -283,6 +313,8 @@ abstract final class RunSaveMigrator {
         5 => _migrateV5ToV6(json),
         6 => _migrateV6ToV7(json),
         7 => _migrateV7ToV8(json),
+        8 => _migrateV8ToV9(json),
+        9 => _migrateV9ToV10(json),
         _ => throw UnsupportedError('No migration exists for schema $version.'),
       };
       version = _requiredInt(json['schema_version'], 'schema_version');
@@ -465,6 +497,186 @@ abstract final class RunSaveMigrator {
             .toList(growable: false),
     };
   }
+
+  static Map<String, Object?> _migrateV8ToV9(Map<String, Object?> source) {
+    final slots = source['slots'];
+    return {
+      ...source,
+      'schema_version': 9,
+      if (slots is List)
+        'slots': slots
+            .map((slot) {
+              if (slot is! Map) return slot;
+              final migrated = slot.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+              final living = migrated['living_city'];
+              final selectedId = migrated['selected_candidate_id'];
+              final simulationDay = _optionalInt(migrated['simulation_day']);
+              final election = migrated['procedural_election'];
+              final completed =
+                  living is Map &&
+                  selectedId is String &&
+                  selectedId.isNotEmpty &&
+                  (simulationDay ?? 0) >= 365;
+              return {
+                ...migrated,
+                'current_issue_states': completed
+                    ? _legacyCurrentIssueStates(living)
+                    : <String, Object?>{},
+                'administration_history': completed
+                    ? [
+                        _legacyAdministrationRecord(
+                          migrated: migrated,
+                          living: living,
+                          election: election,
+                          selectedId: selectedId,
+                        ),
+                      ]
+                    : <Object?>[],
+              };
+            })
+            .toList(growable: false),
+    };
+  }
+
+  static Map<String, Object?> _migrateV9ToV10(Map<String, Object?> source) {
+    final slots = source['slots'];
+    return {
+      ...source,
+      'schema_version': 10,
+      if (slots is List)
+        'slots': slots
+            .map((slot) {
+              if (slot is! Map) return slot;
+              final migrated = slot.map(
+                (key, value) => MapEntry(key.toString(), value),
+              );
+              return {...migrated, 'prediction_ids': <String>[]};
+            })
+            .toList(growable: false),
+    };
+  }
+
+  static Map<String, Object?> _legacyAdministrationRecord({
+    required Map<String, Object?> migrated,
+    required Map<dynamic, dynamic> living,
+    required Object? election,
+    required String selectedId,
+  }) {
+    final electionMap = election is Map
+        ? election.map((key, value) => MapEntry(key.toString(), value))
+        : null;
+    final candidate = _legacyCandidate(electionMap, selectedId);
+    final portrait = _legacyPortrait(electionMap, selectedId);
+    final term =
+        _optionalInt(living['term_number']) ??
+        _optionalInt(migrated['term']) ??
+        1;
+    return {
+      'id': 'administration_$term',
+      'term_number': term,
+      'election_seed': _optionalInt(migrated['seed']) ?? 0,
+      'elected_candidate_id': selectedId,
+      'elected_candidate_name': candidate?['name'] ?? selectedId,
+      'elected_party': candidate?['party'] ?? 'Unknown affiliation',
+      'elected_portrait_asset_key':
+          portrait ?? 'candidate_${selectedId}_neutral',
+      'top_issue': migrated['top_issue'],
+      'confidence': migrated['confidence'] ?? .5,
+      'election': election,
+      'living_city': living,
+      'investigation': {
+        'viewed_evidence_ids': migrated['viewed_evidence_ids'] ?? <String>[],
+        'bookmarked_evidence_ids':
+            migrated['bookmarked_evidence_ids'] ?? <String>[],
+        'pinned_candidate_ids': migrated['pinned_candidate_ids'] ?? <String>[],
+        'pinned_content_ids': migrated['pinned_content_ids'] ?? <String>[],
+        'pinned_question_ids': migrated['pinned_question_ids'] ?? <String>[],
+        'bookmarked_debate_message_ids':
+            migrated['bookmarked_debate_message_ids'] ?? <String>[],
+        'pinned_debate_message_ids':
+            migrated['pinned_debate_message_ids'] ?? <String>[],
+        'suspicious_debate_message_ids':
+            migrated['suspicious_debate_message_ids'] ?? <String>[],
+        'receipt_notes': migrated['receipt_notes'] ?? <String, String>{},
+      },
+      'completed_at': migrated['updated_at'],
+    };
+  }
+
+  static Map<String, Object?> _legacyCurrentIssueStates(
+    Map<dynamic, dynamic> living,
+  ) {
+    final finalIssues = living['final_issues'];
+    if (finalIssues is! Map) return {};
+    return finalIssues.map((key, value) {
+      if (value is! Map) return MapEntry(key.toString(), value);
+      final issue = value.map(
+        (issueKey, item) => MapEntry(issueKey.toString(), item),
+      );
+      final severity = _optionalInt(issue['severity']) ?? 50;
+      return MapEntry(key.toString(), {
+        'severity': severity,
+        'urgency': severity.clamp(10, 100),
+        'trend': issue['trend'] ?? ProblemTrend.stable.name,
+      });
+    });
+  }
+
+  static Map<String, Object?>? _legacyCandidate(
+    Map<String, Object?>? election,
+    String selectedId,
+  ) {
+    final candidates = election?['candidates'];
+    if (candidates is! List) return null;
+    for (final item in candidates.whereType<Map>()) {
+      final candidate = item.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+      if (candidate['id'] == selectedId) return candidate;
+    }
+    return null;
+  }
+
+  static String? _legacyPortrait(
+    Map<String, Object?>? election,
+    String selectedId,
+  ) {
+    final experience = election?['candidate_experience'];
+    if (experience is! Map) return null;
+    final profiles = experience['profiles'];
+    if (profiles is! Map) return null;
+    final profile = profiles[selectedId];
+    if (profile is! Map) return null;
+    final asset = profile['portrait_asset_key'];
+    return asset is String && asset.isNotEmpty ? asset : null;
+  }
+}
+
+class CityIssueSaveState {
+  const CityIssueSaveState({
+    required this.severity,
+    required this.urgency,
+    required this.trend,
+  });
+
+  final int severity;
+  final int urgency;
+  final ProblemTrend trend;
+
+  Map<String, Object?> toJson() => {
+    'severity': severity,
+    'urgency': urgency,
+    'trend': trend.name,
+  };
+
+  factory CityIssueSaveState.fromJson(Map<String, Object?> json) =>
+      CityIssueSaveState(
+        severity: _requiredInt(json['severity'], 'severity').clamp(0, 100),
+        urgency: _requiredInt(json['urgency'], 'urgency').clamp(0, 100),
+        trend: _enumValue(ProblemTrend.values, json['trend'], 'trend'),
+      );
 }
 
 Map<String, Object?> _configurationToJson(CityRunConfiguration value) => {
@@ -523,6 +735,11 @@ T _enumValue<T extends Enum>(List<T> values, Object? raw, String field) {
 Map<String, Object?> _stringMap(Object? value, String field) {
   if (value is! Map) throw FormatException('Invalid $field map.');
   return value.map((key, item) => MapEntry(key.toString(), item));
+}
+
+List<Map<String, Object?>> _mapList(Object? value, String field) {
+  if (value is! List) throw FormatException('Invalid $field list.');
+  return value.map((item) => _stringMap(item, field)).toList(growable: false);
 }
 
 List<String> _stringList(Object? value, String field) {

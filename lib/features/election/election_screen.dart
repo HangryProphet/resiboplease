@@ -6,6 +6,7 @@ import '../../core/state/game_controller.dart';
 import '../../core/audio/game_audio_service.dart';
 import '../../domain/models/candidate.dart';
 import '../../domain/models/city_problem.dart';
+import '../../domain/models/civic_prediction.dart';
 import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../dossier/widgets/dossier_ui.dart';
@@ -218,6 +219,22 @@ class _ElectionScreenState extends State<ElectionScreen> {
                               ],
                             ),
                           ),
+                          const SizedBox(height: 23),
+                          _DarkSectionLabel(
+                            text: context.l10n.civicPredictions,
+                            icon: Icons.edit_note_rounded,
+                          ),
+                          const SizedBox(height: 10),
+                          _PredictionPanel(
+                            selectedIds: widget.controller.predictionIds,
+                            onToggle: (prediction) {
+                              setState(() {
+                                widget.controller.togglePrediction(
+                                  prediction.id,
+                                );
+                              });
+                            },
+                          ),
                           const SizedBox(height: 16),
                           PaperPanel(
                             color: const Color(0xFFF4DFAE),
@@ -385,6 +402,166 @@ class _ElectionScreenState extends State<ElectionScreen> {
     if (begin == true && mounted) context.go('/simulation');
   }
 }
+
+class _PredictionPanel extends StatelessWidget {
+  const _PredictionPanel({required this.selectedIds, required this.onToggle});
+
+  final Set<String> selectedIds;
+  final ValueChanged<CivicPrediction> onToggle;
+
+  @override
+  Widget build(BuildContext context) => PaperPanel(
+    color: const Color(0xFFF4DFAE),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.l10n.civicPredictionsPrompt,
+          style: const TextStyle(
+            color: dossierInk,
+            height: 1.4,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          context.l10n.civicPredictionsNote,
+          style: const TextStyle(
+            color: Color(0xFF675946),
+            fontSize: 11,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 11),
+        for (final prediction in civicPredictions)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _PredictionChoice(
+              prediction: prediction,
+              selected: selectedIds.contains(prediction.id),
+              disabled:
+                  selectedIds.length >= 2 &&
+                  !selectedIds.contains(prediction.id),
+              onTap: () => onToggle(prediction),
+            ),
+          ),
+        Text(
+          context.l10n.predictionsSelected(selectedIds.length),
+          style: const TextStyle(
+            color: ResiboColors.mutedRed,
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _PredictionChoice extends StatelessWidget {
+  const _PredictionChoice({
+    required this.prediction,
+    required this.selected,
+    required this.disabled,
+    required this.onTap,
+  });
+
+  final CivicPrediction prediction;
+  final bool selected;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Opacity(
+    opacity: disabled ? .48 : 1,
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('prediction_${prediction.id}'),
+        onTap: disabled ? null : onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFD6E2CB) : const Color(0xFFE8D6AF),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? ResiboColors.teal : dossierInk,
+              width: selected ? 2.5 : 1.5,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 25,
+                height: 25,
+                decoration: BoxDecoration(
+                  color: selected ? ResiboColors.teal : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: dossierInk, width: 1.5),
+                ),
+                child: selected
+                    ? const Icon(
+                        Icons.check_rounded,
+                        color: Color(0xFFFFF0CB),
+                        size: 18,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _predictionLabel(context, prediction.id),
+                      style: const TextStyle(
+                        color: dossierInk,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _predictionDescription(context, prediction.id),
+                      style: const TextStyle(
+                        color: Color(0xFF675946),
+                        fontSize: 10,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+String _predictionLabel(BuildContext context, String id) => switch (id) {
+  'health_access' => context.l10n.predictionHealth,
+  'infrastructure_resilience' => context.l10n.predictionInfrastructure,
+  'livelihoods' => context.l10n.predictionLivelihoods,
+  'budget_protection' => context.l10n.predictionBudget,
+  'public_trust' => context.l10n.predictionTrust,
+  'corruption_pressure' => context.l10n.predictionCorruption,
+  _ => id,
+};
+
+String _predictionDescription(BuildContext context, String id) => switch (id) {
+  'health_access' => context.l10n.predictionHealthDescription,
+  'infrastructure_resilience' =>
+    context.l10n.predictionInfrastructureDescription,
+  'livelihoods' => context.l10n.predictionLivelihoodsDescription,
+  'budget_protection' => context.l10n.predictionBudgetDescription,
+  'public_trust' => context.l10n.predictionTrustDescription,
+  'corruption_pressure' => context.l10n.predictionCorruptionDescription,
+  _ => id,
+};
 
 class _DarkSectionLabel extends StatelessWidget {
   const _DarkSectionLabel({required this.text, required this.icon});

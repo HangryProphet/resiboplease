@@ -164,6 +164,56 @@ class CityOverviewScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 28),
+                            if (controller
+                                .administrationHistory
+                                .isNotEmpty) ...[
+                              CitySectionTitle(
+                                title: context.l10n.politicalHistory,
+                                icon: Icons.history_edu_rounded,
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                context.l10n.politicalHistoryDescription(
+                                  controller.administrationHistory.length,
+                                ),
+                                style: const TextStyle(
+                                  color: Color(0xFFB9C7CF),
+                                  fontSize: 11,
+                                  height: 1.35,
+                                ),
+                              ),
+                              const SizedBox(height: 11),
+                              CityActionButton(
+                                buttonKey: const Key('open_political_history'),
+                                label: context.l10n.openPoliticalHistory,
+                                icon: Icons.account_balance_rounded,
+                                color: const Color(0xFF7B2D38),
+                                onPressed: () => context.go('/history'),
+                              ),
+                              const SizedBox(height: 28),
+                            ],
+                            CitySectionTitle(
+                              title: context.l10n.civicProfile,
+                              icon: Icons.workspace_premium_rounded,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              context.l10n.civicProfileCityDescription,
+                              style: const TextStyle(
+                                color: Color(0xFFB9C7CF),
+                                fontSize: 11,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 11),
+                            CityActionButton(
+                              buttonKey: const Key('open_civic_profile'),
+                              label: context.l10n.openCivicProfile,
+                              icon: Icons.how_to_reg_rounded,
+                              color: const Color(0xFF3277A0),
+                              onPressed: () => context.push('/civic-profile'),
+                            ),
+                            const SizedBox(height: 28),
                             _ElectionActions(),
                           ],
                         ),

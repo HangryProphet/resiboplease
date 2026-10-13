@@ -15,12 +15,18 @@ class TermEngine {
     required Candidate candidate,
     CandidateTruthSnapshot? truth,
     List<CandidatePromise> promises = const [],
+    Map<String, int> historicalTemplatePressure = const {},
+    Map<String, int> historicalVisualPressure = const {},
+    Map<String, int> historicalNewsFramingPressure = const {},
   }) {
     final livingCity = const LivingCityEngine().simulate(
       scenario: scenario,
       candidate: candidate,
       truth: truth,
       promises: promises,
+      historicalTemplatePressure: historicalTemplatePressure,
+      historicalVisualPressure: historicalVisualPressure,
+      historicalNewsFramingPressure: historicalNewsFramingPressure,
     );
     final random = SeededRandom(scenario.seed ^ _stableHash(candidate.id));
     final eventRandom = SeededRandom(

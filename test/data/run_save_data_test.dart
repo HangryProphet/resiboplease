@@ -24,6 +24,7 @@ void main() {
       pinnedDebateMessageIds: {'dw04'},
       suspiciousDebateMessageIds: {'dw07'},
       receiptNotes: {'content:pulse_maya_promise': 'Check the funding.'},
+      predictionIds: {'health_access', 'budget_protection'},
       usedCandidateNames: {'Maya Vargas', 'Julian Pratt', 'Victor Chen'},
       chronicleStoryIds: ['brief_water', 'brief_flavor_market_0'],
       chronicleVoiceIds: ['voice_water_0'],
@@ -68,6 +69,7 @@ void main() {
     expect(run.receiptNotes, {
       'content:pulse_maya_promise': 'Check the funding.',
     });
+    expect(run.predictionIds, {'health_access', 'budget_protection'});
     expect(
       run.usedCandidateNames,
       containsAll(['Maya Vargas', 'Julian Pratt', 'Victor Chen']),
@@ -174,5 +176,17 @@ void main() {
     expect(restored.simulationSpeed, SimulationSpeed.day);
     expect(restored.simulationPaused, isTrue);
     expect(restored.inspectedCityEventIds, isEmpty);
+  });
+
+  test('schema nine saves gain an empty civic prediction set', () {
+    final raw = GameSaveData(activeSlotIndex: 0, slots: [sampleRun()]).toJson()
+      ..['schema_version'] = 9;
+    ((raw['slots']! as List).single! as Map<String, Object?>).remove(
+      'prediction_ids',
+    );
+
+    final restored = GameSaveData.fromJson(raw).slots.single!;
+
+    expect(restored.predictionIds, isEmpty);
   });
 }

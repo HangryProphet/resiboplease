@@ -1,5 +1,10 @@
 # Resibo, Please — Game Vision and Features
 
+> **October 2026 source audit:** this implemented/future boundary was checked
+> against repository source. Tests and builds were intentionally not rerun.
+> English/Filipino coverage is strongest in interface chrome; portions of the
+> generated/authored narrative content remain English.
+
 This document separates the game that exists in the repository today from the longer-term design. It is a companion to `README.md`, the project context, and the candidate-experience roadmap; it does not replace them.
 
 ## CURRENT GAME

@@ -39,7 +39,7 @@ The pack's original license text is also stored at
 
 ## Existing dialogue sound
 
-`assets/audio/dialogue/reporter_robot_blip.ogg` predates this stabilization
+`assets/audio/dialogue/reporter_robot_blip.wav` predates this stabilization
 pass and is used only for the fictional R-8 reporter's optional typewriter
 dialogue blip. It is not one of the selected Kenney UI effects. Its original
 project provenance should be confirmed before a public commercial release; it

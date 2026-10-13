@@ -211,4 +211,66 @@ void main() {
     expect(controller.inspectedCityEventIds, isNot(contains(critical.id)));
     expect(find.text(critical.title.toUpperCase()), findsOneWidget);
   });
+
+  testWidgets('citizen action hub files one persistent future response', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final controller = GameController(activeRun: true);
+    addTearDown(controller.dispose);
+    controller.castVote(
+      candidate: controller.scenario.candidates.first,
+      topIssue: controller.scenario.city.problems.first.id,
+      confidence: .7,
+    );
+    controller.advanceSimulationDays(
+      30,
+      interruptionPreference: CriticalEventInterruption.neverInterrupt,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: buildResiboTheme(),
+        home: TermSimulationScreen(controller: controller),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('open_citizen_actions')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+
+    expect(find.text('CITIZEN ACTIONS'), findsOneWidget);
+    expect(
+      find.byKey(const Key('citizen_action_requestPublicRecords')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('citizen_action_organizePetition')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('citizen_action_challengeMisleadingClaim')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Review a reliable fact-check'), findsOneWidget);
+
+    await tester.tap(find.text('TAKE ACTION').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('CONFIRM CITIZEN ACTION?'), findsOneWidget);
+    await tester.tap(find.text('FILE ACTION'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+
+    expect(controller.citizenActions, hasLength(1));
+    final action = controller.citizenActions.single;
+    expect(action.event.day, greaterThan(controller.simulationDay));
+    expect(find.text('PENDING RESPONSE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

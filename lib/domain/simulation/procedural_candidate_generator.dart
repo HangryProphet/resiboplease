@@ -17,6 +17,65 @@ import 'seed_derivation.dart';
 import 'seeded_random.dart';
 import 'citybook_comment_reaction_engine.dart';
 
+/// Stable identity supplied by the political timeline when a previously seen
+/// politician is eligible to contest a later election.
+class ReturningCandidateIdentity {
+  const ReturningCandidateIdentity({
+    required this.candidate,
+    required this.truth,
+    required this.portraitId,
+    this.priorOffice,
+    this.priorCampaign,
+  });
+
+  final Candidate candidate;
+  final CandidateTruthProfile truth;
+  final String portraitId;
+  final ReturningCandidateOfficeRecord? priorOffice;
+  final ReturningCandidateCampaignRecord? priorCampaign;
+}
+
+/// Public memory for a returning candidate who appeared in an earlier ballot.
+/// It records participation only and never invents a moral or performance score.
+class ReturningCandidateCampaignRecord {
+  const ReturningCandidateCampaignRecord({
+    required this.electionsContested,
+    required this.lastElectionTerm,
+    required this.yearsAway,
+  });
+
+  final int electionsContested;
+  final int lastElectionTerm;
+  final int yearsAway;
+}
+
+/// A compact, immutable account of what a returning politician did in office.
+///
+/// This is deliberately composed from an archived administration rather than
+/// regenerated scores. The next campaign may frame the record, but cannot
+/// rewrite it.
+class ReturningCandidateOfficeRecord {
+  const ReturningCandidateOfficeRecord({
+    required this.termsServed,
+    required this.latestTermNumber,
+    required this.finalCondition,
+    required this.summary,
+    required this.completedProjectTitles,
+    required this.unresolvedProjectTitles,
+    required this.majorEventTitles,
+    this.careerEvolutionReasons = const [],
+  });
+
+  final int termsServed;
+  final int latestTermNumber;
+  final String finalCondition;
+  final String summary;
+  final List<String> completedProjectTitles;
+  final List<String> unresolvedProjectTitles;
+  final List<String> majorEventTitles;
+  final List<String> careerEvolutionReasons;
+}
+
 class ProceduralCandidateGenerator {
   const ProceduralCandidateGenerator();
 
@@ -42,9 +101,26 @@ class ProceduralCandidateGenerator {
     required CandidateField candidateField,
     CampaignNoise campaignNoise = CampaignNoise.typical,
     Iterable<String> previouslyUsedNames = const [],
+    List<ReturningCandidateIdentity> returningCandidates = const [],
   }) {
-    final portraits = _selectPortraits(worldSeed);
-    final registry = CandidateNameRegistry(previouslyUsedNames);
+    if (returningCandidates.length > candidateCount ||
+        returningCandidates.map((item) => item.candidate.id).toSet().length !=
+            returningCandidates.length ||
+        returningCandidates.map((item) => item.portraitId).toSet().length !=
+            returningCandidates.length) {
+      throw ArgumentError(
+        'Returning candidates must contain at most five unique identities.',
+      );
+    }
+    final returningNames = returningCandidates
+        .map((item) => item.candidate.name.toLowerCase())
+        .toSet();
+    final portraits = _selectPortraits(worldSeed, returningCandidates);
+    final registry = CandidateNameRegistry(
+      previouslyUsedNames.where(
+        (name) => !returningNames.contains(name.toLowerCase()),
+      ),
+    );
     final usedParties = <String>{};
     final usedSlogans = <String>{};
     final usedBackgrounds = <String>{};
@@ -65,6 +141,9 @@ class ProceduralCandidateGenerator {
           usedSlogans: usedSlogans,
           usedBackgrounds: usedBackgrounds,
           usedOrigins: usedOrigins,
+          returning: index < returningCandidates.length
+              ? returningCandidates[index]
+              : null,
         ),
       );
     }
@@ -124,16 +203,35 @@ class ProceduralCandidateGenerator {
     return election;
   }
 
-  List<CandidatePortrait> _selectPortraits(int worldSeed) {
+  List<CandidatePortrait> _selectPortraits(
+    int worldSeed,
+    List<ReturningCandidateIdentity> returningCandidates,
+  ) {
     final random = _random(worldSeed, 'portraitSelection');
-    final portraits = [...candidatePortraitPool];
+    final reserved = <CandidatePortrait>[];
+    for (final returning in returningCandidates) {
+      final portrait = candidatePortraitById(returning.portraitId);
+      if (portrait == null) {
+        throw ArgumentError(
+          'Unknown returning portrait ${returning.portraitId}.',
+        );
+      }
+      reserved.add(portrait);
+    }
+    final reservedIds = reserved.map((item) => item.id).toSet();
+    final portraits = candidatePortraitPool
+        .where((portrait) => !reservedIds.contains(portrait.id))
+        .toList();
     for (var index = portraits.length - 1; index > 0; index--) {
       final swap = random.nextInt(index + 1);
       final value = portraits[index];
       portraits[index] = portraits[swap];
       portraits[swap] = value;
     }
-    return List.unmodifiable(portraits.take(candidateCount));
+    return List.unmodifiable([
+      ...reserved,
+      ...portraits.take(candidateCount - reserved.length),
+    ]);
   }
 
   _CandidateBuild _generateCandidate({
@@ -148,6 +246,7 @@ class ProceduralCandidateGenerator {
     required Set<String> usedSlogans,
     required Set<String> usedBackgrounds,
     required Map<CandidateCareerOrigin, int> usedOrigins,
+    ReturningCandidateIdentity? returning,
   }) {
     final identityRandom = _random(worldSeed, 'candidate:$index:identity');
     final truthRandom = _random(worldSeed, 'candidate:$index:truth');
@@ -156,26 +255,41 @@ class ProceduralCandidateGenerator {
     final firstNames = portrait.gender == CandidateGender.female
         ? _femaleFirstNames
         : _maleFirstNames;
-    final name = registry.generate(
-      firstNames: firstNames,
-      surnames: _surnames,
-      seed: _seed(worldSeed, 'candidate:$index:name'),
-    );
+    final name =
+        returning?.candidate.name ??
+        registry.generate(
+          firstNames: firstNames,
+          surnames: _surnames,
+          seed: _seed(worldSeed, 'candidate:$index:name'),
+        );
+    if (returning != null && !registry.reserve(name)) {
+      throw StateError('Returning candidate name is already reserved: $name.');
+    }
     final candidateId =
+        returning?.candidate.id ??
         'candidate_${_seed(worldSeed, 'candidate:$index:id').toRadixString(16).padLeft(8, '0')}';
-    final background = _selectBackground(
-      random: identityRandom,
-      city: city,
-      usedBackgrounds: usedBackgrounds,
-      usedOrigins: usedOrigins,
-      index: index,
-    );
-    final party = _takeUnique(
-      _partyNames,
-      usedParties,
-      identityRandom,
-      fallbackPrefix: 'Civic Coalition',
-    );
+    final background = returning == null
+        ? _selectBackground(
+            random: identityRandom,
+            city: city,
+            usedBackgrounds: usedBackgrounds,
+            usedOrigins: usedOrigins,
+            index: index,
+          )
+        : _backgroundForReturning(
+            returning,
+            usedBackgrounds: usedBackgrounds,
+            usedOrigins: usedOrigins,
+          );
+    final party =
+        returning?.candidate.party ??
+        _takeUnique(
+          _partyNames,
+          usedParties,
+          identityRandom,
+          fallbackPrefix: 'Civic Coalition',
+        );
+    usedParties.add(party);
     final leadProblem = _leadProblemFor(background, city, identityRandom);
     final slogan = _takeUnique(
       _slogansFor(leadProblem),
@@ -187,16 +301,18 @@ class ProceduralCandidateGenerator {
         background.rhetoricalStyles[identityRandom.nextInt(
           background.rhetoricalStyles.length,
         )];
-    final band = _qualityBand(truthRandom);
+    final band = returning?.truth.qualityBand ?? _qualityBand(truthRandom);
     final age = _ageFor(portrait.ageGroup, identityRandom);
-    final truth = _generateTruth(
-      id: candidateId,
-      band: band,
-      background: background,
-      city: city,
-      candidateField: candidateField,
-      random: truthRandom,
-    );
+    final truth =
+        returning?.truth ??
+        _generateTruth(
+          id: candidateId,
+          band: band,
+          background: background,
+          city: city,
+          candidateField: candidateField,
+          random: truthRandom,
+        );
     final evidenceIds = _EvidenceIds(candidateId);
     final history = _generateHistory(
       candidateId: candidateId,
@@ -208,6 +324,8 @@ class ProceduralCandidateGenerator {
       evidenceIds: evidenceIds,
       random: historyRandom,
     );
+    final priorOffice = returning?.priorOffice;
+    final priorCampaign = returning?.priorCampaign;
     final promises = _generatePromises(
       candidateId: candidateId,
       city: city,
@@ -216,6 +334,7 @@ class ProceduralCandidateGenerator {
       history: history,
       evidenceIds: evidenceIds,
       random: _random(worldSeed, 'candidate:$index:platform'),
+      priorOffice: priorOffice,
     );
     final evidence = _generateEvidence(
       candidateId: candidateId,
@@ -226,14 +345,27 @@ class ProceduralCandidateGenerator {
       history: history,
       promises: promises,
       evidenceIds: evidenceIds,
+      priorOffice: returning?.priorOffice,
+      priorCampaign: returning?.priorCampaign,
+    );
+    final quickBiography = _quickBiography(
+      name,
+      age,
+      background,
+      truth,
+      history,
     );
     final candidate = Candidate(
       id: candidateId,
       name: name,
       party: party,
-      archetype: background.archetype,
+      archetype: returning?.candidate.archetype ?? background.archetype,
       slogan: slogan,
-      biography: _quickBiography(name, age, background, truth, history),
+      biography: priorOffice != null
+          ? '$quickBiography $name previously governed ${city.name} through Administration ${priorOffice.latestTermNumber}; the archived term ended ${priorOffice.finalCondition.toLowerCase()} and remains available as a public receipt.'
+          : priorCampaign != null
+          ? '$quickBiography $name last appeared on the Election ${priorCampaign.lastElectionTerm} ballot and returns after ${priorCampaign.yearsAway} election cycle(s) away.'
+          : quickBiography,
       visibleStrengths: _visibleStrengths(background, truth),
       visibleConcerns: _visibleConcerns(truth, history),
       platform: List.unmodifiable(
@@ -254,7 +386,9 @@ class ProceduralCandidateGenerator {
         budgetDiscipline: truth.budgetDiscipline,
         corruptionRisk: truth.corruptionRisk,
       ),
-      colorValue: _candidateColors[index % _candidateColors.length],
+      colorValue:
+          returning?.candidate.colorValue ??
+          _candidateColors[index % _candidateColors.length],
     );
     final biography = _generateBiography(
       candidate: candidate,
@@ -263,6 +397,8 @@ class ProceduralCandidateGenerator {
       truth: truth,
       history: history,
       evidenceIds: evidenceIds,
+      priorOffice: priorOffice,
+      priorCampaign: priorCampaign,
     );
     final comparison = _generateComparison(
       candidate: candidate,
@@ -284,6 +420,8 @@ class ProceduralCandidateGenerator {
       evidenceIds: evidenceIds,
       random: contentRandom,
       campaignNoise: campaignNoise,
+      priorOffice: priorOffice,
+      priorCampaign: priorCampaign,
     );
     final cityBook = _generateCityBook(
       candidate: candidate,
@@ -298,6 +436,8 @@ class ProceduralCandidateGenerator {
       evidenceIds: evidenceIds,
       random: _random(worldSeed, 'candidate:$index:citybook'),
       campaignNoise: campaignNoise,
+      priorOffice: priorOffice,
+      priorCampaign: priorCampaign,
     );
     final news = _generateCandidateNews(
       candidate: candidate,
@@ -305,6 +445,7 @@ class ProceduralCandidateGenerator {
       history: history,
       truth: truth,
       evidenceIds: evidenceIds,
+      priorOffice: priorOffice,
     );
     return _CandidateBuild(
       portrait: portrait,
@@ -325,7 +466,38 @@ class ProceduralCandidateGenerator {
       commentThreads: cityBook.$3,
       newsEvent: news.$1,
       newsCoverages: news.$2,
+      priorOffice: priorOffice,
     );
+  }
+
+  CandidateBackgroundTemplate _backgroundForReturning(
+    ReturningCandidateIdentity returning, {
+    required Set<String> usedBackgrounds,
+    required Map<CandidateCareerOrigin, int> usedOrigins,
+  }) {
+    final exact = proceduralCandidateBackgrounds
+        .where(
+          (item) =>
+              item.archetype == returning.candidate.archetype &&
+              !usedBackgrounds.contains(item.id),
+        )
+        .firstOrNull;
+    final sameOrigin = proceduralCandidateBackgrounds
+        .where(
+          (item) =>
+              item.careerOrigin == returning.truth.careerOrigin &&
+              !usedBackgrounds.contains(item.id),
+        )
+        .firstOrNull;
+    final selected =
+        exact ?? sameOrigin ?? proceduralCandidateBackgrounds.first;
+    usedBackgrounds.add(selected.id);
+    usedOrigins.update(
+      selected.careerOrigin,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+    return selected;
   }
 
   CandidateBackgroundTemplate _selectBackground({
@@ -443,6 +615,12 @@ class ProceduralCandidateGenerator {
       experience: experience,
       populism: vary(background.id == 'media_personality' ? 83 : 52, 22),
       ambition: vary(band == CandidateQualityBand.dangerous ? 88 : 62, 20),
+      reformCredibility: ((integrityBase * 2 + competenceBase) ~/ 3).clamp(
+        8,
+        94,
+      ),
+      politicalFatigue: (6 + experience ~/ 5).clamp(5, 38),
+      institutionalStanding: ((competenceBase + experience) ~/ 2).clamp(8, 94),
       policyScores: Map.unmodifiable(policyScores),
       motivations: List.unmodifiable([
         if (band != CandidateQualityBand.dangerous) 'public_service',
@@ -641,10 +819,10 @@ class ProceduralCandidateGenerator {
         id: '${candidateId}_history_controversy',
         year: 2024,
         type: CandidateHistoryEventType.controversy,
-        title: 'Public questions about ${truth.controversies.first.kind}',
-        summary: truth.controversies.first.summary,
+        title: 'Public questions about ${truth.controversies.last.kind}',
+        summary: truth.controversies.last.summary,
         details:
-            '${truth.controversies.first.summary} The available truth status is ${_controversyStatusText(truth.controversies.first.status)}.',
+            '${truth.controversies.last.summary} The available truth status is ${_controversyStatusText(truth.controversies.last.status)}.',
         publicVisibility: CandidatePublicVisibility.prominent,
         evidenceIds: [evidenceIds.controversy, evidenceIds.factCheck],
         relatedIssueFamilies: [leadProblem.family],
@@ -714,6 +892,7 @@ class ProceduralCandidateGenerator {
     required List<CandidateLifeEvent> history,
     required _EvidenceIds evidenceIds,
     required SeededRandom random,
+    ReturningCandidateOfficeRecord? priorOffice,
   }) {
     final families = <CityIssueFamily>[];
     final ranked = [...city.problems]
@@ -742,6 +921,7 @@ class ProceduralCandidateGenerator {
           truth,
           history,
           evidenceIds,
+          priorOffice,
         ),
     ]);
   }
@@ -753,17 +933,21 @@ class ProceduralCandidateGenerator {
     CandidateTruthProfile truth,
     List<CandidateLifeEvent> history,
     _EvidenceIds evidenceIds,
+    ReturningCandidateOfficeRecord? priorOffice,
   ) {
     final template = proceduralPromiseLibrary.firstWhere(
       (item) => item.family == family,
     );
     final indicator = indicatorForIssueFamily(family);
     final fit = truth.policyScores[indicator.name] ?? 50;
-    final wording = fit >= 70
+    final baseWording = fit >= 70
         ? template.wording
         : fit < 40
         ? '${template.wording} The campaign has not yet released a detailed sequence.'
         : template.wording;
+    final wording = index == 0 && priorOffice != null
+        ? '$baseWording The Administration ${priorOffice.latestTermNumber} receipt is part of the record voters should use to judge this renewed commitment.'
+        : baseWording;
     return CandidatePromise(
       id: '${candidateId}_promise_$index',
       candidateId: candidateId,
@@ -773,7 +957,12 @@ class ProceduralCandidateGenerator {
       complexity: template.complexity,
       relatedIssueFamilies: [family],
       evidenceIds: [evidenceIds.platform, if (index == 0) evidenceIds.budget],
-      relatedHistoryEventIds: [index.isEven ? history[2].id : history[3].id],
+      relatedHistoryEventIds: [
+        if (index == 0 && priorOffice != null)
+          '${candidateId}_administration_${priorOffice.latestTermNumber}'
+        else
+          index.isEven ? history[2].id : history[3].id,
+      ],
     );
   }
 
@@ -786,13 +975,23 @@ class ProceduralCandidateGenerator {
     required List<CandidateLifeEvent> history,
     required List<CandidatePromise> promises,
     required _EvidenceIds evidenceIds,
+    ReturningCandidateOfficeRecord? priorOffice,
+    ReturningCandidateCampaignRecord? priorCampaign,
   }) {
-    final controversy = truth.controversies.first;
+    final controversy = truth.controversies.last;
     final accomplishment = history[2];
     final failure = history[3];
     final truthStatus = _evidenceStatus(controversy.status);
-    final recordSource = _recordSource(background.careerOrigin, city.name);
-    final recordTitle = _recordTitle(background.careerOrigin);
+    final recordSource = priorOffice != null
+        ? '${city.name} Administration Archive'
+        : priorCampaign != null
+        ? '${city.name} Election Archive'
+        : _recordSource(background.careerOrigin, city.name);
+    final recordTitle = priorOffice != null
+        ? 'Administration ${priorOffice.latestTermNumber} performance record'
+        : priorCampaign != null
+        ? 'Election ${priorCampaign.lastElectionTerm} ballot record'
+        : _recordTitle(background.careerOrigin);
     return List.unmodifiable([
       EvidenceItem(
         id: evidenceIds.profile,
@@ -822,10 +1021,12 @@ class ProceduralCandidateGenerator {
         type: EvidenceType.campaignAd,
         title: 'A record ready for city hall',
         source: '$name campaign',
-        summary:
-            'The campaign highlights ${accomplishment.title.toLowerCase()}.',
-        details:
-            '${accomplishment.summary} The advertisement does not emphasize ${failure.title.toLowerCase()}.',
+        summary: priorOffice == null
+            ? 'The campaign highlights ${accomplishment.title.toLowerCase()}.'
+            : 'The campaign highlights ${priorOffice.completedProjectTitles.isEmpty ? 'its governing experience' : priorOffice.completedProjectTitles.first.toLowerCase()} from Administration ${priorOffice.latestTermNumber}.',
+        details: priorOffice == null
+            ? '${accomplishment.summary} The advertisement does not emphasize ${failure.title.toLowerCase()}.'
+            : '${priorOffice.summary} The advertisement emphasizes completed work but does not lead with ${priorOffice.unresolvedProjectTitles.isEmpty ? 'the administration\'s unresolved trade-offs' : priorOffice.unresolvedProjectTitles.first.toLowerCase()}.',
         truthStatus: TruthStatus.missingContext,
         reliability: 35,
       ),
@@ -834,9 +1035,16 @@ class ProceduralCandidateGenerator {
         type: EvidenceType.publicRecord,
         title: recordTitle,
         source: recordSource,
-        summary: '${accomplishment.summary} ${failure.summary}',
-        details:
-            'The relevant archive confirms both the documented result and the documented limit. This is a career record, not proof of mayoral ability or personal integrity.',
+        summary: priorOffice != null
+            ? priorOffice.summary
+            : priorCampaign != null
+            ? 'The archive confirms ${priorCampaign.electionsContested} prior ballot appearance(s), most recently Election ${priorCampaign.lastElectionTerm}.'
+            : '${accomplishment.summary} ${failure.summary}',
+        details: priorOffice != null
+            ? 'The sealed Administration ${priorOffice.latestTermNumber} receipt records ${priorOffice.completedProjectTitles.length} completed project(s), ${priorOffice.unresolvedProjectTitles.length} unresolved project(s), and ${priorOffice.majorEventTitles.length} major event(s). ${priorOffice.careerEvolutionReasons.join(' ')} The record is evidence of actual governing consequences, not proof that a new promise will succeed.'
+            : priorCampaign != null
+            ? 'The public ballot establishes that the candidate previously ran and later spent ${priorCampaign.yearsAway} cycle(s) away. It does not turn an earlier loss into evidence of competence, weakness, honesty, or wrongdoing.'
+            : 'The relevant archive confirms both the documented result and the documented limit. This is a career record, not proof of mayoral ability or personal integrity.',
         truthStatus: TruthStatus.verifiedTrue,
         reliability: 92,
       ),
@@ -912,6 +1120,8 @@ class ProceduralCandidateGenerator {
     required CandidateTruthProfile truth,
     required List<CandidateLifeEvent> history,
     required _EvidenceIds evidenceIds,
+    ReturningCandidateOfficeRecord? priorOffice,
+    ReturningCandidateCampaignRecord? priorCampaign,
   }) {
     final birthYear = 2026 - age;
     final sections = <CandidateBiographySection>[
@@ -973,7 +1183,7 @@ class ProceduralCandidateGenerator {
         statements: [
           CandidateBiographyStatement(
             id: '${candidate.id}_bio_controversy_0',
-            text: truth.controversies.first.summary,
+            text: truth.controversies.last.summary,
             evidenceIds: [evidenceIds.controversy, evidenceIds.factCheck],
           ),
         ],
@@ -982,19 +1192,97 @@ class ProceduralCandidateGenerator {
     if (truth.informationFootprint == CandidateInformationFootprint.minimal) {
       sections.removeAt(3);
     }
+    if (priorOffice != null) {
+      sections.insert(
+        2,
+        CandidateBiographySection(
+          id: '${candidate.id}_bio_administration_${priorOffice.latestTermNumber}',
+          title: 'Administration ${priorOffice.latestTermNumber}',
+          statements: [
+            CandidateBiographyStatement(
+              id: '${candidate.id}_bio_administration_${priorOffice.latestTermNumber}_0',
+              text: priorOffice.summary,
+              evidenceIds: [evidenceIds.publicRecord],
+            ),
+            CandidateBiographyStatement(
+              id: '${candidate.id}_bio_administration_${priorOffice.latestTermNumber}_1',
+              text:
+                  'The archived receipt records ${priorOffice.completedProjectTitles.length} completed and ${priorOffice.unresolvedProjectTitles.length} unresolved project(s).',
+              evidenceIds: [evidenceIds.publicRecord, evidenceIds.budget],
+            ),
+          ],
+        ),
+      );
+    } else if (priorCampaign != null) {
+      sections.insert(
+        2,
+        CandidateBiographySection(
+          id: '${candidate.id}_bio_campaign_return',
+          title: 'Previous Campaigns',
+          statements: [
+            CandidateBiographyStatement(
+              id: '${candidate.id}_bio_campaign_return_0',
+              text:
+                  '${candidate.name} previously contested ${priorCampaign.electionsContested} election(s), most recently Election ${priorCampaign.lastElectionTerm}, and then spent ${priorCampaign.yearsAway} cycle(s) outside the mayoral ballot.',
+              evidenceIds: [evidenceIds.publicRecord],
+            ),
+          ],
+        ),
+      );
+    }
+    final timeline = List<CandidateLifeEvent>.of(history);
+    if (priorOffice != null) {
+      timeline.add(
+        CandidateLifeEvent(
+          id: '${candidate.id}_administration_${priorOffice.latestTermNumber}',
+          year: 2025 + priorOffice.latestTermNumber,
+          type: CandidateHistoryEventType.publicService,
+          title:
+              'Served as mayor in Administration ${priorOffice.latestTermNumber}',
+          summary: priorOffice.summary,
+          details:
+              'The final city condition was ${priorOffice.finalCondition.toLowerCase()}. The public receipt preserves completed work, unresolved projects, and major events from the term.',
+          publicVisibility: CandidatePublicVisibility.citywide,
+          evidenceIds: [evidenceIds.publicRecord],
+        ),
+      );
+    } else if (priorCampaign != null) {
+      timeline.add(
+        CandidateLifeEvent(
+          id: '${candidate.id}_election_${priorCampaign.lastElectionTerm}',
+          year: 2025 + priorCampaign.lastElectionTerm,
+          type: CandidateHistoryEventType.publicService,
+          title: 'Contested Election ${priorCampaign.lastElectionTerm}',
+          summary:
+              'The archived ballot records a previous campaign without treating defeat as proof of competence or failure.',
+          details:
+              'This return follows ${priorCampaign.yearsAway} election cycle(s) away. The current campaign remains a new decision with a newly generated public record.',
+          publicVisibility: CandidatePublicVisibility.citywide,
+          evidenceIds: [evidenceIds.publicRecord],
+        ),
+      );
+    }
     return CandidateBiography(
       candidateId: candidate.id,
       birthYear: birthYear,
       occupation: background.occupation,
       education: List.unmodifiable(background.education),
-      currentPosition: background.currentPosition,
+      currentPosition: priorOffice == null
+          ? background.currentPosition
+          : 'Former Mayor of the city',
       publicServiceStartYear: history[1].year,
       hometown: _hometowns[_stableIndex(candidate.id, _hometowns.length)],
-      previousPositions: [background.currentPosition],
+      previousPositions: [
+        background.currentPosition,
+        if (priorOffice != null)
+          'Mayor, Administration ${priorOffice.latestTermNumber}',
+        if (priorOffice == null && priorCampaign != null)
+          'Mayoral candidate, Election ${priorCampaign.lastElectionTerm}',
+      ],
       summary: candidate.biography,
       informationFootprint: truth.informationFootprint,
       sections: List.unmodifiable(sections),
-      timeline: List.unmodifiable(history),
+      timeline: List.unmodifiable(timeline),
     );
   }
 
@@ -1035,6 +1323,8 @@ class ProceduralCandidateGenerator {
     required _EvidenceIds evidenceIds,
     required SeededRandom random,
     required CampaignNoise campaignNoise,
+    ReturningCandidateOfficeRecord? priorOffice,
+    ReturningCandidateCampaignRecord? priorCampaign,
   }) {
     final questions = [
       CandidateQuestion(
@@ -1069,7 +1359,11 @@ class ProceduralCandidateGenerator {
       candidateId: candidate.id,
       identityKey: portrait.id,
       portraitAssetKey: portrait.id,
-      publicIdentity: background.publicIdentity,
+      publicIdentity: priorOffice != null
+          ? 'Former mayor with ${priorOffice.termsServed} archived term(s); ${background.publicIdentity.toLowerCase()}'
+          : priorCampaign != null
+          ? 'Returning candidate last seen in Election ${priorCampaign.lastElectionTerm}; ${background.publicIdentity.toLowerCase()}'
+          : background.publicIdentity,
       position: 'Mayor',
       rhetoricalStyle: rhetoricalStyle,
       qualityBand: truth.qualityBand,
@@ -1205,10 +1499,10 @@ class ProceduralCandidateGenerator {
         id: '${candidate.id}_pulse_controversy',
         candidateId: candidate.id,
         type: CandidateContentType.scandal,
-        headline: 'Questions surface about ${truth.controversies.first.kind}',
-        summary: truth.controversies.first.summary,
+        headline: 'Questions surface about ${truth.controversies.last.kind}',
+        summary: truth.controversies.last.summary,
         inspectBody:
-            'The relationship or event is documented. Its current status is ${_controversyStatusText(truth.controversies.first.status)}, which may leave guilt, context, or scale unresolved.',
+            'The relationship or event is documented. Its current status is ${_controversyStatusText(truth.controversies.last.status)}, which may leave guilt, context, or scale unresolved.',
         deepDivePrompt:
             'Open the controversy file and related public record before deciding what the relationship proves.',
         source: 'The Public Eye',
@@ -1289,12 +1583,18 @@ class ProceduralCandidateGenerator {
     required _EvidenceIds evidenceIds,
     required SeededRandom random,
     required CampaignNoise campaignNoise,
+    ReturningCandidateOfficeRecord? priorOffice,
+    ReturningCandidateCampaignRecord? priorCampaign,
   }) {
     final handle = '@${candidate.name.toLowerCase().replaceAll(' ', '.')}';
     final profile = CityBookProfile(
       candidateId: candidate.id,
       handle: handle,
-      shortBio: background.publicIdentity,
+      shortBio: priorOffice != null
+          ? 'Former mayor · Administration ${priorOffice.latestTermNumber} record on file'
+          : priorCampaign != null
+          ? 'Returning candidate · Election ${priorCampaign.lastElectionTerm} ballot record'
+          : background.publicIdentity,
       affiliation: candidate.party,
       publicAttention:
           ((truth.communication * 1180 + random.nextInt(18000)) *
@@ -1352,14 +1652,16 @@ class ProceduralCandidateGenerator {
           (
             type: CityBookPostType.criticismResponse,
             text:
-                'Questions about ${truth.controversies.first.kind} deserve records, not rumors. We will publish safeguards and answer with documents.',
+                'Questions about ${truth.controversies.last.kind} deserve records, not rumors. We will publish safeguards and answer with documents.',
             evidence: [evidenceIds.controversy],
             historical: false,
             relation: CityBookSourceTruthRelation.disputedClaim,
           ),
           (
             type: CityBookPostType.historical,
-            text: comparison.thenStatement,
+            text: priorOffice == null
+                ? comparison.thenStatement
+                : 'Administration ${priorOffice.latestTermNumber} ended with the city rated ${priorOffice.finalCondition.toLowerCase()}. ${priorOffice.summary} Read the full public receipt, including what remained unfinished.',
             evidence: [evidenceIds.publicRecord],
             historical: true,
             relation: CityBookSourceTruthRelation.documentedClaim,
@@ -1522,19 +1824,33 @@ class ProceduralCandidateGenerator {
     required List<CandidateLifeEvent> history,
     required CandidateTruthProfile truth,
     required _EvidenceIds evidenceIds,
+    ReturningCandidateOfficeRecord? priorOffice,
   }) {
     final eventId = '${candidate.id}_news_record';
-    final controversy = truth.controversies.first;
+    final controversy = truth.controversies.last;
     final event = UnderlyingNewsEvent(
       id: eventId,
       fictionalDate: 'October 12, 2026',
-      title: '${candidate.name}\'s earlier project returns to campaign debate',
+      title: priorOffice == null
+          ? '${candidate.name}\'s earlier project returns to campaign debate'
+          : '${candidate.name}\'s Administration ${priorOffice.latestTermNumber} record returns to campaign debate',
       eventType: 'candidate_record',
       relatedIssueFamily: leadProblem.family,
       relatedCandidateIds: [candidate.id],
-      factualSummary:
-          '${history[2].summary} ${history[3].summary} Questions about ${controversy.kind} remain ${_controversyStatusText(controversy.status)}.',
-      knownFacts: [history[2].summary, history[3].summary],
+      factualSummary: priorOffice == null
+          ? '${history[2].summary} ${history[3].summary} Questions about ${controversy.kind} remain ${_controversyStatusText(controversy.status)}.'
+          : '${priorOffice.summary} The archived receipt lists ${priorOffice.completedProjectTitles.length} completed and ${priorOffice.unresolvedProjectTitles.length} unresolved project(s). Questions about ${controversy.kind} remain ${_controversyStatusText(controversy.status)}.',
+      knownFacts: priorOffice == null
+          ? [history[2].summary, history[3].summary]
+          : [
+              priorOffice.summary,
+              ...priorOffice.completedProjectTitles.map(
+                (title) => 'Completed project: $title',
+              ),
+              ...priorOffice.unresolvedProjectTitles.map(
+                (title) => 'Unresolved project: $title',
+              ),
+            ],
       disputedFacts: [controversy.summary],
       evidenceIds: [
         evidenceIds.publicRecord,
@@ -1553,15 +1869,19 @@ class ProceduralCandidateGenerator {
         outletId: 'outlet_daily',
         category: 'Election Record',
         publicationTime: 'October 12, 2026 · 8:15 AM',
-        headline:
-            '${candidate.name} record shows result and delayed follow-through',
+        headline: priorOffice == null
+            ? '${candidate.name} record shows result and delayed follow-through'
+            : '${candidate.name} asks voters to weigh archived City Hall record',
         subheadline:
             'Public documents confirm an achievement alongside a documented limit.',
         articleSummary: event.factualSummary,
         framingAngle: 'Public record and chronology',
         articleBody: [
-          history[2].summary,
-          history[3].summary,
+          if (priorOffice != null) priorOffice.summary else history[2].summary,
+          if (priorOffice != null)
+            'The receipt records ${priorOffice.completedProjectTitles.length} completed and ${priorOffice.unresolvedProjectTitles.length} unresolved project(s).'
+          else
+            history[3].summary,
           'The available record supports both facts. The controversy remains ${_controversyStatusText(controversy.status)}.',
         ],
       ),
@@ -1571,8 +1891,9 @@ class ProceduralCandidateGenerator {
         outletId: 'outlet_wire',
         category: 'Campaign Watch',
         publicationTime: 'October 12, 2026 · 9:40 AM',
-        headline:
-            'QUESTIONS FOLLOW ${candidate.name.toUpperCase()} PROJECT CLAIM',
+        headline: priorOffice == null
+            ? 'QUESTIONS FOLLOW ${candidate.name.toUpperCase()} PROJECT CLAIM'
+            : 'QUESTIONS FOLLOW ${candidate.name.toUpperCase()} CITY HALL RECORD',
         subheadline:
             'A campaign achievement faces renewed scrutiny over cost, timing, and relationships.',
         articleSummary:
@@ -1580,7 +1901,7 @@ class ProceduralCandidateGenerator {
         framingAngle: 'Conflict, omissions, and political pressure',
         articleBody: [
           controversy.summary,
-          history[3].summary,
+          if (priorOffice != null) priorOffice.summary else history[3].summary,
           'The sharper framing does not change the underlying project record or controversy status.',
         ],
       ),
@@ -1590,16 +1911,20 @@ class ProceduralCandidateGenerator {
         outletId: 'outlet_lantern',
         category: 'Election Context',
         publicationTime: 'October 12, 2026 · 11:10 AM',
-        headline:
-            'What ${candidate.name}\'s mixed project record can—and cannot—prove',
+        headline: priorOffice == null
+            ? 'What ${candidate.name}\'s mixed project record can—and cannot—prove'
+            : 'What ${candidate.name}\'s governing record can—and cannot—prove',
         subheadline:
             'One earlier project offers evidence of capacity, limits, and unanswered safeguards.',
         articleSummary:
             'The same record contains a genuine accomplishment, a documented failure, and a controversy with a specific truth status.',
         framingAngle: 'Context, trade-offs, and limits of inference',
         articleBody: [
-          history[2].summary,
-          history[3].summary,
+          if (priorOffice != null) priorOffice.summary else history[2].summary,
+          if (priorOffice != null)
+            'The archived term is direct evidence of outcomes under one set of city conditions, not a guarantee of the next term.'
+          else
+            history[3].summary,
           'A past project can inform judgment without perfectly predicting a future administration.',
         ],
       ),
@@ -1679,7 +2004,12 @@ class ProceduralCandidateGenerator {
           topicId: 'debate_topic_$topicIndex',
           speakerId: build.candidate.id,
           type: DebateMessageType.claim,
-          text: _debateAnswer(build.candidate.name, promise, style),
+          text: _debateAnswer(
+            build.candidate.name,
+            promise,
+            style,
+            build.priorOffice,
+          ),
           sequence: messages.length,
           publicReaction: PublicReaction
               .values[random.nextInt(PublicReaction.values.length)],
@@ -1759,23 +2089,28 @@ class ProceduralCandidateGenerator {
     String name,
     CandidatePromise promise,
     CandidateRhetoricalStyle style,
-  ) => switch (style) {
-    CandidateRhetoricalStyle.technical ||
-    CandidateRhetoricalStyle.statisticHeavy =>
-      '${promise.approach} I will publish the first benchmark and responsible office, not just a launch date.',
-    CandidateRhetoricalStyle.charismatic ||
-    CandidateRhetoricalStyle.emotional ||
-    CandidateRhetoricalStyle.storyDriven =>
-      '${promise.candidateWording} Residents have waited long enough to see the first visible step.',
-    CandidateRhetoricalStyle.aggressive ||
-    CandidateRhetoricalStyle.attackFocused ||
-    CandidateRhetoricalStyle.sarcastic =>
-      '${promise.candidateWording} Unlike the old promises, this one will have a public deadline.',
-    CandidateRhetoricalStyle.evasive =>
-      '$name will bring every responsible office to the table. The final sequence will follow the transition audit.',
-    CandidateRhetoricalStyle.calm || CandidateRhetoricalStyle.conciliatory =>
-      '${promise.approach} The first step must work with the council and affected communities.',
-  };
+    ReturningCandidateOfficeRecord? priorOffice,
+  ) {
+    final answer = switch (style) {
+      CandidateRhetoricalStyle.technical ||
+      CandidateRhetoricalStyle.statisticHeavy =>
+        '${promise.approach} I will publish the first benchmark and responsible office, not just a launch date.',
+      CandidateRhetoricalStyle.charismatic ||
+      CandidateRhetoricalStyle.emotional ||
+      CandidateRhetoricalStyle.storyDriven =>
+        '${promise.candidateWording} Residents have waited long enough to see the first visible step.',
+      CandidateRhetoricalStyle.aggressive ||
+      CandidateRhetoricalStyle.attackFocused ||
+      CandidateRhetoricalStyle.sarcastic =>
+        '${promise.candidateWording} Unlike the old promises, this one will have a public deadline.',
+      CandidateRhetoricalStyle.evasive =>
+        '$name will bring every responsible office to the table. The final sequence will follow the transition audit.',
+      CandidateRhetoricalStyle.calm || CandidateRhetoricalStyle.conciliatory =>
+        '${promise.approach} The first step must work with the council and affected communities.',
+    };
+    if (priorOffice == null) return answer;
+    return '$answer Voters can compare this promise with the sealed Administration ${priorOffice.latestTermNumber} receipt, including ${priorOffice.unresolvedProjectTitles.length} project(s) that remained unresolved.';
+  }
 
   List<CandidateInformationRelation> _informationRelations(
     String candidateId,
@@ -1805,7 +2140,7 @@ class ProceduralCandidateGenerator {
     CandidateTruthProfile truth,
     List<CandidateLifeEvent> history,
   ) =>
-      '$name, $age, is a ${background.occupation.toLowerCase()} and ${background.currentPosition.toLowerCase()}. ${history[2].summary} ${history[3].summary} The available record also contains ${truth.controversies.first.kind} questions that require context.';
+      '$name, $age, is a ${background.occupation.toLowerCase()} and ${background.currentPosition.toLowerCase()}. ${history[2].summary} ${history[3].summary} The available record also contains ${truth.controversies.last.kind} questions that require context.';
 
   String _recordSectionTitle(CandidateCareerOrigin origin) => switch (origin) {
     CandidateCareerOrigin.careerPolitician ||
@@ -1881,7 +2216,7 @@ class ProceduralCandidateGenerator {
     return List.unmodifiable([
       history[3].title,
       'Limited record in ${_indicatorLabel(weakest.first.key)}',
-      'Questions about ${truth.controversies.first.kind}',
+      'Questions about ${truth.controversies.last.kind}',
     ]);
   }
 
@@ -2005,6 +2340,7 @@ class _CandidateBuild {
     required this.commentThreads,
     required this.newsEvent,
     required this.newsCoverages,
+    this.priorOffice,
   });
   final CandidatePortrait portrait;
   final CandidateBackgroundTemplate background;
@@ -2020,6 +2356,7 @@ class _CandidateBuild {
   final Map<String, CityBookCommentThread> commentThreads;
   final UnderlyingNewsEvent newsEvent;
   final List<NewsCoverage> newsCoverages;
+  final ReturningCandidateOfficeRecord? priorOffice;
 }
 
 const _femaleFirstNames = <String>[

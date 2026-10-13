@@ -16,6 +16,10 @@ import '../features/dossier/candidate_dossier_screen.dart';
 import '../features/dossier/candidate_roster_screen.dart';
 import '../features/election/election_screen.dart';
 import '../features/gallery/visit_cities_screen.dart';
+import '../features/history/political_history_screen.dart';
+import '../features/history/accountability_journal_screen.dart';
+import '../features/history/historical_evidence_screen.dart';
+import '../features/history/civic_progression_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/information/citybook_profile_screen.dart';
 import '../features/information/news_article_screen.dart';
@@ -94,6 +98,59 @@ GoRouter buildRouter(
           audioService,
           _informationMusicContext(controller),
           CityChronicleScreen(controller: controller),
+        ),
+      ),
+      GoRoute(
+        path: '/history',
+        builder: (context, state) => _musicHost(
+          audioService,
+          GameMusicContext.investigation,
+          PoliticalHistoryScreen(controller: controller),
+        ),
+        routes: [
+          GoRoute(
+            path: ':term',
+            builder: (context, state) => _musicHost(
+              audioService,
+              GameMusicContext.investigation,
+              AdministrationHistoryDetailScreen(
+                controller: controller,
+                termNumber:
+                    int.tryParse(state.pathParameters['term'] ?? '') ?? -1,
+              ),
+            ),
+            routes: [
+              GoRoute(
+                path: 'evidence/:evidenceId',
+                builder: (context, state) => _musicHost(
+                  audioService,
+                  GameMusicContext.investigation,
+                  HistoricalEvidenceScreen(
+                    controller: controller,
+                    termNumber:
+                        int.tryParse(state.pathParameters['term'] ?? '') ?? -1,
+                    evidenceId: state.pathParameters['evidenceId'] ?? '',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/accountability',
+        builder: (context, state) => _musicHost(
+          audioService,
+          GameMusicContext.investigation,
+          AccountabilityJournalScreen(controller: controller),
+        ),
+      ),
+      GoRoute(
+        path: '/civic-profile',
+        builder: (context, state) => _musicHost(
+          audioService,
+          GameMusicContext.investigation,
+          CivicProgressionScreen(controller: controller),
         ),
       ),
       GoRoute(

@@ -159,6 +159,9 @@ abstract final class ProceduralElectionCodec {
     'experience': truth.experience,
     'populism': truth.populism,
     'ambition': truth.ambition,
+    'reform_credibility': truth.reformCredibility,
+    'political_fatigue': truth.politicalFatigue,
+    'institutional_standing': truth.institutionalStanding,
     'policy_scores': truth.policyScores,
     'motivations': truth.motivations,
     'hidden_risks': truth.hiddenRisks,
@@ -208,6 +211,21 @@ abstract final class ProceduralElectionCodec {
         experience: _int(json, 'experience'),
         populism: _int(json, 'populism'),
         ambition: _int(json, 'ambition'),
+        reformCredibility: _optionalInt(
+          json,
+          'reform_credibility',
+          _int(json, 'integrity'),
+        ),
+        politicalFatigue: _optionalInt(
+          json,
+          'political_fatigue',
+          (_int(json, 'experience') ~/ 4).clamp(5, 35),
+        ),
+        institutionalStanding: _optionalInt(
+          json,
+          'institutional_standing',
+          _int(json, 'coalition_skill'),
+        ),
         policyScores: _intMap(json['policy_scores'], 'policy_scores'),
         motivations: _strings(json, 'motivations'),
         hiddenRisks: _strings(json, 'hidden_risks'),
@@ -994,6 +1012,12 @@ abstract final class ProceduralElectionCodec {
 
   static int _int(Map<String, Object?> json, String field) =>
       _number(json[field], field).toInt();
+
+  static int _optionalInt(
+    Map<String, Object?> json,
+    String field,
+    int fallback,
+  ) => json[field] is num ? (json[field] as num).toInt() : fallback;
 
   static bool _bool(Map<String, Object?> json, String field) {
     final value = json[field];

@@ -1,6 +1,6 @@
-# Resibo, Please — Android Midterm Release Readiness
+# Resibo, Please — Android Release Readiness
 
-Audit date: **August 25, 2026**
+Audit refreshed: **October 13, 2026**
 
 This pass stabilized the existing vertical slice. It did not add a new gameplay
 system. “Automated” below means covered by the repository test suite; “code
@@ -9,21 +9,28 @@ was inspected. A real Android-device result is never inferred from a web build.
 
 ## Release status
 
-**Project checks pass, but an Android APK has not been produced on this PC.**
-The installed Flutter SDK cannot find an Android SDK. Install/configure Android
-Studio and its SDK, accept licenses, then rerun the APK command. Real-device
-testing is also still required before the classroom demonstration.
+**Automated project checks and local production builds pass.** A fresh Android
+release APK was produced at `build/app/outputs/flutter-apk/app-release.apk`.
+It is suitable for classroom/device QA, but it is not a Play Store release:
+the release build still uses debug signing, live Supabase remains externally
+unverified, audio provenance must be confirmed, and physical-device testing is
+still required.
+
+APK checkpoint:
+
+- Size: **106,529,013 bytes** (about 101.6 MB)
+- SHA-256: `C0CFE06AE0642EFB86956B30D91EB77E2EEDEF54493BCE0C5052C30A0D9D4D0C`
+- Supabase compile-time configuration: **included from the git-ignored local file**
 
 ## Automated checks
 
 | Check | Result | Detail |
 | --- | --- | --- |
-| `flutter clean` | PASS | Build outputs removed; Flutter retried one temporarily locked `.dart_tool` directory and completed successfully. |
-| `flutter pub get` | PASS | Dependencies restored. Available incompatible upgrades were informational only. |
 | `flutter analyze` | PASS | No issues found. |
-| `flutter test` | PASS | All **153** tests passed, including gallery V2 identity, privacy, ownership, REST-method, and SQL-policy coverage. |
-| `flutter build web` | PASS | Production output created at `build/web`. The optional WebAssembly dry run also succeeded. |
-| `flutter build apk --release` | BLOCKED | Flutter stopped with `No Android SDK found. Try setting the ANDROID_HOME environment variable.` No APK was generated. |
+| `flutter test` | PASS | All **194** tests passed, including multi-election persistence, ten-administration stress, career evolution, citizen checkpoints, responsive routes, and gallery API safeguards. |
+| `flutter build web` | PASS | Production output created at `build/web`; the WebAssembly dry run also succeeded. |
+| `flutter build apk --release --dart-define-from-file=config/supabase.local.json` | PASS | Fresh 101.6 MB classroom/demo APK produced successfully with Visit Cities configuration included. |
+| Credential-pattern scan | PASS | No committed service-role key, private key, GitHub token, or hardcoded Supabase service credential was found. Expected defensive/test references to `service_role` remain. |
 
 ## Functional audit
 
@@ -124,16 +131,10 @@ service-role key in the APK.
 
 ### Build this APK on the development PC
 
-1. Install Android Studio with Android SDK, Platform Tools, Build Tools, and a
-   current Android SDK platform.
-2. Point Flutter to it if discovery fails:
-   `flutter config --android-sdk "C:\\Users\\<you>\\AppData\\Local\\Android\\Sdk"`.
-3. Run `flutter doctor --android-licenses`, accept the licenses, then confirm
-   `flutter doctor -v` shows a working Android toolchain.
-4. Run `flutter build apk --release`.
-5. Confirm the artifact at
-   `build/app/outputs/flutter-apk/app-release.apk`, then install and test that
-   exact release artifact on a physical phone.
+Run `flutter build apk --release`, then install the artifact from
+`build/app/outputs/flutter-apk/app-release.apk`. A Supabase-enabled build still
+needs the project URL and publishable/anon key supplied through the documented
+compile-time configuration. Never place a service-role key in the APK.
 
 ### Mandatory physical-device path
 
@@ -164,7 +165,8 @@ Launch
 During this pass, verify SFX loudness, dialogue toggle, music-safe silence,
 Filipino text, reduced motion, back behavior, API offline behavior, map pan/zoom,
 Day 365, and restoration of candidate/event/project state. This checklist is
-currently **pending** because no Android SDK/device was available here.
+currently **pending** because automated builds cannot perform physical-device
+interaction or verify the deployed Supabase project.
 
 ## Remaining non-blocking issues
 

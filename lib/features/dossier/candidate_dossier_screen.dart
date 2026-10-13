@@ -45,6 +45,7 @@ class CandidateDossierScreen extends StatefulWidget {
 class _CandidateDossierScreenState extends State<CandidateDossierScreen> {
   _DossierTab _tab = _DossierTab.overview;
   _EvidenceFilter _evidenceFilter = _EvidenceFilter.all;
+  bool _organizeEvidence = false;
 
   @override
   void didUpdateWidget(CandidateDossierScreen oldWidget) {
@@ -52,6 +53,7 @@ class _CandidateDossierScreenState extends State<CandidateDossierScreen> {
     if (oldWidget.candidateId != widget.candidateId) {
       _tab = _DossierTab.overview;
       _evidenceFilter = _EvidenceFilter.all;
+      _organizeEvidence = false;
     }
   }
 
@@ -177,8 +179,16 @@ class _CandidateDossierScreenState extends State<CandidateDossierScreen> {
                                     controller: widget.controller,
                                     candidate: candidate,
                                     selectedFilter: _evidenceFilter,
+                                    organizerUnlocked: widget
+                                        .controller
+                                        .civicProgression
+                                        .evidenceOrganizerUnlocked,
+                                    organized: _organizeEvidence,
                                     onFilterChanged: (filter) => setState(
                                       () => _evidenceFilter = filter,
+                                    ),
+                                    onOrganizerChanged: (value) => setState(
+                                      () => _organizeEvidence = value,
                                     ),
                                   ),
                                 },
@@ -868,20 +878,39 @@ class _EvidencePage extends StatelessWidget {
     required this.controller,
     required this.candidate,
     required this.selectedFilter,
+    required this.organizerUnlocked,
+    required this.organized,
     required this.onFilterChanged,
+    required this.onOrganizerChanged,
     super.key,
   });
 
   final GameController controller;
   final Candidate candidate;
   final _EvidenceFilter selectedFilter;
+  final bool organizerUnlocked;
+  final bool organized;
   final ValueChanged<_EvidenceFilter> onFilterChanged;
+  final ValueChanged<bool> onOrganizerChanged;
 
   @override
   Widget build(BuildContext context) {
     final visible = candidate.evidence
         .where((item) => _matchesFilter(item, selectedFilter, controller))
-        .toList(growable: false);
+        .toList(growable: true);
+    if (organizerUnlocked && organized) {
+      visible.sort((left, right) {
+        final byReview = _reviewRank(
+          left,
+          controller,
+        ).compareTo(_reviewRank(right, controller));
+        if (byReview != 0) return byReview;
+        final bySource = _sourceRank(
+          left.type,
+        ).compareTo(_sourceRank(right.type));
+        return bySource != 0 ? bySource : left.id.compareTo(right.id);
+      });
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -893,6 +922,85 @@ class _EvidencePage extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+        if (organizerUnlocked) ...[
+          const SizedBox(height: 11),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const Key('evidence_organizer_toggle'),
+              borderRadius: BorderRadius.circular(7),
+              onTap: () => onOrganizerChanged(!organized),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 48),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: organized
+                        ? const [Color(0xFF3F876E), Color(0xFF28604F)]
+                        : const [Color(0xFFF0DDAF), Color(0xFFD3BB84)],
+                  ),
+                  border: Border.all(color: dossierInk, width: 2),
+                  borderRadius: BorderRadius.circular(7),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black38, offset: Offset(1, 3)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      organized
+                          ? Icons.inventory_rounded
+                          : Icons.inventory_2_outlined,
+                      color: organized ? const Color(0xFFFFF1D1) : dossierInk,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.l10n.sourceDesk.toUpperCase(),
+                            style: TextStyle(
+                              color: organized
+                                  ? const Color(0xFFFFF1D1)
+                                  : dossierInk,
+                              fontFamily: 'LilitaOne',
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            organized
+                                ? context.l10n.sourceDeskOrganized
+                                : context.l10n.sourceDeskDefault,
+                            style: TextStyle(
+                              color: organized
+                                  ? const Color(0xFFE0EEE6)
+                                  : const Color(0xFF5B4C36),
+                              fontSize: 10,
+                              height: 1.2,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      organized
+                          ? Icons.check_circle_rounded
+                          : Icons.swap_vert_rounded,
+                      color: organized ? const Color(0xFFFFD765) : dossierInk,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 13),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -986,6 +1094,24 @@ class _EvidencePage extends StatelessWidget {
     _EvidenceFilter.debate => item.type == EvidenceType.debateAnswer,
     _EvidenceFilter.questions => item.type == EvidenceType.controversy,
     _EvidenceFilter.bookmarked => controller.isBookmarked(item.id),
+  };
+
+  static int _reviewRank(EvidenceItem item, GameController controller) {
+    if (controller.isBookmarked(item.id)) return 0;
+    if (controller.isEvidenceViewed(item.id)) return 1;
+    return 2;
+  }
+
+  static int _sourceRank(EvidenceType type) => switch (type) {
+    EvidenceType.publicRecord => 0,
+    EvidenceType.budgetDocument => 1,
+    EvidenceType.factCheck => 2,
+    EvidenceType.profile => 3,
+    EvidenceType.debateAnswer => 4,
+    EvidenceType.controversy => 5,
+    EvidenceType.platform => 6,
+    EvidenceType.campaignAd => 7,
+    EvidenceType.socialPost => 8,
   };
 
   static String _filterLabel(BuildContext context, _EvidenceFilter filter) =>

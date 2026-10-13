@@ -225,6 +225,45 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('research level two unlocks the optional Source Desk organizer', (
+    tester,
+  ) async {
+    usePhoneViewport(tester);
+    final controller = GameController();
+    controller.createCity(
+      slotIndex: 0,
+      configuration: CityRunConfiguration.defaults(cityName: 'Research City'),
+      worldSeed: 1042027,
+    );
+    final candidate = controller.scenario.candidates.first;
+    for (final evidence in candidate.evidence.take(4)) {
+      expect(controller.markEvidenceViewed(evidence.id), isTrue);
+      controller.toggleBookmark(evidence.id);
+    }
+    expect(controller.civicProgression.evidenceOrganizerUnlocked, isTrue);
+
+    await pumpRoute(
+      tester,
+      controller: controller,
+      location: '/candidates/${candidate.id}/dossier',
+    );
+    final evidenceTab = find.byKey(const Key('dossier_tab_evidence'));
+    await tester.ensureVisible(evidenceTab);
+    await tester.tap(evidenceTab);
+    await tester.pump(const Duration(milliseconds: 220));
+
+    final organizer = find.byKey(const Key('evidence_organizer_toggle'));
+    expect(organizer, findsOneWidget);
+    await tester.ensureVisible(organizer);
+    await tester.tap(organizer);
+    await tester.pump(const Duration(milliseconds: 220));
+    expect(
+      find.textContaining('Bookmarked and reviewed files'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('candidate dossier chrome and content switch to Filipino', (
     tester,
   ) async {

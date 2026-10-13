@@ -221,6 +221,29 @@ void main() {
     );
   });
 
+  test('older election snapshots gain bounded career-memory defaults', () {
+    final initial = generate(456790);
+    final raw =
+        jsonDecode(jsonEncode(ProceduralElectionCodec.encode(initial)))
+            as Map<String, dynamic>;
+    final truthProfiles = raw['truth_profiles'] as Map<String, dynamic>;
+    for (final value in truthProfiles.values) {
+      final truth = value as Map<String, dynamic>;
+      truth.remove('reform_credibility');
+      truth.remove('political_fatigue');
+      truth.remove('institutional_standing');
+    }
+
+    final restored = ProceduralElectionCodec.decode(raw);
+
+    expect(restored.validate(), isEmpty);
+    for (final truth in restored.truthProfiles.values) {
+      expect(truth.reformCredibility, truth.integrity);
+      expect(truth.politicalFatigue, inInclusiveRange(5, 35));
+      expect(truth.institutionalStanding, truth.coalitionSkill);
+    }
+  });
+
   test('career origins vary by seed and are not assigned to fixed slots', () {
     final allOrigins = <CandidateCareerOrigin>{};
     final originsBySlot = <int, Set<CandidateCareerOrigin>>{};

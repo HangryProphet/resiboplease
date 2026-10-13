@@ -7,7 +7,9 @@
 > **Development/testing platform:** Flutter Web in Chrome during early development  
 > **Frontend:** Flutter  
 > **Game layer:** Flame, used only where a real-time canvas or animated city scene is beneficial  
-> **Planned backend:** Firebase  
+> **Implemented network service:** Supabase REST/PostgREST with Anonymous Auth for the optional Public City Gallery
+>
+> **Deferred backend work:** broader accounts/cloud saves remain future work; Firebase references later in this document are historical design notes
 > **Primary SDG:** SDG 4 — Quality Education  
 > **Secondary SDG:** SDG 11 — Sustainable Cities and Communities  
 > **Related scenario domains:** SDG 1, 2, 3, 6, 8, and 13
@@ -37,15 +39,18 @@ It defines:
 
 When implementation decisions conflict with this document, update this file first so it remains the single source of truth.
 
-## Current implementation snapshot — August 2026
+## Current implementation snapshot — October 2026 source audit
 
-The offline Bayhaven vertical slice now implements the candidate experience
-defined in `docs/RESIBO_CANDIDATE_EXPERIENCE_ROADMAP.md`:
+The Bayhaven vertical slice now implements the candidate experience defined in
+`docs/RESIBO_CANDIDATE_EXPERIENCE_ROADMAP.md` and a repeatable local election
+and administration loop:
 
 - Candidate Hub navigation with Pulse, Dossier, and Debate;
-- six authored Pulse items for each current candidate using Glance, Inspect,
-  and Deep Dive disclosure;
-- a three-topic authored debate with linked evidence and player curation;
+- five procedurally generated candidates per normal run, chosen from seven
+  reusable portrait identities, with stable generated histories and evidence;
+- five or six Campaign Trail items per candidate using Glance, Inspect, and
+  Deep Dive disclosure;
+- a three-topic generated debate with linked evidence and player curation;
 - a persistent Receipts Board for claims, questions, debate statements,
   evidence bookmarks, notes, issue filters, and two-candidate comparison;
 - structured evidence relationships and free follow-up unlocks;
@@ -54,14 +59,32 @@ defined in `docs/RESIBO_CANDIDATE_EXPERIENCE_ROADMAP.md`:
 - hidden candidate quality bands and distinct rhetorical styles with no exposed
   match score or recommendation;
 - a world-level used-name registry with deterministic unique-name fallback;
-- local-save schema version 4 and migrations for older saves; and
+- local-save schema version 10, append-only administration history, civic
+  predictions, persisted citizen-action outcomes, and
+  migrations for older supported saves; and
 - English/Filipino-compatible candidate-interface chrome.
 
-Bayhaven still uses the three authored candidates. Procedural narrative writing,
-runtime AI, final campaign art, and full future-election candidate generation
-remain later phases; the required models, identity rules, and save fields are
-now prepared for them. The deterministic post-election simulation remains
-unchanged.
+Maya Vargas, Julian Pratt, and Victor Chen remain an authored reference/debug
+fixture, but are not the normal Create City ballot. The elected candidate now
+drives a persisted, deterministic 365-day Living City term with procedural
+events, causal chains, projects, world conditions, map markers, and a final
+report. Supabase is used only for optional sanitized city-gallery sharing;
+local gameplay remains local-first. The first multi-election foundation now
+carries final city state into later elections and mixes eligible returning
+politicians with new challengers. Returning officeholders now evolve through
+bounded causal career changes; Political History and Resibo ng Bayan preserve
+term receipts, promises, evidence, predictions, and recurring records. The
+three limited citizen actions can create deterministic future outcomes,
+including an evidence-linked claim challenge protected by an observed-day checkpoint
+without rewriting observed history. Longer-horizon defeated-candidate careers,
+daily simulation checkpoints, runtime generative AI, full cloud saves, and
+recovered user accounts remain deferred or in progress.
+
+> **Historical-design note:** Later sections retain original MVP and long-term
+> planning language—including three-candidate and Firebase examples—for design
+> provenance. When those passages conflict with this snapshot or
+> `RESIBO_PROJECT_CONTEXT_HANDOFF.md`, the audited implementation documents are
+> authoritative.
 
 ---
 

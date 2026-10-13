@@ -1,5 +1,12 @@
 # Procedural Candidate Generation
 
+> October 2026 source audit: normal Create City runs generate five candidates
+> with candidate generation version 1 and persist their snapshot in local save
+> schema 10. The authored three-candidate catalog is a fallback/debug fixture.
+> Later elections can supply eligible returning identities; those candidates
+> retain their stable ID, name, portrait, core truth, party, and archetype while
+> the current campaign graph is regenerated from a term-specific election seed.
+
 This document describes the implemented version-1 mayoral candidate generator.
 It is the developer contract for maintaining deterministic worlds and
 cross-system candidate consistency.
@@ -32,7 +39,7 @@ world seed + generation version + city configuration
   -> shared issue-rooted debate
   -> one candidate event with three news framings
   -> ProceduralElection validation
-  -> schema-6 save snapshot
+  -> schema-10 save snapshot
 ```
 
 City problems are generated first and passed into the candidate generator.

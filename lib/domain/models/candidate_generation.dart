@@ -87,6 +87,9 @@ class CandidateTruthProfile {
     this.experience = 50,
     this.populism = 50,
     this.ambition = 50,
+    this.reformCredibility = 50,
+    this.politicalFatigue = 10,
+    this.institutionalStanding = 50,
     this.informationFootprint = CandidateInformationFootprint.normal,
     this.careerOrigin = CandidateCareerOrigin.careerPolitician,
     this.personalityTags = const [],
@@ -110,6 +113,13 @@ class CandidateTruthProfile {
   final int experience;
   final int populism;
   final int ambition;
+
+  /// Dynamic career pressures. These remain simulation-only; player-facing
+  /// screens explain their causes through the historical record instead of
+  /// exposing raw scores.
+  final int reformCredibility;
+  final int politicalFatigue;
+  final int institutionalStanding;
   final CandidateInformationFootprint informationFootprint;
   final CandidateCareerOrigin careerOrigin;
   final List<String> personalityTags;

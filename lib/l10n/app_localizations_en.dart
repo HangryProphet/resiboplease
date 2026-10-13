@@ -814,6 +814,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'A source can be reputable yet incomplete. Open the item before deciding what weight it deserves.';
 
   @override
+  String get sourceDesk => 'Source Desk';
+
+  @override
+  String get sourceDeskDefault => 'Use the original dossier order.';
+
+  @override
+  String get sourceDeskOrganized =>
+      'Bookmarked and reviewed files are grouped first, then by source type.';
+
+  @override
   String investigationPointsRemaining(int count) {
     return '$count investigation points remaining';
   }
@@ -1146,6 +1156,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String continueToNextElection(int term) {
+    return 'Continue to Election $term';
+  }
+
+  @override
+  String get nextElectionDescription =>
+      'Carry this city\'s results forward. The next campaign inherits its indicators, unresolved issues, and political history.';
+
+  @override
   String get caseFileMissing => 'That case file could not be found.';
 
   @override
@@ -1310,4 +1329,503 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retrySave => 'Retry saving';
+
+  @override
+  String get politicalHistory => 'Political history';
+
+  @override
+  String get openPoliticalHistory => 'Open political history';
+
+  @override
+  String politicalHistoryDescription(int count) {
+    return 'Review $count completed administration record(s), including city outcomes, projects, major events, and your election receipts.';
+  }
+
+  @override
+  String get historicalReceipt => 'Historical receipt';
+
+  @override
+  String get historicalReceiptMissing =>
+      'That administration record is not stored in this city.';
+
+  @override
+  String get noAdministrationHistory => 'No completed administrations yet';
+
+  @override
+  String historyBeginsAfterTerm(int term) {
+    return 'Political history begins after Administration $term is completed and the city continues to its next election.';
+  }
+
+  @override
+  String get cityPoliticalTimeline => 'The city\'s political timeline';
+
+  @override
+  String historyTimelineDescription(int count, int election) {
+    return '$count administration(s) are sealed in the record. The city is now preparing for Election $election.';
+  }
+
+  @override
+  String administrationNumber(int term) {
+    return 'Administration $term';
+  }
+
+  @override
+  String openAdministrationReceipt(int term) {
+    return 'Open the receipt for Administration $term';
+  }
+
+  @override
+  String projectsCompleted(int count) {
+    return '$count completed';
+  }
+
+  @override
+  String majorEvents(int count) {
+    return '$count major events';
+  }
+
+  @override
+  String get openHistoricalReceipt => 'Open the full term receipt';
+
+  @override
+  String get cityOutcome => 'City outcome';
+
+  @override
+  String get promiseProjectRecord => 'Promise and project record';
+
+  @override
+  String get majorEventsRecorded => 'Major events recorded';
+
+  @override
+  String get noMajorEventsRecorded =>
+      'No major event was marked in this administration.';
+
+  @override
+  String get electionReceipt => 'Election receipt';
+
+  @override
+  String administrationOutcome(int term, String condition) {
+    return 'Administration $term ended with the city rated $condition.';
+  }
+
+  @override
+  String projectProgressReceipt(int progress, int milestones) {
+    return '$progress% complete · $milestones recorded milestone(s)';
+  }
+
+  @override
+  String get candidatesOnBallot => 'Candidates on ballot';
+
+  @override
+  String get evidenceReviewed => 'Evidence reviewed';
+
+  @override
+  String get receiptsSaved => 'Receipts saved';
+
+  @override
+  String get topIssueRecorded => 'Top issue recorded';
+
+  @override
+  String get voterConfidence => 'Voter confidence';
+
+  @override
+  String get resiboNgBayan => 'Resibo ng Bayan';
+
+  @override
+  String get openResiboNgBayan => 'Open Resibo ng Bayan';
+
+  @override
+  String get publicAccountabilityJournal => 'Public accountability journal';
+
+  @override
+  String get accountabilityJournalDescription =>
+      'Campaign promises are matched with the sealed project record. Incomplete work is described by its recorded state, not automatically called a lie.';
+
+  @override
+  String get promisesRecorded => 'Promises recorded';
+
+  @override
+  String get deliveredLabel => 'Delivered';
+
+  @override
+  String get administrationsRecorded => 'Administrations';
+
+  @override
+  String get allPromises => 'All promises';
+
+  @override
+  String get unresolvedPromises => 'Unresolved';
+
+  @override
+  String get noHistoricalPromises =>
+      'Complete an administration to begin the public promise journal.';
+
+  @override
+  String get noPromisesInFilter => 'No promises match this filter.';
+
+  @override
+  String get promiseNotStarted => 'Not started';
+
+  @override
+  String get promiseInProgress => 'In progress';
+
+  @override
+  String get promisePartiallyDelivered => 'Partially delivered';
+
+  @override
+  String get promiseDelivered => 'Delivered';
+
+  @override
+  String get promiseDelayed => 'Delayed';
+
+  @override
+  String get promiseAbandoned => 'Abandoned';
+
+  @override
+  String get promiseBlocked => 'Blocked';
+
+  @override
+  String get civicPredictions => 'Your expectations';
+
+  @override
+  String get civicPredictionsPrompt =>
+      'Optionally record up to two expectations before you seal the ballot.';
+
+  @override
+  String get civicPredictionsNote =>
+      'These are reflection notes, not bets or a hidden score. The term report will compare them with observed city indicators.';
+
+  @override
+  String predictionsSelected(int count) {
+    return '$count of 2 expectations recorded';
+  }
+
+  @override
+  String get predictionHealth => 'Public health will improve';
+
+  @override
+  String get predictionHealthDescription =>
+      'Compare the final public-health indicator with its starting condition.';
+
+  @override
+  String get predictionInfrastructure =>
+      'Infrastructure resilience will improve';
+
+  @override
+  String get predictionInfrastructureDescription =>
+      'Compare water, urban, and climate resilience across the term.';
+
+  @override
+  String get predictionLivelihoods => 'Livelihood conditions will improve';
+
+  @override
+  String get predictionLivelihoodsDescription =>
+      'Compare employment quality and poverty reduction.';
+
+  @override
+  String get predictionBudget => 'The city budget will remain healthier';
+
+  @override
+  String get predictionBudgetDescription =>
+      'Compare final budget health with the start of the term.';
+
+  @override
+  String get predictionTrust => 'Public trust will improve';
+
+  @override
+  String get predictionTrustDescription =>
+      'Compare public trust before and after the administration.';
+
+  @override
+  String get predictionCorruption => 'Corruption pressure will fall';
+
+  @override
+  String get predictionCorruptionDescription =>
+      'A lower final corruption-pressure indicator is healthier.';
+
+  @override
+  String get predictionReflection => 'Your expectation receipt';
+
+  @override
+  String get predictionReflectionBody =>
+      'This compares what you recorded before voting with observed indicator movement. It does not grade the vote or reveal a correct candidate.';
+
+  @override
+  String get predictionObserved => 'Observed improvement';
+
+  @override
+  String get predictionMixed => 'Mixed result';
+
+  @override
+  String get predictionNotObserved => 'Not observed';
+
+  @override
+  String get historicalEvidence => 'Historical evidence';
+
+  @override
+  String get historicalEvidenceMissing =>
+      'That evidence item is not present in the archived election snapshot.';
+
+  @override
+  String get archivedElectionSnapshot => 'Sealed election snapshot';
+
+  @override
+  String get historicalEvidenceNotice =>
+      'This is the evidence snapshot stored with that election. Later campaigns cannot replace or rewrite this historical document.';
+
+  @override
+  String get openArchivedEvidence => 'Open archived evidence';
+
+  @override
+  String get recurringRecords => 'Recurring records';
+
+  @override
+  String get recurringRecordsDescription =>
+      'These patterns come from multiple sealed administrations. Repetition provides context; it is not automatic proof of honesty, guilt, or future performance.';
+
+  @override
+  String get repeatedPromise => 'Repeated promise area';
+
+  @override
+  String get recurringControversy => 'Recurring controversy';
+
+  @override
+  String administrationsList(String terms) {
+    return 'Administrations: $terms';
+  }
+
+  @override
+  String get citizenActions => 'Citizen Actions';
+
+  @override
+  String get citizenActionHubDescription =>
+      'You are a citizen, not the mayor. Take limited actions during this term; the administration may cooperate, compromise, or resist.';
+
+  @override
+  String get requestPublicRecords => 'Request Public Records';
+
+  @override
+  String get requestPublicRecordsDescription =>
+      'Ask City Hall to release records relevant to public accountability.';
+
+  @override
+  String get organizePetition => 'Organize a Petition';
+
+  @override
+  String get organizePetitionDescription =>
+      'Build public pressure around the city\'s most severe current concern.';
+
+  @override
+  String get challengeMisleadingClaim => 'Challenge a Misleading Claim';
+
+  @override
+  String get challengeMisleadingClaimDescription =>
+      'Use reviewed evidence to challenge a misleading or false public claim.';
+
+  @override
+  String get challengeEvidenceRequired =>
+      'Review a reliable fact-check, public record, budget document, or documented controversy during the election to unlock this action.';
+
+  @override
+  String challengeEvidenceSelected(String title) {
+    return 'Supporting reviewed evidence: $title';
+  }
+
+  @override
+  String get actionWindowNotice =>
+      'Actions become available on Day 30 and close after Day 350.';
+
+  @override
+  String get actionAlreadyUsed => 'Filed this term';
+
+  @override
+  String get actionUnavailable => 'Unavailable right now';
+
+  @override
+  String get takeCitizenAction => 'Take action';
+
+  @override
+  String get actionPending => 'Pending response';
+
+  @override
+  String get actionResolved => 'Outcome recorded';
+
+  @override
+  String actionOutcomeDay(int day) {
+    return 'Expected response: Day $day';
+  }
+
+  @override
+  String get actionFiledConfirmation =>
+      'Action filed. Its outcome is now part of this term\'s fixed future.';
+
+  @override
+  String get citizenActionCausalityNote =>
+      'Outcome depends on city conditions, issue difficulty, public trust, budget health, and the mayor\'s capabilities. Success is not guaranteed.';
+
+  @override
+  String get confirmCitizenAction => 'Confirm citizen action?';
+
+  @override
+  String get confirmCitizenActionBody =>
+      'This action can be used only once this term. Its deterministic outcome will occur later and will persist with the save.';
+
+  @override
+  String get cancelAction => 'Not now';
+
+  @override
+  String get confirmAction => 'File action';
+
+  @override
+  String get civicProfile => 'Civic Profile';
+
+  @override
+  String get openCivicProfile => 'Open Civic Profile';
+
+  @override
+  String get civicProfileCityDescription =>
+      'Track civic practice and long-term accomplishments without exposing hidden candidate scores.';
+
+  @override
+  String get civicProfileSubtitle => 'Your long-term civic record';
+
+  @override
+  String get civicGrowthExplanation =>
+      'Progress comes from unique investigation, accountability work, citizen action, and completed administrations. It improves civic tools—not politicians—and never reveals hidden candidate truth.';
+
+  @override
+  String get civicTracks => 'Civic practice';
+
+  @override
+  String civicLevel(int level) {
+    return 'Level $level';
+  }
+
+  @override
+  String civicPoints(int points) {
+    return '$points record points';
+  }
+
+  @override
+  String civicNextLevel(int points) {
+    return '$points to next level';
+  }
+
+  @override
+  String get civicMaxLevel => 'Maximum level reached';
+
+  @override
+  String get researchTrack => 'Research';
+
+  @override
+  String get researchTrackDescription =>
+      'Review and organize evidence across distinct elections.';
+
+  @override
+  String get accountabilityTrack => 'Public Accountability';
+
+  @override
+  String get accountabilityTrackDescription =>
+      'Keep receipts, request records, and document recurring concerns.';
+
+  @override
+  String get organizingTrack => 'Civic Organizing';
+
+  @override
+  String get organizingTrackDescription =>
+      'Build experience through limited petitions and continued participation.';
+
+  @override
+  String get historyTrack => 'Historical Analysis';
+
+  @override
+  String get historyTrackDescription =>
+      'Complete administrations and connect recurring political records.';
+
+  @override
+  String responseEfficiencyUnlocked(int days) {
+    return 'Civic experience shortens this action\'s response time by $days days without improving its chance of success.';
+  }
+
+  @override
+  String get sourceDeskUnlocked =>
+      'Source Desk unlocked: optionally organize visible dossier files by review state and source type. It does not reveal hidden truth or unlock evidence.';
+
+  @override
+  String get civicAccomplishments => 'Accomplishments';
+
+  @override
+  String civicAccomplishmentsCount(int done, int total) {
+    return '$done of $total documented';
+  }
+
+  @override
+  String get accomplishmentFirstAdministration => 'A City Remembers';
+
+  @override
+  String get accomplishmentFirstAdministrationDescription =>
+      'Complete and archive one administration.';
+
+  @override
+  String get accomplishmentThreeAdministrations => 'Three Elections Later';
+
+  @override
+  String get accomplishmentThreeAdministrationsDescription =>
+      'Complete three administrations in the same city.';
+
+  @override
+  String get accomplishmentFiveAdministrations => 'Long Civic Memory';
+
+  @override
+  String get accomplishmentFiveAdministrationsDescription =>
+      'Complete five administrations in the same city.';
+
+  @override
+  String get accomplishmentMultiSource => 'Check More Than One Source';
+
+  @override
+  String get accomplishmentMultiSourceDescription =>
+      'Review at least five evidence items in one election.';
+
+  @override
+  String get accomplishmentRecurringPromise => 'Promise, Repeated';
+
+  @override
+  String get accomplishmentRecurringPromiseDescription =>
+      'Document a recurring promise across sealed administrations.';
+
+  @override
+  String get accomplishmentPublicRecords => 'Records Obtained';
+
+  @override
+  String get accomplishmentPublicRecordsDescription =>
+      'Receive a useful or partial public-record release.';
+
+  @override
+  String get accomplishmentPetition => 'A Public Response';
+
+  @override
+  String get accomplishmentPetitionDescription =>
+      'Organize a petition that produces a recorded concession or response.';
+
+  @override
+  String get accomplishmentIssueRecovery => 'Signs of Recovery';
+
+  @override
+  String get accomplishmentIssueRecoveryDescription =>
+      'See a major city issue improve substantially during a term.';
+
+  @override
+  String get accomplishmentCrossTermProject => 'Across Administrations';
+
+  @override
+  String get accomplishmentCrossTermProjectDescription =>
+      'Track work in the same issue family across multiple terms.';
+
+  @override
+  String get accomplishmentPoliticalComeback => 'The Comeback';
+
+  @override
+  String get accomplishmentPoliticalComebackDescription =>
+      'Witness a former mayor return after at least one administration away.';
 }

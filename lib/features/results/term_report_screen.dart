@@ -7,6 +7,7 @@ import '../../data/gallery/city_gallery_repository.dart';
 import '../../domain/models/city_indicator.dart';
 import '../../domain/models/term_result.dart';
 import '../../domain/models/living_city_simulation.dart';
+import '../../domain/models/civic_prediction.dart';
 import '../../l10n/game_content_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../city/widgets/city_brief_ui.dart';
@@ -236,6 +237,27 @@ class TermReportScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+                          if (controller.predictionIds.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            CitySectionTitle(
+                              title: context.l10n.predictionReflection,
+                              icon: Icons.compare_arrows_rounded,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              context.l10n.predictionReflectionBody,
+                              style: const TextStyle(
+                                color: Color(0xFFB9C7CF),
+                                fontSize: 11,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _PredictionReflectionPanel(
+                              predictionIds: controller.predictionIds,
+                              result: result,
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           PublishCitySnapshotPanel(
                             controller: controller,
@@ -259,6 +281,147 @@ class TermReportScreen extends StatelessWidget {
     );
   }
 }
+
+class _PredictionReflectionPanel extends StatelessWidget {
+  const _PredictionReflectionPanel({
+    required this.predictionIds,
+    required this.result,
+  });
+
+  final Set<String> predictionIds;
+  final TermResult result;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      for (final id in predictionIds)
+        if (civicPredictionById(id) case final prediction?)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _PredictionReflectionCard(
+              prediction: prediction,
+              assessment: prediction.assess(
+                before: result.before,
+                after: result.after,
+              ),
+            ),
+          ),
+    ],
+  );
+}
+
+class _PredictionReflectionCard extends StatelessWidget {
+  const _PredictionReflectionCard({
+    required this.prediction,
+    required this.assessment,
+  });
+
+  final CivicPrediction prediction;
+  final CivicPredictionAssessment assessment;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (assessment.outcome) {
+      CivicPredictionOutcome.observed => ResiboColors.teal,
+      CivicPredictionOutcome.mixed => const Color(0xFFC27B27),
+      CivicPredictionOutcome.notObserved => ResiboColors.mutedRed,
+    };
+    final label = switch (assessment.outcome) {
+      CivicPredictionOutcome.observed => context.l10n.predictionObserved,
+      CivicPredictionOutcome.mixed => context.l10n.predictionMixed,
+      CivicPredictionOutcome.notObserved => context.l10n.predictionNotObserved,
+    };
+    return CityPaperPanel(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 37,
+                height: 37,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: cityBriefInk, width: 1.5),
+                ),
+                child: Icon(
+                  assessment.outcome == CivicPredictionOutcome.observed
+                      ? Icons.trending_up_rounded
+                      : assessment.outcome == CivicPredictionOutcome.notObserved
+                      ? Icons.trending_down_rounded
+                      : Icons.trending_flat_rounded,
+                  color: const Color(0xFFFFF0CB),
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  _predictionReceiptTitle(context, prediction.id),
+                  style: const TextStyle(
+                    color: cityBriefInk,
+                    fontFamily: 'LilitaOne',
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              Container(
+                constraints: const BoxConstraints(maxWidth: 120),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: cityBriefInk, width: 1.5),
+                ),
+                child: Text(
+                  label.toUpperCase(),
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFFFFF0CB),
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final entry in assessment.healthyChanges.entries)
+                Text(
+                  '${context.l10n.indicatorLabel(entry.key)} ${entry.value >= 0 ? '+' : ''}${entry.value}',
+                  style: TextStyle(
+                    color: entry.value > 0
+                        ? ResiboColors.teal
+                        : entry.value < 0
+                        ? ResiboColors.mutedRed
+                        : const Color(0xFF675946),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _predictionReceiptTitle(BuildContext context, String id) => switch (id) {
+  'health_access' => context.l10n.predictionHealth,
+  'infrastructure_resilience' => context.l10n.predictionInfrastructure,
+  'livelihoods' => context.l10n.predictionLivelihoods,
+  'budget_protection' => context.l10n.predictionBudget,
+  'public_trust' => context.l10n.predictionTrust,
+  'corruption_pressure' => context.l10n.predictionCorruption,
+  _ => id,
+};
 
 class _ProjectLedger extends StatelessWidget {
   const _ProjectLedger({required this.projects});
@@ -389,10 +552,7 @@ int _healthyChange(CityIndicator indicator, int change) =>
     indicator == CityIndicator.corruptionPressure ? -change : change;
 
 class _ReportHero extends StatelessWidget {
-  const _ReportHero({
-    required this.result,
-    required this.portraitAssetKey,
-  });
+  const _ReportHero({required this.result, required this.portraitAssetKey});
 
   final TermResult result;
   final String portraitAssetKey;
@@ -799,6 +959,18 @@ class _ReportActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
+      final nextElection = ChunkyActionButton(
+        buttonKey: const Key('continue_to_next_election'),
+        label: context.l10n.continueToNextElection(
+          result.livingCity.termNumber + 1,
+        ),
+        icon: Icons.how_to_vote_rounded,
+        color: ResiboColors.teal,
+        onPressed: () {
+          controller.continueToNextElection();
+          context.go('/city');
+        },
+      );
       final replay = ChunkyActionButton(
         buttonKey: const Key('restart_same_seed'),
         label: context.l10n.replaySeed(result.seed),
@@ -809,6 +981,13 @@ class _ReportActions extends StatelessWidget {
           context.go('/city');
         },
       );
+      final history = ChunkyActionButton(
+        buttonKey: const Key('open_political_history'),
+        label: context.l10n.openPoliticalHistory,
+        icon: Icons.history_edu_rounded,
+        color: const Color(0xFF76512E),
+        onPressed: () => context.go('/history'),
+      );
       final home = ChunkyActionButton(
         label: context.l10n.mainMenu,
         icon: Icons.home_rounded,
@@ -818,14 +997,55 @@ class _ReportActions extends StatelessWidget {
       if (constraints.maxWidth < 560) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [replay, const SizedBox(height: 12), home],
+          children: [
+            Text(
+              context.l10n.nextElectionDescription,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFFB9C7CF),
+                fontSize: 11,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 10),
+            nextElection,
+            if (controller.administrationHistory.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              history,
+            ],
+            const SizedBox(height: 12),
+            replay,
+            const SizedBox(height: 12),
+            home,
+          ],
         );
       }
-      return Row(
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: replay),
-          const SizedBox(width: 12),
-          Expanded(child: home),
+          Text(
+            context.l10n.nextElectionDescription,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFFB9C7CF),
+              fontSize: 11,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 10),
+          nextElection,
+          if (controller.administrationHistory.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            history,
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: replay),
+              const SizedBox(width: 12),
+              Expanded(child: home),
+            ],
+          ),
         ],
       );
     },

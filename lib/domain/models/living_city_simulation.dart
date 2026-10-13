@@ -388,6 +388,7 @@ class CityEvent {
     required this.relatedIssueIds,
     required this.relatedProjectIds,
     required this.relatedCandidateIds,
+    this.relatedEvidenceIds = const [],
     required this.indicatorEffects,
     required this.issueSeverityEffects,
     required this.requiredHooks,
@@ -422,6 +423,7 @@ class CityEvent {
   final List<String> relatedIssueIds;
   final List<String> relatedProjectIds;
   final List<String> relatedCandidateIds;
+  final List<String> relatedEvidenceIds;
   final Map<CityIndicator, int> indicatorEffects;
   final Map<String, int> issueSeverityEffects;
   final List<String> requiredHooks;
@@ -789,6 +791,9 @@ CandidateTruthSnapshot truthSnapshotFromCandidate(Candidate candidate) =>
       crisisResponse: candidate.capabilities.crisisResponse,
       adaptability: candidate.capabilities.crisisResponse,
       experience: candidate.capabilities.implementationSkill,
+      reformCredibility: candidate.capabilities.integrity,
+      politicalFatigue: 10,
+      institutionalStanding: candidate.capabilities.coalitionSkill,
       policyScores: candidate.capabilities.policyScores,
     );
 
@@ -823,6 +828,9 @@ CandidateTruthSnapshot truthSnapshotFromProfile(
     crisisResponse: profile.crisisResponse,
     adaptability: profile.adaptability,
     experience: profile.experience,
+    reformCredibility: profile.reformCredibility,
+    politicalFatigue: profile.politicalFatigue,
+    institutionalStanding: profile.institutionalStanding,
     policyScores: Map.unmodifiable(policyScores),
   );
 }
@@ -839,6 +847,9 @@ class CandidateTruthSnapshot {
     required this.crisisResponse,
     required this.adaptability,
     required this.experience,
+    required this.reformCredibility,
+    required this.politicalFatigue,
+    required this.institutionalStanding,
     required this.policyScores,
   });
 
@@ -852,6 +863,9 @@ class CandidateTruthSnapshot {
   final int crisisResponse;
   final int adaptability;
   final int experience;
+  final int reformCredibility;
+  final int politicalFatigue;
+  final int institutionalStanding;
   final Map<CityIndicator, int> policyScores;
 
   int policyFor(CityIndicator indicator) => policyScores[indicator] ?? 50;

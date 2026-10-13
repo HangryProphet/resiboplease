@@ -1,5 +1,10 @@
 # Public City Gallery API Integration V2
 
+> **October 2026 source audit:** V2 and
+> `docs/SUPABASE_CITY_GALLERY_V2.sql` are the authoritative client/database
+> contract. The repository implementation was inspected, but the live Supabase
+> project and network operations were not exercised during this audit.
+
 ## API
 
 **Supabase REST API (PostgREST)** with **Supabase Anonymous Auth** for a hidden,
